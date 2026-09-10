@@ -560,6 +560,14 @@ copy bootflash:backup.cfg running-config
    - Confirm application functionality
    - Update documentation
 
+## Testing and Validation
+
+Beyond ad-hoc diagnosis, use the standalone validation tests in
+[tests/](../tests/) to confirm a specific piece of cluster functionality
+(e.g. GPU metrics collection, backend networking) works as expected after a
+deployment or configuration change. See [docs/tests.md](tests.md) for the
+full index of available tests.
+
 ## Preventive Measures
 
 ### Regular Maintenance

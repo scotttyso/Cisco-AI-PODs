@@ -14,7 +14,7 @@ spec:
   imagePullSecrets: []
   repository: nvcr.io/nvidia
   kernelModuleConfig:
-    name: ''
+    name: 'nvidia-kernel-module-params'
   kernelModuleType: auto
   licensingConfig:
     secretName: ''
@@ -22,12 +22,12 @@ spec:
   # Target nodes with Mellanox cards using your cluster's node labels
   nodeSelector:
     feature.node.kubernetes.io/pci-15b3.sriov.capable: 'true'
-  repoConfig:
-    name: ''
-  virtualTopologyConfig:
-    name: ''
   # RDMA specifically enabled for Mellanox hosts
   rdma:
     enabled: true
     useHostMofed: false
+  repoConfig:
+    name: ''
   version: "{{ .Values.nvidiaGpuDriverVersion }}"
+  virtualTopologyConfig:
+    name: ''

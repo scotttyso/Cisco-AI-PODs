@@ -1,0 +1,15 @@
+---
+# Only needed if the cluster's integrated image registry is Removed/absent.
+# Check first with: oc get configs.imageregistry.operator.openshift.io/cluster
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: image-registry-storage
+  namespace: openshift-image-registry
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: __STORAGE_CLASS__
+  resources:
+    requests:
+      storage: 200Gi

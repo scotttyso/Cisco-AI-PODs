@@ -58,6 +58,10 @@ All workflows execute through centralized Ansible playbooks from the repository 
   - Role details: [roles/splunk_observability/README.md](roles/splunk_observability/README.md)
    - Full-stack monitoring and observability integration
 
+6. **Testing** (standalone, outside the Ansible playbooks)
+   - Guide: [docs/tests.md](docs/tests.md)
+   - Standalone validation tests for the OpenShift cluster (e.g. GPU metrics, backend networking) under [tests/](tests/), each with its own README and setup script
+
 ## Repository Layout
 
 Top-level structure:
@@ -69,9 +73,12 @@ Cisco-AI-Pods/
     openshift.md
     everpure.md
     splunk_observability.md
+    tests.md
     guide_cisco_ai_pods_runbook.md
     guide_prepare_the_environment.md
     guide_troubleshooting.md
+  tests/                         # Standalone OpenShift cluster validation tests
+    nvidia-metrics-non-admin/
   playbooks/                     # Centralized Ansible playbooks
     deploy_ai_pod.yaml           # Full stack orchestration
     deploy_openshift.yaml        # OpenShift only
@@ -107,6 +114,7 @@ All documentation is in the `docs/` folder:
   - [docs/openshift.md](docs/openshift.md) — OpenShift deployment
   - [docs/everpure.md](docs/everpure.md) — Storage configuration
   - [docs/splunk_observability.md](docs/splunk_observability.md) — Observability integration
+  - [docs/tests.md](docs/tests.md) — Standalone OpenShift cluster validation tests
 
 ## Environment Preparation
 
@@ -224,6 +232,7 @@ ansible-playbook playbooks/deploy_ai_pod.yaml --tags certificates
   - OpenShift: [docs/openshift.md](docs/openshift.md)
   - Storage: [docs/everpure.md](docs/everpure.md)
   - Observability: [docs/splunk_observability.md](docs/splunk_observability.md)
+- **Cluster validation tests:** [docs/tests.md](docs/tests.md)
 - Keep `host_vars/` configurations and documentation synchronized as environments evolve
 - Variables are auto-loaded from `host_vars/` subdirectories at runtime — no manual file copying needed
 

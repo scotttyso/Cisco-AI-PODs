@@ -1,0 +1,42 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-metrics-test
+  namespace: __NAMESPACE__
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: gpu-metrics-test
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: gpu-metrics-test
+          image: image-registry.openshift-image-registry.svc:5000/__NAMESPACE__/gpu-metrics-test:latest
+          imagePullPolicy: Always
+          env:
+            - name: TEST_DURATION
+              value: "120"
+            # 1004 = tensor pipe active, 1005 = DRAM active, 1002 = SM active
+            - name: PROF_FIELD
+              value: "1004"
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+              memory: 4Gi
+              cpu: "2"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: work
+              mountPath: /work
+      volumes:
+        - name: work
+          emptyDir: {}

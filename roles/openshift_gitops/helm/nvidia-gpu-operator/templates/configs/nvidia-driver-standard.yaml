@@ -14,7 +14,7 @@ spec:
   imagePullSecrets: []
   repository: nvcr.io/nvidia
   kernelModuleConfig:
-    name: ''
+    name: 'nvidia-kernel-module-params'
   kernelModuleType: auto
   licensingConfig:
     secretName: ''
@@ -23,12 +23,12 @@ spec:
   # oc label node <node_name> hardware.network/mellanox: false
   nodeSelector:
     hardware.network/mellanox: 'false'
-  repoConfig:
-    name: ''
-  virtualTopologyConfig:
-    name: ''
   # RDMA disabled to avoid errors on standard hosts
   rdma:
     enabled: false
     useHostMofed: false
+  repoConfig:
+    name: ''
   version: "{{ .Values.nvidiaGpuDriverVersion }}"
+  virtualTopologyConfig:
+    name: ''
