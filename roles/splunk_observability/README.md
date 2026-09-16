@@ -1,6 +1,6 @@
 # Splunk Observability Role
 
-Deploys and configures Splunk Observability components for Cisco AI Pods, including OpenTelemetry collector resources and optional integrations (Intersight, Nexus, GPU metrics, and related templates).
+Deploys and configures Splunk Observability components for Cisco AI PODs, including OpenTelemetry collector resources and optional integrations (Intersight, Nexus, GPU metrics, and related templates).
 
 Main guide: [docs/splunk_observability.md](../../docs/splunk_observability.md)
 
@@ -37,13 +37,15 @@ This role renders observability configuration from `host_vars/splunk_observabili
 Run only observability:
 
 ```bash
-ansible-playbook playbooks/deploy_observability.yaml
+python3 scripts/deploy_ai_pod.py --role observability \
+  --vault-password-file ~/.config/cisco-ai-pods/vault-password
 ```
 
 Run observability from full stack playbook:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags observability
+python3 scripts/deploy_ai_pod.py --role observability \
+  --vault-password-file ~/.config/cisco-ai-pods/vault-password
 ```
 
 ## Validation

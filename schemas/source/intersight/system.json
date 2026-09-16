@@ -1,0 +1,738 @@
+{
+    "$id": "system.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "chassis": {
+            "description": "URL for Chassis Serial Numbers.",
+            "title": "Chassis - Chassis Serial Numbers - Intersight Uri: equipment/Chasses",
+            "type": "object",
+            "x-intersight-uri": "equipment/Chasses"
+        },
+        "domain": {
+            "description": "URL for Domain Serial Numbers.",
+            "title": "Domain - Domain Serial Numbers - Intersight Uri: network/Elements",
+            "type": "object",
+            "x-intersight-uri": "network/Elements"
+        },
+        "locations": {
+            "allOf": [
+                {
+                    "anyOf": [
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "gps_coordinates"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "input_by": {
+                                    "const": "Address"
+                                }
+                            }
+                        },
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "address_details"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "input_by": {
+                                    "const": "GPS Coordinates"
+                                }
+                            },
+                            "required": [
+                                "gps_coordinates"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "description": "",
+                    "properties": {
+                        "address_details": {
+                            "$ref": "#/definitions/locations.address_details"
+                        },
+                        "gps_coordinates": {
+                            "description": "The location's GPS coordinates.",
+                            "example": [
+                                "37.7,-122.4",
+                                "37.4137,121.9515"
+                            ],
+                            "maxLength": 1024,
+                            "minLength": 1,
+                            "pattern": "^\\s*(-?(?:90(?:\\.0+)?|[1-8]?\\d(?:\\.\\d+)?))\\s*,\\s*(-?(?:180(?:\\.0+)?|1[0-7]\\d(?:\\.\\d+)?|[1-9]?\\d(?:\\.\\d+)?))\\s*$",
+                            "title": "gps_coordinates",
+                            "type": "string",
+                            "x-intersight-api": "Coordinates"
+                        },
+                        "input_by": {
+                            "default": "Address",
+                            "description": "The default value is `Address`.  The method by which the location information is provided.\n  * `Address` - Location information is provided by an address.  This can be a street address, a city, or any other identifiable location.\n  * `GPS Coordinates` - Location information is provided by GPS coordinates.  This should be in the format of 'latitude, longitude'.",
+                            "enum": [
+                                "Address",
+                                "GPS Coordinates"
+                            ],
+                            "title": "input_by",
+                            "type": "string",
+                            "x-intersight-api": "InputBy"
+                        },
+                        "name": {
+                            "default": "default",
+                            "description": "The default value is `default`.  Name of the Policy.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 1024,
+                            "minLength": 1,
+                            "pattern": "^.*$",
+                            "title": "name",
+                            "type": "string",
+                            "x-intersight-api": "Name"
+                        },
+                        "tags": {
+                            "description": "An arbitrary key and value pair that can be used to tag Cisco Intersight managed objects and REST resources.",
+                            "items": {
+                                "$ref": "./tags.json#/definitions/mo"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "Intersight Tags",
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "input_by",
+                        "name"
+                    ],
+                    "title": "locations",
+                    "type": "object"
+                }
+            ],
+            "description": "The geographic location of a managed target.",
+            "title": "location - Geo Locations - Intersight Uri: asset/GeoLocations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "asset.GeoLocation",
+            "x-intersight-type": "system",
+            "x-intersight-uri": "asset/GeoLocations"
+        },
+        "locations.address_details": {
+            "additionalProperties": false,
+            "description": "Geo Location Address Details.\n\nOptional Attributes\n  * `address_1`\n  * `address_2`\n  * `city`\n  * `country`\n  * `postal_code`\n  * `state_province`",
+            "properties": {
+                "address1": {
+                    "default": "",
+                    "description": "The default value is ``.  The primary street address.",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "address1",
+                    "type": "string",
+                    "x-intersight-api": "Address1"
+                },
+                "address2": {
+                    "default": "",
+                    "description": "The default value is ``.  Additional address information, such as suite number or floor.",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "address2",
+                    "type": "string",
+                    "x-intersight-api": "Address2"
+                },
+                "city": {
+                    "default": "",
+                    "description": "The default value is ``.  The city where the address is located.",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "city",
+                    "type": "string",
+                    "x-intersight-api": "City"
+                },
+                "country": {
+                    "default": "Unknown",
+                    "description": "The default value is `Unknown`.  The country code in ISO 3166-1 alpha-2 format.\n* `Unknown` - The value Unknown is used when the country code is not known or applicable.\n* `AD` - The country code for Andorra.\n* `AE` - The country code for United Arab Emirates.\n* `AF` - The country code for Afghanistan.\n* `AG` - The country code for Antigua and Barbuda.\n* `AI` - The country code for Anguilla.\n* `AL` - The country code for Albania.\n* `AM` - The country code for Armenia.\n* `AO` - The country code for Angola.\n* `AQ` - The country code for Antarctica.\n* `AR` - The country code for Argentina.\n* `AS` - The country code for American Samoa.\n* `AT` - The country code for Austria.\n* `AU` - The country code for Australia.\n* `AW` - The country code for Aruba.\n* `AX` - The country code for \u00c5land Islands.\n* `AZ` - The country code for Azerbaijan.\n* `BA` - The country code for Bosnia and Herzegovina.\n* `BB` - The country code for Barbados.\n* `BD` - The country code for Bangladesh.\n* `BE` - The country code for Belgium.\n* `BF` - The country code for Burkina Faso.\n* `BG` - The country code for Bulgaria.\n* `BH` - The country code for Bahrain.\n* `BI` - The country code for Burundi.\n* `BJ` - The country code for Benin.\n* `BL` - The country code for Saint Barth\u00e9lemy.\n* `BM` - The country code for Bermuda.\n* `BN` - The country code for Brunei Darussalam.\n* `BO` - The country code for Plurinational State of Bolivia.\n* `BQ` - The country code for Sint Eustatius and Saba Bonaire.\n* `BR` - The country code for Brazil.\n* `BS` - The country code for Bahamas.\n* `BT` - The country code for Bhutan.\n* `BV` - The country code for Bouvet Island.\n* `BW` - The country code for Botswana.\n* `BZ` - The country code for Belize.\n* `CA` - The country code for Canada.\n* `CC` - The country code for Cocos (Keeling) Islands.\n* `CD` - The country code for Democratic Republic of the Congo.\n* `CF` - The country code for Central African Republic.\n* `CG` - The country code for Congo.\n* `CH` - The country code for Switzerland.\n* `CI` - The country code for C\u00f4te d'Ivoire.\n* `CK` - The country code for Cook Islands.\n* `CL` - The country code for Chile.\n* `CM` - The country code for Cameroon.\n* `CN` - The country code for China.\n* `CO` - The country code for Colombia.\n* `CR` - The country code for Costa Rica.\n* `CV` - The country code for Cabo Verde.\n* `CW` - The country code for Cura\u00e7ao.\n* `CX` - The country code for Christmas Island.\n* `CY` - The country code for Cyprus.\n* `CZ` - The country code for Czechia.\n* `DE` - The country code for Germany.\n* `DJ` - The country code for Djibouti.\n* `DK` - The country code for Denmark.\n* `DM` - The country code for Dominica.\n* `DO` - The country code for Dominican Republic.\n* `DZ` - The country code for Algeria.\n* `EC` - The country code for Ecuador.\n* `EE` - The country code for Estonia.\n* `EG` - The country code for Egypt.\n* `EH` - The country code for Western Sahara.\n* `ER` - The country code for Eritrea.\n* `ES` - The country code for Spain.\n* `ET` - The country code for Ethiopia.\n* `FI` - The country code for Finland.\n* `FJ` - The country code for Fiji.\n* `FK` - The country code for Falkland Islands (Malvinas).\n* `FM` - The country code for Federated States of Micronesia.\n* `FO` - The country code for Faroe Islands.\n* `FR` - The country code for France.\n* `GA` - The country code for Gabon.\n* `GB` - The country code for United Kingdom of Great Britain and Northern Ireland.\n* `GD` - The country code for Grenada.\n* `GE` - The country code for Georgia.\n* `GF` - The country code for French Guiana.\n* `GG` - The country code for Guernsey.\n* `GH` - The country code for Ghana.\n* `GI` - The country code for Gibraltar.\n* `GL` - The country code for Greenland.\n* `GM` - The country code for Gambia.\n* `GN` - The country code for Guinea.\n* `GP` - The country code for Guadeloupe.\n* `GQ` - The country code for Equatorial Guinea.\n* `GR` - The country code for Greece.\n* `GS` - The country code for South Georgia and the South Sandwich Islands.\n* `GT` - The country code for Guatemala.\n* `GU` - The country code for Guam.\n* `GW` - The country code for Guinea-Bissau.\n* `GY` - The country code for Guyana.\n* `HK` - The country code for Hong Kong.\n* `HM` - The country code for Heard Island and McDonald Islands.\n* `HN` - The country code for Honduras.\n* `HR` - The country code for Croatia.\n* `HT` - The country code for Haiti.\n* `HU` - The country code for Hungary.\n* `ID` - The country code for Indonesia.\n* `IE` - The country code for Ireland.\n* `IL` - The country code for Israel.\n* `IM` - The country code for Isle of Man.\n* `IN` - The country code for India.\n* `IO` - The country code for British Indian Ocean Territory.\n* `IQ` - The country code for Iraq.\n* `IS` - The country code for Iceland.\n* `IT` - The country code for Italy.\n* `JE` - The country code for Jersey.\n* `JM` - The country code for Jamaica.\n* `JO` - The country code for Jordan.\n* `JP` - The country code for Japan.\n* `KE` - The country code for Kenya.\n* `KG` - The country code for Kyrgyzstan.\n* `KH` - The country code for Cambodia.\n* `KI` - The country code for Kiribati.\n* `KM` - The country code for Comoros.\n* `KN` - The country code for Saint Kitts and Nevis.\n* `KR` - The country code for Republic of Korea.\n* `KW` - The country code for Kuwait.\n* `KY` - The country code for Cayman Islands.\n* `KZ` - The country code for Kazakhstan.\n* `LA` - The country code for Lao People's Democratic Republic.\n* `LB` - The country code for Lebanon.\n* `LC` - The country code for Saint Lucia.\n* `LI` - The country code for Liechtenstein.\n* `LK` - The country code for Sri Lanka.\n* `LR` - The country code for Liberia.\n* `LS` - The country code for Lesotho.\n* `LT` - The country code for Lithuania.\n* `LU` - The country code for Luxembourg.\n* `LV` - The country code for Latvia.\n* `LY` - The country code for Libya.\n* `MA` - The country code for Morocco.\n* `MC` - The country code for Monaco.\n* `MD` - The country code for Republic of Moldova.\n* `ME` - The country code for Montenegro.\n* `MF` - The country code for Saint Martin (French part).\n* `MG` - The country code for Madagascar.\n* `MH` - The country code for Marshall Islands.\n* `MK` - The country code for North Macedonia.\n* `ML` - The country code for Mali.\n* `MM` - The country code for Myanmar.\n* `MN` - The country code for Mongolia.\n* `MO` - The country code for Macao.\n* `MP` - The country code for Northern Mariana Islands.\n* `MQ` - The country code for Martinique.\n* `MR` - The country code for Mauritania.\n* `MS` - The country code for Montserrat.\n* `MT` - The country code for Malta.\n* `MU` - The country code for Mauritius.\n* `MV` - The country code for Maldives.\n* `MW` - The country code for Malawi.\n* `MX` - The country code for Mexico.\n* `MY` - The country code for Malaysia.\n* `MZ` - The country code for Mozambique.\n* `NA` - The country code for Namibia.\n* `NC` - The country code for New Caledonia.\n* `NE` - The country code for Niger.\n* `NF` - The country code for Norfolk Island.\n* `NG` - The country code for Nigeria.\n* `NI` - The country code for Nicaragua.\n* `NL` - The country code for Kingdom of the Netherlands.\n* `NO` - The country code for Norway.\n* `NP` - The country code for Nepal.\n* `NR` - The country code for Nauru.\n* `NU` - The country code for Niue.\n* `NZ` - The country code for New Zealand.\n* `OM` - The country code for Oman.\n* `PA` - The country code for Panama.\n* `PE` - The country code for Peru.\n* `PF` - The country code for French Polynesia.\n* `PG` - The country code for Papua New Guinea.\n* `PH` - The country code for Philippines.\n* `PK` - The country code for Pakistan.\n* `PL` - The country code for Poland.\n* `PM` - The country code for Saint Pierre and Miquelon.\n* `PN` - The country code for Pitcairn.\n* `PR` - The country code for Puerto Rico.\n* `PS` - The country code for State of Palestine.\n* `PT` - The country code for Portugal.\n* `PW` - The country code for Palau.\n* `PY` - The country code for Paraguay.\n* `QA` - The country code for Qatar.\n* `RE` - The country code for R\u00e9union.\n* `RO` - The country code for Romania.\n* `RS` - The country code for Serbia.\n* `RW` - The country code for Rwanda.\n* `SA` - The country code for Saudi Arabia.\n* `SB` - The country code for Solomon Islands.\n* `SC` - The country code for Seychelles.\n* `SD` - The country code for Sudan.\n* `SE` - The country code for Sweden.\n* `SG` - The country code for Singapore.\n* `SH` - The country code for Ascension and Tristan da Cunha Saint Helena.\n* `SI` - The country code for Slovenia.\n* `SJ` - The country code for Svalbard and Jan Mayen.\n* `SK` - The country code for Slovakia.\n* `SL` - The country code for Sierra Leone.\n* `SM` - The country code for San Marino.\n* `SN` - The country code for Senegal.\n* `SO` - The country code for Somalia.\n* `SR` - The country code for Suriname.\n* `SS` - The country code for South Sudan.\n* `ST` - The country code for Sao Tome and Principe.\n* `SV` - The country code for El Salvador.\n* `SX` - The country code for Sint Maarten (Dutch part).\n* `SZ` - The country code for Eswatini.\n* `TC` - The country code for Turks and Caicos Islands.\n* `TD` - The country code for Chad.\n* `TF` - The country code for French Southern Territories.\n* `TG` - The country code for Togo.\n* `TH` - The country code for Thailand.\n* `TJ` - The country code for Tajikistan.\n* `TK` - The country code for Tokelau.\n* `TL` - The country code for Timor-Leste.\n* `TM` - The country code for Turkmenistan.\n* `TN` - The country code for Tunisia.\n* `TO` - The country code for Tonga.\n* `TR` - The country code for T\u00fcrkiye.\n* `TT` - The country code for Trinidad and Tobago.\n* `TV` - The country code for Tuvalu.\n* `TW` - The country code for Province of China Taiwan.\n* `TZ` - The country code for United Republic of Tanzania.\n* `UA` - The country code for Ukraine.\n* `UG` - The country code for Uganda.\n* `UM` - The country code for United States Minor Outlying Islands.\n* `US` - The country code for United States of America.\n* `UY` - The country code for Uruguay.\n* `UZ` - The country code for Uzbekistan.\n* `VA` - The country code for Holy See.\n* `VC` - The country code for Saint Vincent and the Grenadines.\n* `VE` - The country code for Bolivarian Republic of Venezuela.\n* `VG` - The country code for Virgin Islands (British).\n* `VI` - The country code for Virgin Islands (U.S.).\n* `VN` - The country code for Viet Nam.\n* `VU` - The country code for Vanuatu.\n* `WF` - The country code for Wallis and Futuna.\n* `WS` - The country code for Samoa.\n* `YE` - The country code for Yemen.\n* `YT` - The country code for Mayotte.\n* `ZA` - The country code for South Africa.\n* `ZM` - The country code for Zambia.\n* `ZW` - The country code for Zimbabwe.",
+                    "enum": [
+                        "Unknown",
+                        "AD",
+                        "AE",
+                        "AF",
+                        "AG",
+                        "AI",
+                        "AL",
+                        "AM",
+                        "AO",
+                        "AQ",
+                        "AR",
+                        "AS",
+                        "AT",
+                        "AU",
+                        "AW",
+                        "AX",
+                        "AZ",
+                        "BA",
+                        "BB",
+                        "BD",
+                        "BE",
+                        "BF",
+                        "BG",
+                        "BH",
+                        "BI",
+                        "BJ",
+                        "BL",
+                        "BM",
+                        "BN",
+                        "BO",
+                        "BQ",
+                        "BR",
+                        "BS",
+                        "BT",
+                        "BV",
+                        "BW",
+                        "BZ",
+                        "CA",
+                        "CC",
+                        "CD",
+                        "CF",
+                        "CG",
+                        "CH",
+                        "CI",
+                        "CK",
+                        "CL",
+                        "CM",
+                        "CN",
+                        "CO",
+                        "CR",
+                        "CV",
+                        "CW",
+                        "CX",
+                        "CY",
+                        "CZ",
+                        "DE",
+                        "DJ",
+                        "DK",
+                        "DM",
+                        "DO",
+                        "DZ",
+                        "EC",
+                        "EE",
+                        "EG",
+                        "EH",
+                        "ER",
+                        "ES",
+                        "ET",
+                        "FI",
+                        "FJ",
+                        "FK",
+                        "FM",
+                        "FO",
+                        "FR",
+                        "GA",
+                        "GB",
+                        "GD",
+                        "GE",
+                        "GF",
+                        "GG",
+                        "GH",
+                        "GI",
+                        "GL",
+                        "GM",
+                        "GN",
+                        "GP",
+                        "GQ",
+                        "GR",
+                        "GS",
+                        "GT",
+                        "GU",
+                        "GW",
+                        "GY",
+                        "HK",
+                        "HM",
+                        "HN",
+                        "HR",
+                        "HT",
+                        "HU",
+                        "ID",
+                        "IE",
+                        "IL",
+                        "IM",
+                        "IN",
+                        "IO",
+                        "IQ",
+                        "IS",
+                        "IT",
+                        "JE",
+                        "JM",
+                        "JO",
+                        "JP",
+                        "KE",
+                        "KG",
+                        "KH",
+                        "KI",
+                        "KM",
+                        "KN",
+                        "KR",
+                        "KW",
+                        "KY",
+                        "KZ",
+                        "LA",
+                        "LB",
+                        "LC",
+                        "LI",
+                        "LK",
+                        "LR",
+                        "LS",
+                        "LT",
+                        "LU",
+                        "LV",
+                        "LY",
+                        "MA",
+                        "MC",
+                        "MD",
+                        "ME",
+                        "MF",
+                        "MG",
+                        "MH",
+                        "MK",
+                        "ML",
+                        "MM",
+                        "MN",
+                        "MO",
+                        "MP",
+                        "MQ",
+                        "MR",
+                        "MS",
+                        "MT",
+                        "MU",
+                        "MV",
+                        "MW",
+                        "MX",
+                        "MY",
+                        "MZ",
+                        "NA",
+                        "NC",
+                        "NE",
+                        "NF",
+                        "NG",
+                        "NI",
+                        "NL",
+                        "NO",
+                        "NP",
+                        "NR",
+                        "NU",
+                        "NZ",
+                        "OM",
+                        "PA",
+                        "PE",
+                        "PF",
+                        "PG",
+                        "PH",
+                        "PK",
+                        "PL",
+                        "PM",
+                        "PN",
+                        "PR",
+                        "PS",
+                        "PT",
+                        "PW",
+                        "PY",
+                        "QA",
+                        "RE",
+                        "RO",
+                        "RS",
+                        "RW",
+                        "SA",
+                        "SB",
+                        "SC",
+                        "SD",
+                        "SE",
+                        "SG",
+                        "SH",
+                        "SI",
+                        "SJ",
+                        "SK",
+                        "SL",
+                        "SM",
+                        "SN",
+                        "SO",
+                        "SR",
+                        "SS",
+                        "ST",
+                        "SV",
+                        "SX",
+                        "SZ",
+                        "TC",
+                        "TD",
+                        "TF",
+                        "TG",
+                        "TH",
+                        "TJ",
+                        "TK",
+                        "TL",
+                        "TM",
+                        "TN",
+                        "TO",
+                        "TR",
+                        "TT",
+                        "TV",
+                        "TW",
+                        "TZ",
+                        "UA",
+                        "UG",
+                        "UM",
+                        "US",
+                        "UY",
+                        "UZ",
+                        "VA",
+                        "VC",
+                        "VE",
+                        "VG",
+                        "VI",
+                        "VN",
+                        "VU",
+                        "WF",
+                        "WS",
+                        "YE",
+                        "YT",
+                        "ZA",
+                        "ZM",
+                        "ZW"
+                    ],
+                    "title": "country",
+                    "type": "string",
+                    "x-intersight-api": "Country"
+                },
+                "postal_code": {
+                    "default": "",
+                    "description": "The default value is ``.  The postal or ZIP code for the address.",
+                    "examples": [
+                        "95134"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^(?:\\d{5}(-\\d{4})?|[A-Za-z]\\d[A-Za-z]\\s?\\d[A-Za-z]\\d|[A-Za-z]{1,2}\\d{1,2}[A-Za-z]?\\s?\\d[A-Za-z]{2}|\\d{5}|\\d{2}[A-Za-z]{2}\\s?\\d{2}|\\d{3}-\\d{4}|\\d{5}-\\d{3}|\\d{6})$",
+                    "title": "postal_code",
+                    "type": "string"
+                },
+                "state_province": {
+                    "default": "",
+                    "description": "The default value is ``.  The state or province where the address is located.",
+                    "examples": [
+                        "California",
+                        "New York"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "state_province",
+                    "type": "string"
+                }
+            },
+            "required": [],
+            "title": "address_details - Geo Location Address Details",
+            "type": "object",
+            "x-intersight-api": "address_details",
+            "x-intersight-object-type": "comm.PhysicalAddress",
+            "x-intersight-uri": "asset/GeoLocationAddressDetails"
+        },
+        "organizations": {
+            "allOf": [
+                {},
+                {
+                    "properties": {
+                        "description": {
+                            "default": "",
+                            "description": "The default value is ``.  The informative description about the usage of this organization.",
+                            "examples": [
+                                ""
+                            ],
+                            "maxLength": 1024,
+                            "minLength": 1,
+                            "pattern": "^$|^[a-zA-Z0-9]+[\\x00-\\xFF]*$",
+                            "title": "description",
+                            "type": "string",
+                            "x-intersight-api": "Description"
+                        },
+                        "name": {
+                            "default": "default",
+                            "description": "The default value is `default`.  Name of the Organization.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 64,
+                            "minLength": 1,
+                            "pattern": "^[a-zA-Z0-9_\\.:-]{0,64}$",
+                            "title": "name",
+                            "type": "string",
+                            "x-intersight-api": "Name"
+                        },
+                        "organizations_to_share_with": {
+                            "default": false,
+                            "description": "List of Organization(s) to Add to a Shared Organization.",
+                            "items": {
+                                "default": "",
+                                "description": "The default value is ``.  Organization to Add to a Shared Organization.",
+                                "examples": [
+                                    ""
+                                ],
+                                "maxLength": 64,
+                                "minLength": 1,
+                                "pattern": "^[a-zA-Z0-9_\\.:-]{1,64}$",
+                                "title": "organization",
+                                "type": "string",
+                                "x-intersight-api": "organization"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "organizations_to_share_with",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "organizations_to_share_with"
+                        },
+                        "resource_groups": {
+                            "description": "A List of Resource Groups to Assign to the Organization.",
+                            "items": {
+                                "default": "",
+                                "description": "The default value is ``.  Resource Group to Add to the Organization.",
+                                "examples": [
+                                    ""
+                                ],
+                                "maxLength": 64,
+                                "minLength": 1,
+                                "pattern": "^[a-zA-Z0-9_\\.:-]{1,64}$",
+                                "title": "resource_group",
+                                "type": "string",
+                                "x-intersight-api": "resource_group"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "resource_groups",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "tags": {
+                            "description": "An arbitrary key and value pair that can be used to tag Cisco Intersight managed objects and REST resources.",
+                            "items": {
+                                "$ref": "./tags.json#/definitions/mo"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "Intersight Tags",
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [],
+                    "title": "organization - Intersight Uri: organization/Organizations",
+                    "type": "object"
+                }
+            ],
+            "description": "Organization provides multi-tenancy within an account. Multiple organizations can be present under an account. Resources are associated to organization using resource groups. Organization can have heterogeneous resources. Resources can be shared among multiple organizations. Organizations are associated to user permissions and privileges can be specified to provide access control. User can have access to multiple organizations in same permission and with different privileges on each organization.\n\nOptional Attributes:\n  * `description`\n  * `organizations_to_share_with`\n  * `resource_groups`",
+            "title": "organizations - Intersight Uri: organization/Organizations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "organization.Organization",
+            "x-intersight-type": "system",
+            "x-intersight-uri": "organization/Organizations"
+        },
+        "path_tags": {
+            "allOf": [
+                {},
+                {
+                    "description": "",
+                    "properties": {
+                        "path_tag": {
+                            "description": "Use a slash / to separate parent tags from subtags (for example, global/EMEA/UK/London).",
+                            "example": [
+                                "global/US/East",
+                                "global/US/West"
+                            ],
+                            "maxLength": 254,
+                            "minLength": 1,
+                            "pattern": "^([^/]{1,50}\\/)?([^/]{1,50}\\/)?([^/]{1,50}\\/)?([^/]{1,50}\\/)?[^/]{1,50}?$",
+                            "title": "path_tag",
+                            "type": "string",
+                            "x-intersight-api": "PathTag"
+                        }
+                    },
+                    "required": [
+                        "path_tag"
+                    ],
+                    "title": "path_tags",
+                    "type": "object"
+                }
+            ],
+            "description": "",
+            "title": "path_tags - Location Tags - Intersight Uri: comm/TagDefinitions",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "comm.TagDefinition",
+            "x-intersight-type": "system",
+            "x-intersight-uri": "comm/TagDefinitions"
+        },
+        "resource_groups": {
+            "allOf": [
+                {},
+                {
+                    "description": "A group of REST resources, such as a group of compute.Blade MOs. A ResourceGroup can contain static members which are specified as a set of object references, or it can contain dynamic members, which are specified through OData query filters. A Resource can be part of multiple resource groups.",
+                    "properties": {
+                        "description": {
+                            "default": "",
+                            "description": "The default value is ``.  The informative description about the usage of this Resource Group.",
+                            "examples": [
+                                ""
+                            ],
+                            "maxLength": 1024,
+                            "minLength": 0,
+                            "pattern": "^$|^[a-zA-Z0-9]+[\\x00-\\xFF]*$",
+                            "title": "description",
+                            "type": "string",
+                            "x-intersight-api": "Description"
+                        },
+                        "name": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The name of this resource group.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 128,
+                            "minLength": 1,
+                            "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,126})?[a-zA-Z0-9]$",
+                            "title": "name",
+                            "type": "string",
+                            "x-intersight-api": "Name"
+                        },
+                        "resources": {
+                            "$ref": "#/definitions/resource_groups.resources"
+                        }
+                    },
+                    "required": [
+                        "name"
+                    ],
+                    "title": "resource_group - Resource Group - Intersight Uri: resource/Groups",
+                    "type": "object"
+                }
+            ],
+            "description": "A group of REST resources, such as a group of compute.Blade MOs. A ResourceGroup can contain static members which are specified as a set of object references, or it can contain dynamic members, which are specified through OData query filters. A Resource can be part of multiple resource groups.",
+            "title": "resource_group - Intersight Uri: resource/Groups",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "resource.Group",
+            "x-intersight-type": "system",
+            "x-intersight-uri": "resource/Groups"
+        },
+        "resource_groups.resources": {
+            "additionalProperties": false,
+            "description": "List of devices to assign to the resource group.  Options are:\n\n  * `sub_targets`\n  * `targets`",
+            "properties": {
+                "sub_targets": {
+                    "$ref": "#/definitions/resource_groups.resources.sub_targets"
+                },
+                "targets": {
+                    "description": "Enter the Asset Target Name as they show under System -> Targets.",
+                    "items": {
+                        "default": "",
+                        "description": "The default value is ``.  Asset.Target Name.",
+                        "examples": [
+                            ""
+                        ],
+                        "maxLength": 255,
+                        "minLength": 3,
+                        "pattern": "^\\S{3,255}$",
+                        "title": "Asset Name",
+                        "type": "string",
+                        "x-intersight-api": ""
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "targets",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-uri": "asset/Targets"
+                }
+            },
+            "required": [],
+            "title": "Resource Group - Resources",
+            "type": "object"
+        },
+        "resource_groups.resources.sub_targets": {
+            "additionalProperties": false,
+            "description": "These are Blades or Rackmounts that are attached to a Domain, that you want to assign to a different organization.  This is typically used when you want RBAC control for a specific server within a domain.  Options are:\n\n * blades\n * rackmounts",
+            "properties": {
+                "blades": {
+                    "description": "A List of Domain Attached Blade Serial Numbers to add to the Resource Group.",
+                    "items": {
+                        "default": "FOX25415555",
+                        "description": "The default value is `FOX25415555`.  Serial Number.",
+                        "examples": [
+                            "FOX25415555"
+                        ],
+                        "maxLength": 11,
+                        "minLength": 11,
+                        "pattern": "^[A-Z]{3}[1-3][\\d]([0][1-9]|[1-4][0-9]|[5][0-3])[\\dA-Z]{4}$",
+                        "title": "serial_number",
+                        "type": "string",
+                        "x-intersight-api": ""
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "sub_targets",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-api": "compute/Blades"
+                },
+                "rackmounts": {
+                    "description": "A List of Domain attached rackmount Serial Numbers to add to the Resource Group.",
+                    "items": {
+                        "default": "FOX25415555",
+                        "description": "The default value is `FOX25415555`.  Serial Number.",
+                        "examples": [
+                            "FOX25415555"
+                        ],
+                        "maxLength": 11,
+                        "minLength": 11,
+                        "pattern": "^[A-Z]{3}[1-3][\\d]([0][1-9]|[1-4][0-9]|[5][0-3])[\\dA-Z]{4}$",
+                        "title": "serial_number",
+                        "type": "string",
+                        "x-intersight-api": ""
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "rackmounts",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-api": "compute/RackUnits"
+                }
+            },
+            "required": [],
+            "title": "Resource Group - Resource - Sub-Targets",
+            "type": "object"
+        },
+        "server": {
+            "description": "Server Physical Compute Serial Numbers.",
+            "title": "server - Server Profile - Intersight Uri: compute/PhysicalSummaries",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-uri": "compute/PhysicalSummaries"
+        },
+        "unified_edge": {
+            "description": "URL for Unified Edge Chassis Serial Numbers.",
+            "title": "Unified Edge - Unified Edge Chassis Serial Numbers - Intersight Uri: equipment/Chasses",
+            "type": "object",
+            "x-intersight-uri": "equipment/Chasses"
+        }
+    },
+    "description": "JSON Schema for validating Cisco Intersight system configuration used by Cisco AI PODs, including organizations, resource groups, managed-target locations, path tags, and chassis, domain, server, or Unified Edge inventory references.",
+    "title": "Cisco AI PODs - Intersight - System Schema"
+}

@@ -119,22 +119,22 @@ def base_script_settings(kwargs):
         os.remove(os.path.join(kwargs.schema_path, 'temp.json'))
     script_tag = script_name.replace('ez', 'easy-')
     kwargs.ez_tags = [{'key': 'Provisioned via -', 'value': script_tag},
-                      {'key': f'{script_tag} version -', 'value': ezdata['version']}]
+                      {'key': f'{script_tag} version -', 'value': ezdata['x-schema-version']}]
     kwargs.ezdata = DotMap(ezdata['definitions'])
-    kwargs.ezwizard = DotMap(ezdata['wizard'])
     kwargs.intersight_object_map = DotMap()
     for k, v in kwargs.ezdata.items():
         vkeys = list(v.keys())
-        if 'intersight.' in k and 'object_type' in vkeys:
+        if 'intersight.' in k and 'x-intersight-object-type' in vkeys:
             if re.search(
                 '^intersight\\.(policies|pools|profiles|system|templates)\\.',
                     k):
                 ptype = re.search('^intersight\\.([a-z_]+)\\.', k).group(1)
-                if not kwargs.intersight_object_map.get(v.object_type):
-                    kwargs.intersight_object_map[v.object_type] = k.replace(
+                object_type = v['x-intersight-object-type']
+                if not kwargs.intersight_object_map.get(object_type):
+                    kwargs.intersight_object_map[object_type] = k.replace(
                         f'intersight.{ptype}.', '')
                     kwargs.intersight_object_map[k.replace(
-                        f'intersight.{ptype}.', '')] = v.object_type
+                        f'intersight.{ptype}.', '')] = object_type
     kwargs.intersight_object_map = DotMap(
         sorted(kwargs.intersight_object_map.toDict().items()))
     # =========================================================================

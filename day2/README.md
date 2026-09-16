@@ -1,6 +1,6 @@
-# Cisco AI Pods - Day 2 Operations
+# Cisco AI PODs - Day 2 Operations
 
-This directory contains Day 2 operational tools, playbooks, and scripts for managing Pure Storage FlashBlade S3 buckets and other post-deployment tasks in the Cisco AI Pods environment.
+This directory contains Day 2 operational tools, playbooks, and scripts for managing Pure Storage FlashBlade S3 buckets and other post-deployment tasks in the Cisco AI PODs environment.
 
 ## Table of Contents
 

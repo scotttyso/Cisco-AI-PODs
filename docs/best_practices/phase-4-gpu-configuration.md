@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phase 4B applies runtime-level GPU controls and validation for Cisco AI Pods. Training profiles target B300 and H200 nodes for sustained throughput. Inference profiles target RTX6000 and RTX4500 nodes for low-latency, stable serving.
+Phase 4B applies runtime-level GPU controls and validation for Cisco AI PODs. Training profiles target B300 and H200 nodes for sustained throughput. Inference profiles target RTX6000 and RTX4500 nodes for low-latency, stable serving.
 
 ## Table of Contents
 - [1. Hardware Roles and Runtime Targets](#1-hardware-roles-and-runtime-targets)

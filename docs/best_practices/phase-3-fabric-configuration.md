@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phase 3 activates and validates frontend and backend network fabrics for Cisco AI Pods. The target state is a low-latency, low-loss backend fabric for distributed training with B300 and H200 nodes, plus a stable frontend fabric for storage, orchestration, and inference traffic serving RTX6000 and RTX4500 nodes.
+Phase 3 activates and validates frontend and backend network fabrics for Cisco AI PODs. The target state is a low-latency, low-loss backend fabric for distributed training with B300 and H200 nodes, plus a stable frontend fabric for storage, orchestration, and inference traffic serving RTX6000 and RTX4500 nodes.
 
 ## Table of Contents
 - [1. Fabric Design Objectives](#1-fabric-design-objectives)

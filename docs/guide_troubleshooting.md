@@ -1,7 +1,7 @@
-# Cisco AI Pods Troubleshooting Guide
+# Cisco AI PODs Troubleshooting Guide
 
 ## Overview
-This guide provides comprehensive troubleshooting procedures for Cisco AI Pods deployments, covering common issues and their resolutions.
+This guide provides comprehensive troubleshooting procedures for Cisco AI PODs deployments, covering common issues and their resolutions.
 
 ## Quick Reference
 
@@ -49,7 +49,7 @@ head -1 $intersight_secret_key
 # Should start with: -----BEGIN RSA PRIVATE KEY-----
 
 # Enable debug logging for detailed error information
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags intersight -vvv
+python3 scripts/deploy_ai_pod.py --role intersight
 ```
 
 **Resolution:**
@@ -134,7 +134,7 @@ openssl s_client -connect your-cva-fqdn:443
 
 **Resolution:**
 1. **Stop Current Deployment:** Do not proceed with failed phase
-2. **Review Dependencies:** Check [Deployment Execution Order](Cisco-AI-Pods-Runbook.md#deployment-execution-order)
+2. **Review Dependencies:** Check [Deployment Execution Order](Cisco-AI-PODs-Runbook.md#deployment-execution-order)
 3. **Complete Prerequisites:** Ensure all prior phases are fully validated
 4. **Restart from Failed Phase:** Only proceed after prerequisites are met
 

@@ -1,0 +1,83 @@
+---
+# OpenShift install preparation (phase 1)
+# Stop here, run the iServer installation, then run deploy_openshift_phase2.yaml.
+# scripts/deploy_ai_pod.py --role openshift runs both phases and handles the handoff.
+- name: Deploy and Configure OpenShift for AI Pod - Phase 1 (Install Prep)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ansible_python_interpreter: "{{ (lookup('ansible.builtin.env', 'VIRTUAL_ENV') + '/bin/python3') if lookup('ansible.builtin.env', 'VIRTUAL_ENV') else 'python3' }}"
+    host_vars_dir: "{{ host_vars_dir | default(playbook_dir ~ '/../host_vars') }}"
+
+  pre_tasks:
+    - name: Find Variable Files Under host_vars
+      ansible.builtin.find:
+        paths: "{{ host_vars_dir }}/openshift"
+        patterns:
+          - "*.ezai.yaml"
+        file_type: file
+      register: openshift_var_files
+      tags: always
+
+    - name: Merge Variable Files Into a Single Dictionary
+      ansible.builtin.set_fact:
+        merged_vars: "{{ merged_vars | default({}) | combine((lookup('ansible.builtin.file', item.path) | from_yaml), recursive=True) }}"
+      loop: "{{ openshift_var_files.files | sort(attribute='path') }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      tags: always
+
+    - name: Set Merged OpenShift Object
+      ansible.builtin.set_fact:
+        openshift: "{{ merged_vars.openshift | default({}) }}"
+      tags: always
+
+    - name: Create Temporary Model File for Sensitive Variable Validation
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .json
+      register: sensitive_model_file
+      tags: always
+
+    - name: Write Merged Variables for Sensitive Variable Validation
+      ansible.builtin.copy:
+        dest: "{{ sensitive_model_file.path }}"
+        content: "{{ merged_vars | to_nice_json }}"
+        mode: "0600"
+      tags: always
+
+    - name: Validate Sensitive Environment Variables
+      ansible.builtin.command:
+        cmd: "{{ ansible_python_interpreter }} {{ playbook_dir }}/../scripts/validate_sensitive_variables.py --models {{ sensitive_model_file.path }}"
+      register: sensitive_validation_result
+      changed_when: false
+      failed_when: false
+      tags: always
+
+    - name: Fail with readable sensitive variable validation output
+      ansible.builtin.fail:
+        msg: |
+          Sensitive environment variable validation failed.
+
+          {% if sensitive_validation_result.stdout_lines | default([]) | length > 0 %}Summary:
+          {{ sensitive_validation_result.stdout_lines | join('\n') }}
+
+          {% endif %}{% if sensitive_validation_result.stderr_lines | default([]) | length > 0 %}Details:
+          {{ sensitive_validation_result.stderr_lines | join('\n') }}
+          {% endif %}
+      when: sensitive_validation_result.rc != 0
+      tags: always
+
+    - name: Remove Temporary Model File
+      ansible.builtin.file:
+        path: "{{ sensitive_model_file.path }}"
+        state: absent
+      tags: always
+
+  roles:
+    # - role: cisco.ai_pods.openshift_install
+    - role: openshift_install
+      tags: [install]
+      when: openshift.install is defined and openshift.install.bare_metal is defined

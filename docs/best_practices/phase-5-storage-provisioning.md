@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phase 5 establishes the storage architecture required to keep Cisco AI Pods compute resources fully utilized. The design must sustain high parallel throughput for B300 and H200 training clusters while also delivering low-latency model access for RTX6000 and RTX4500 inference pools.
+Phase 5 establishes the storage architecture required to keep Cisco AI PODs compute resources fully utilized. The design must sustain high parallel throughput for B300 and H200 training clusters while also delivering low-latency model access for RTX6000 and RTX4500 inference pools.
 
 ## Table of Contents
 - [1. Scale-Out Namespace and Access Model](#1-scale-out-namespace-and-access-model)

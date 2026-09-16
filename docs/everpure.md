@@ -1,6 +1,6 @@
 # Everpure and Portworx Deployment Guide
 
-This guide covers the storage workflows for Cisco AI Pods:
+This guide covers the storage workflows for Cisco AI PODs:
 
 - Everpure array configuration (FlashArray and FlashBlade)
 - Portworx deployment and StorageCluster setup on OpenShift
@@ -57,44 +57,41 @@ Edit variables in Visual Studio Code:
 
 ## Environment Variables
 
-Set one API token per `api_token_id` used in variables:
+The encrypted deployment vault supplies one API token per `api_token_id` used in
+variables. The script uses `~/.config/cisco-ai-pods/vault-password` by default.
 
 ```bash
-export pure_api_token_1="<flasharray_token>"
-export pure_api_token_2="<flashblade_token>"
+python3 scripts/deploy_ai_pod.py --role everpure
 ```
 
-Set OpenShift credentials before Portworx deployment:
-
-```bash
-export openshift_api_url="https://api.<cluster>.<domain>:6443"
-export openshift_token_id="<token>"
-```
+OpenShift credentials can be stored in the `openshift` section of
+`vault-ai-pod.yaml` before Portworx deployment.
 
 ## Quick Start
 
 Run Everpure array configuration only:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags everpure
+python3 scripts/deploy_ai_pod.py --role everpure
 ```
 
 Run Portworx only (after OpenShift install is complete):
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags portworx
+ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags portworx
 ```
 
 Run both together:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags everpure,portworx
+python3 scripts/deploy_ai_pod.py --role everpure
+ansible-playbook playbooks/deploy_storage.yaml --tags portworx
 ```
 
 Run full stack instead:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml
+python3 scripts/deploy_ai_pod.py
 ```
 
 ## Everpure Array Workflow

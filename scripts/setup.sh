@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Complete setup for Cisco AI Pods environment and iServer.
+# Complete setup for Cisco AI PODs environment and iServer.
 # This script prepares the development environment and downloads iServer for OpenShift assisted installer.
 
 VENV_DIR_DEFAULT=".venv"
@@ -21,7 +21,7 @@ usage() {
     cat <<EOF
 Usage: $0 [options]
 
-This script performs a complete setup for Cisco AI Pods development environment
+This script performs a complete setup for Cisco AI PODs development environment
 and downloads the latest iServer release.
 
 Options:
@@ -142,7 +142,7 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
     if [[ -d "$PWD/.git" && -f "$PWD/requirements.txt" && -f "$PWD/requirements.yaml" ]]; then
         WORKDIR="$PWD"
     else
-        die "Run this script from the Cisco-AI-Pods repository root (where requirements.txt and requirements.yaml exist)"
+        die "Run this script from the Cisco-AI-PODs repository root (where requirements.txt and requirements.yaml exist)"
     fi
 
     log "Using repository directory: ${WORKDIR}"
@@ -393,7 +393,7 @@ Manual steps from the guide that remain:
    - YAML (Red Hat)
 4. Add YAML schema mapping in VS Code settings.json:
    "yaml.schemas": {
-     "https://raw.githubusercontent.com/scotttyso/Cisco-AI-Pods/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
+     "https://raw.githubusercontent.com/scotttyso/Cisco-AI-PODs/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
    }
 
 EOF

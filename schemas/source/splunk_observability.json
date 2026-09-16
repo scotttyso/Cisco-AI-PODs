@@ -1,0 +1,361 @@
+{
+    "$id": "splunk_observability.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "intersight": {
+            "additionalProperties": false,
+            "description": "This dictionary defines if the Intersight Otel Collector is enabled.\n\nRequired fields are:\n  * `enable`",
+            "properties": {
+                "enable": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether to enable the Intersight Otel Collector.",
+                    "title": "Enable Intersight Otel Collector",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enable"
+            ],
+            "title": "Intersight Otel Collector Configuration",
+            "type": "object"
+        },
+        "nexus": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Cisco Exporter - Nexus Device List.\n\nRequired fields are:\n  * `device_list`\n  * `features`\n  * `password`\n  * `username`",
+            "properties": {
+                "device_list": {
+                    "description": "List of Nexus devices to add to the Cisco Exporter.",
+                    "items": {
+                        "default": "198.18.0.1",
+                        "description": "The default value is `198.18.0.1`.  Hostname, IPv4 or IPv6 address.",
+                        "$ref": "./shared.json#/definitions/hostname_ipv4_or_ipv6",
+                        "title": "Nexus Device",
+                        "type": "string"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "List of Nexus Switches",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "features": {
+                    "$ref": "#/definitions/nexus.features"
+                },
+                "password": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The Password for the Nexus Device List.  A number Between 1-64 to denote the variables splunk_observability_nexus_password_[1-64].  i.e. `export splunk_observability_nexus_password_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Splunk Observability - Nexus Password Identifier",
+                    "type": "integer"
+                },
+                "username": {
+                    "default": "admin",
+                    "description": "The default value is `admin`.  Name of the user to be created on the endpoint. Usernames must be 1 to 28 characters long, start with an alphanumeric character or underscore, use only alphanumeric characters and the special characters `+`, `=`, `.`, `_`, `\\`, `-`, cannot be all numeric, and cannot be one of the reserved system account names:\n  * `adm`\n  * `bin`\n  * `daemon`\n  * `ftp`\n  * `ftpuser`\n  * `games`\n  * `gdm`\n  * `gopher`\n  * `halt`\n  * `lp`\n  * `mail`\n  * `mailnull`\n  * `man`\n  * `mtsuser`\n  * `news`\n  * `nobody`\n  * `root`\n  * `rpc`\n  * `rpcuser`\n  * `san-admin`\n  * `shutdown`\n  * `sync`\n  * `sys`\n  * `uucp`\n  * `xfs`.",
+                    "examples": [
+                        "admin"
+                    ],
+                    "maxLength": 28,
+                    "minLength": 1,
+                    "pattern": "^(?!(?:adm|bin|daemon|ftp|ftpuser|games|gdm|gopher|halt|lp|mail|mailnull|man|mtsuser|news|nobody|root|rpc|rpcuser|san-admin|shutdown|sync|sys|uucp|xfs)$)(?![0-9]+$)[A-Za-z0-9_][A-Za-z0-9+=._\\\\-]{0,27}$",
+                    "title": "username",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "device_list",
+                "password",
+                "username"
+            ],
+            "title": "Splunk Observability - Cisco Exporter - Nexus Configuration",
+            "type": "object"
+        },
+        "nexus.features": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Cisco Exporter - Nexus Device List - Features to collect data from.\n\nOptional fields are:\n  * `bgp`\n  * `environment`\n  * `facts`\n  * `interfaces`\n  * `optics`",
+            "properties": {
+                "bgp": {
+                    "default": false,
+                    "description": "The default value is `false`.  Flag to collect BGP metrics.",
+                    "title": "BGP Metrics Collection",
+                    "type": "boolean"
+                },
+                "environment": {
+                    "default": false,
+                    "description": "The default value is `false`.  Flag to collect environment metrics.",
+                    "title": "Environment Metrics Collection",
+                    "type": "boolean"
+                },
+                "facts": {
+                    "default": false,
+                    "description": "The default value is `false`.  Flag to collect facts metrics.",
+                    "title": "Facts Metrics Collection",
+                    "type": "boolean"
+                },
+                "interfaces": {
+                    "default": true,
+                    "description": "The default value is `true`.  Flag to collect interface metrics.",
+                    "title": "Interface Metrics Collection",
+                    "type": "boolean"
+                },
+                "optics": {
+                    "default": true,
+                    "description": "The default value is `true`.  Flag to collect optics metrics.",
+                    "title": "Optics Metrics Collection",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+            ],
+            "title": "Splunk Observability - Cisco Exporter - Nexus - Features",
+            "type": "object"
+        },
+        "openshift_cluster": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - OpenShift Cluster Configuration.\n\nRequired fields are:\n  * `cluster_name`\n  * `environment`",
+            "properties": {
+                "cluster_name": {
+                    "default": "cluster1",
+                    "description": "The default value is `cluster1`.  The OpenShift Cluster Name.",
+                    "examples": [
+                        "cluster1",
+                        "my-cluster"
+                    ],
+                    "$ref": "./shared.json#/definitions/dns_1123_label",
+                    "title": "OpenShift Cluster Name",
+                    "type": "string"
+                },
+                "environment": {
+                    "default": "ai-pods",
+                    "description": "The default value is `ai-pods`.  The OpenShift Cluster Environment.  The helm chart will rely on the enviornment varialbe to tag your metrics correctly.  command, your AI infrastructure and platform metrics will lack the necessary tags to group and map telemetry data correctly across your clusters.",
+                    "examples": [
+                        "ai-pods",
+                        "my-environment"
+                    ],
+                    "$ref": "./shared.json#/definitions/dns_1123_label",
+                    "title": "OpenShift Cluster Environment",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cluster_name",
+                "environment"
+            ],
+            "title": "Splunk Observability - OpenShift Cluster Configuration",
+            "type": "object"
+        },
+        "otel_collector": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Otel Collector Configuration.\n\nRequired fields are:\n  * `metrics_collection`\n\nOptional fields are:\n  * `everpure_flash_arrays`\n  * `proxy`\n  * `syslog`",
+            "properties": {
+                "everpure_flash_arrays": {
+                    "description": "A list of Everpure FlashArrays to collect metrics from.\n\nRequired fields are:\n  * `api_token_id`\n  * `name`\n  * `namespace`\n  * `endpoint`",
+                    "items": {
+                        "$ref": "#/definitions/otel_collector.everpure_flash_arrays"
+                    },
+                    "maxItems": 15,
+                    "minItems": 1,
+                    "title": "Everpure FlashArrays",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "metrics_collection": {
+                    "$ref": "#/definitions/otel_collector.metrics_collection"
+                },
+                "proxy": {
+                    "$ref": "#/definitions/otel_collector.proxy"
+                },
+                "syslog": {
+                    "$ref": "#/definitions/otel_collector.syslog"
+                }
+            },
+            "required": [
+                "metrics_collection"
+            ],
+            "title": "Splunk Observability - Otel Collector Configuration",
+            "type": "object"
+        },
+        "otel_collector.everpure_flash_arrays": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "api_token_id": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The Everpure FlashArray API Token Identifier.  A number Between 1-64 to denote the variables everpure_api_token_[1-64].  i.e. `export everpure_api_token_1='a1234567-abcd-1234-5678-abcdef123456'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Everpure FlashArray API Token Identifier",
+                    "type": "integer"
+                },
+                "endpoint": {
+                    "default": "my-array.example.com",
+                    "description": "The default value is `my-array.example.com`.  The Hostname or IPv4/IPv6 address for the Everpure FlashArray instance.",
+                    "examples": [
+                        "my-array.example.com"
+                    ],
+                    "$ref": "./shared.json#/definitions/hostname_ipv4_or_ipv6",
+                    "title": "Everpure Flash Array Endpoint",
+                    "type": "string"
+                },
+                "namespace": {
+                    "default": "purefa",
+                    "description": "The default value is `purefa`.  The namespace/project of the Everpure FlashArray exporter.",
+                    "examples": [
+                        "purefa"
+                    ],
+                    "$ref": "./shared.json#/definitions/dns_1123_label",
+                    "title": "Flash Array Collector Namespace",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "api_token_id",
+                "endpoint",
+                "namespace"
+            ],
+            "title": "Splunk Observability - Otel Collector Configuration - Everpure FlashArrays",
+            "type": "object"
+        },
+        "otel_collector.metrics_collection": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Otel Collector - Metrics Collection configuration.\n\nRequired fields are:\n  * `etcd_metrics`\n  * `nvidia_gpu_metrics`\n\nOptional fields are:\n  * `portworx_metrics`\n  * `trident_metrics`",
+            "properties": {
+                "etcd_metrics": {
+                    "default": true,
+                    "description": "The default value is `true`.  Flag to collect ETCD platform metrics.",
+                    "title": "ETCD Metrics Collection",
+                    "type": "boolean"
+                },
+                "nvidia_gpu_metrics": {
+                    "default": true,
+                    "description": "The default value is `true`.  Flag to collect NVIDIA GPU metrics.",
+                    "title": "NVIDIA GPU Metrics Collection",
+                    "type": "boolean"
+                },
+                "portworx_metrics": {
+                    "default": false,
+                    "description": "The default value is `false`.  Flag to collect Portworx metrics.",
+                    "title": "Portworx Metrics Collection",
+                    "type": "boolean"
+                },
+                "trident_metrics": {
+                    "default": false,
+                    "description": "The default value is `false`.  Flag to collect Trident metrics.",
+                    "title": "Trident Metrics Collection",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "etcd_metrics",
+                "nvidia_gpu_metrics"
+            ],
+            "title": "Splunk Observability - Otel Collector - Metrics Collection",
+            "type": "object"
+        },
+        "otel_collector.proxy": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Otel Collector - Proxy Configuration if required.\n\nRequired fields are:\n  * `https_proxy`\n  * `no_proxy`\n\nOptional fields are:\n  * `password`\n  * `username`\n\nFor `no_proxy` we recommend including the following at a minimum:\n\n  * `localhost`\n  * `.cluster.local`\n  * `.svc.cluster.local`\n  * `apps.<cluster_name>.<base_dns_domain>`\n  * `.<cluster_name>.<base_dns_domain>`\n  * `.<base_dns_domain>`",
+            "properties": {
+                "http_proxy": {
+                    "$ref": "./shared.json#/definitions/proxy_servers/allOf/0/properties/http_proxy"
+                },
+                "https_proxy": {
+                    "$ref": "./shared.json#/definitions/proxy_servers/allOf/0/properties/https_proxy"
+                },
+                "no_proxy": {
+                    "$ref": "./shared.json#/definitions/proxy_servers/allOf/0/properties/no_proxy"
+                },
+                "password": {
+                    "$ref": "./shared.json#/definitions/proxy_servers/allOf/0/properties/password"
+                },
+                "username": {
+                    "$ref": "./shared.json#/definitions/proxy_servers/allOf/0/properties/username"
+                }
+            },
+            "required": [
+                "http_proxy",
+                "https_proxy",
+                "no_proxy"
+            ],
+            "title": "Splunk Observability - Otel Collector - Proxy Configuration",
+            "type": "object"
+        },
+        "otel_collector.syslog": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Otel Collector - Syslog Configuration if desired.\n\nRequired fields are:\n  * `enabled`\n\nOptional fields are:\n  * `port`\n  * `protocol`",
+            "properties": {
+                "enabled": {
+                    "default": false,
+                    "description": "Default value is `false`.  Enable or disable the Splunk Observability - Otel Collector - Syslog configuration.",
+                    "title": "Enable Syslog",
+                    "type": "boolean"
+                },
+                "port": {
+                    "default": 1514,
+                    "description": "Default value is `1514`.  The port on which the Splunk Observability - Otel Collector is listening.",
+                    "title": "Syslog Port",
+                    "type": "integer"
+                },
+                "protocol": {
+                    "default": "TCP",
+                    "description": "Default value is `TCP`.  The protocol to use for syslog communication.",
+                    "enum": ["TCP", "UDP"],
+                    "title": "Syslog Protocol",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "enabled"
+            ],
+            "title": "Splunk Observability - Otel Collector - Syslog Configuration",
+            "type": "object"
+        },
+        "splunk_platform": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Splunk Observability - Otel Collector Configuration.\n\nRequired fields are:\n  * `endpoint`\n  * `token`\n\nOptional fields are:\n  * `realm`",
+            "properties": {
+                "endpoint": {
+                    "default": "https://customer.splunkcloud.com",
+                    "description": "The default value is `https://customer.splunkcloud.com`.  The URL for the Splunk Cloud customer instance.",
+                    "examples": [
+                        "https://customer.splunkcloud.com"
+                    ],
+                    "maxLength": 266,
+                    "minLength": 1,
+                    "pattern": "^(?:https:\\/\\/)(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))(?:\\/(?:12[0-8]|1[0-1][0-9]|\\d{1,2}))?|((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6})$",
+                    "title": "Splunk Platform Endpoint URL",
+                    "type": "string"
+                },
+                "index": {
+                    "default": "cisco-ai-pods",
+                    "description": "The default value is `cisco-ai-pods`.  A Splunk platform index is a repository that stores and organizes incoming raw data (logs, metrics, and traces) as searchable, time-stamped events. Administrators configure indexes to control data retention, optimize search performance, and apply role-based access controls.  User-defined Splunk indexes strictly allow only the following characters:\n\n  * Lowercase letters (a-z)\n  * Numbers (0-9)\n  * Underscores (_)\n  * Hyphens (-)\n\nCrucial Naming Rules:\n  * No uppercase letters: Index names must be lowercase.\n  * Starts with a letter: They cannot begin with an underscore, hyphen, or number.\n  * Reserved words: They cannot contain the word \"kvstore\".",
+                    "examples": [
+                        "cisco-ai-pods"
+                    ],
+                    "maxLength": 50,
+                    "minLength": 1,
+                    "pattern": "^(?!.*kvstore)[a-z][a-z0-9_-]{0,49}$",
+                    "title": "Splunk Platform Index",
+                    "type": "string"
+                },
+                "token": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The Splunk Platform Token.  A number Between 1-64 to denote the variables splunk_platform_token_[1-64].  i.e. `export splunk_platform_token_1='a1234567-abcd-1234-5678-abcdef123456'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Splunk Platform Token Identifier",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "endpoint",
+                "index",
+                "token"
+            ],
+            "title": "Splunk Observability - Otel Collector Configuration",
+            "type": "object"
+        }
+    },
+    "description": "JSON Schema for validating Cisco AI POD Splunk Observability settings, including Otel Collector configuration, endpoints, indexes, and tokens.",
+    "title": "Cisco AI PODs - Splunk Observability Schema"
+}

@@ -1,0 +1,74 @@
+---
+# Full AI Pod deployment workflow - phase 1 (Infrastructure and OpenShift Install Prep)
+# Stop here, run the iServer installation, then run deploy_ai_pod_phase2.yaml.
+# scripts/deploy_ai_pod.py runs both phases and the iServer install between them.
+#
+# Usage:
+#   ansible-playbook playbooks/deploy_ai_pod_phase1.yaml
+#
+- name: Deploy Cisco AI Pod — Phase 1 (Infrastructure and OpenShift Install Prep)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ansible_python_interpreter: "{{ (lookup('ansible.builtin.env', 'VIRTUAL_ENV') + '/bin/python3') if lookup('ansible.builtin.env', 'VIRTUAL_ENV') else 'python3' }}"
+    host_vars_dir: "{{ host_vars_dir | default(playbook_dir ~ '/../host_vars') }}"
+
+  pre_tasks:
+    - name: Find Variable Files Under host_vars
+      ansible.builtin.find:
+        paths: "{{ host_vars_dir }}"
+        patterns:
+          - "*.ezai.yaml"
+        file_type: file
+        recurse: true
+      register: var_files
+
+    - name: Merge Variable Files Into a Single Dictionary
+      ansible.builtin.set_fact:
+        merged_vars: "{{ merged_vars | default({}) | combine((lookup('ansible.builtin.file', item.path) | from_yaml), recursive=True) }}"
+      loop: "{{ var_files.files | sort(attribute='path') }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    - name: Set Merged Objects
+      ansible.builtin.set_fact:
+        everpure: "{{ merged_vars.everpure | default({}) }}"
+        intersight: "{{ merged_vars.intersight | default({}) }}"
+        openshift: "{{ merged_vars.openshift | default({}) }}"
+        splunk_observability: "{{ merged_vars.splunk_observability | default({}) }}"
+
+    - name: Create Temporary Model File for Sensitive Variable Validation
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .json
+      register: sensitive_model_file
+
+    - name: Write Merged Variables for Sensitive Variable Validation
+      ansible.builtin.copy:
+        dest: "{{ sensitive_model_file.path }}"
+        content: "{{ merged_vars | to_nice_json }}"
+        mode: "0600"
+
+    - name: Validate Sensitive Environment Variables
+      ansible.builtin.command:
+        cmd: "{{ ansible_python_interpreter }} {{ playbook_dir }}/../scripts/validate_sensitive_variables.py --models {{ sensitive_model_file.path }}"
+      changed_when: false
+
+    - name: Remove Temporary Model File
+      ansible.builtin.file:
+        path: "{{ sensitive_model_file.path }}"
+        state: absent
+
+  roles:
+    # - role: cisco.ai_pods.everpure
+    - role: everpure
+      everpure: "{{ everpure }}"
+      tags: [storage, everpure]
+      when: (everpure.flash_arrays is defined or everpure.flash_blades is defined) and everpure.settings is defined
+
+    # - role: cisco.ai_pods.openshift_install
+    - role: openshift_install
+      tags: [openshift, install]
+      when: openshift.install is defined

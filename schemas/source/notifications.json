@@ -1,0 +1,76 @@
+{
+    "$id": "notifications.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "cisco_webex": {
+            "additionalProperties": false,
+            "description": "List of Cisco WebEx notification settings.\n\nRequired fields are:\n  * `recipient_id`\n  * `recipient_type`",
+            "properties": {
+                "recipient_id": {
+                    "default": "user@example.com",
+                    "description": "The default value is `user@example.com`.  Recipient Identifier for the WebEx Room or User, dependent on the recipient_type.",
+                    "examples": [
+                        "user@example.com",
+                        "Team Chat Room"
+                    ],
+                    "maxLength": 200,
+                    "minLength": 5,
+                    "pattern": "^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$",
+                    "title": "Domain Name",
+                    "type": "string"
+                },
+                "recipient_type": {
+                    "default": "roomId",
+                    "description": "The default value is `roomId`.  The recipient type for the notification.",
+                    "enum": [
+                        "roomId",
+                        "toPersonEmail",
+                        "toPersonId"
+                    ],
+                    "title": "The recipient type",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "recipient_id",
+                "recipient_type"
+            ],
+            "title": "Cisco WebEx Notification Settings",
+            "type": "object"
+        },
+        "microsoft_teams": {
+            "additionalProperties": false,
+            "description": "List of Microsoft Teams notification settings.\n\nRequired fields are:\n  * `enabled`",
+            "properties": {
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Whether Microsoft Teams notifications are enabled.",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enabled"
+            ],
+            "title": "Microsoft Teams Notification Settings",
+            "type": "object"
+        },
+        "slack": {
+            "additionalProperties": false,
+            "description": "List of Slack notification settings.\n\nRequired fields are:\n  * `enabled`",
+            "properties": {
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Whether Slack notifications are enabled.",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enabled"
+            ],
+            "title": "Slack Notification Settings",
+            "type": "object"
+        }
+    },
+    "description": "JSON Schema for validating Cisco AI POD notification settings, including Cisco Webex, email, and Slack notification destinations, recipients, delivery options, and enablement controls.",
+    "title": "Cisco AI PODs - Notifications Schema"
+}

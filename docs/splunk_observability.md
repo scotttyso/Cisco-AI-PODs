@@ -1,4 +1,4 @@
-# Splunk Observability for Cisco AI Pods Runbook
+# Splunk Observability for Cisco AI PODs Runbook
 
 ## Table of Contents
 * [Overview](#overview)
@@ -14,7 +14,7 @@
 
 This is a fork from [signalfx - Cisco AI Ready Pods](https://github.com/signalfx/splunk-opentelemetry-examples/tree/main/collector/cisco-ai-ready-pods)
 
-This module provides comprehensive documentation and automation for integrating Splunk Observability Cloud with Cisco AI Pods infrastructure. Splunk Observability provides comprehensive visibility into the entire AI infrastructure stack, from compute and storage through applications running on OpenShift.
+This module provides comprehensive documentation and automation for integrating Splunk Observability Cloud with Cisco AI PODs infrastructure. Splunk Observability provides comprehensive visibility into the entire AI infrastructure stack, from compute and storage through applications running on OpenShift.
 
 Role-level reference: [roles/splunk_observability/README.md](../roles/splunk_observability/README.md)
 
@@ -68,7 +68,7 @@ Splunk Observability Cloud provides comprehensive visibility into all infrastruc
 
 Before deploying the Splunk monitoring solution, ensure you have:
 
-1. A running Cisco AI Pods cluster with OpenShift configured
+1. A running Cisco AI PODs cluster with OpenShift configured
 2. Kubectl and OpenShift CLI (oc) configured and authenticated
 3. Access to Splunk Observability Cloud account with API tokens
 4. Helm package manager installed on your workstation
@@ -116,24 +116,17 @@ Important: install the Red Hat YAML extension so schema validation catches inval
 
 ### Step 3: Deploy Using Ansible
 
-Set the required environment variables and run the playbook from the repository root:
+Run from the repository root with the encrypted deployment vault. It supplies the
+environment variables to the role and its child processes:
 
 ```bash
-export intersight_api_key_id="<your_intersight_api_key_id>"
-export intersight_secret_key="<path_to_your_intersight_secret>"
-export nexus_device_password="<your_nexus_device_password>"
-export openshift_token_id="<your_openshift_token>"
-export openshift_api_url="<your_openshift_api_url>"
-export splunk_observability_token="<your_splunk_observability_access_token>"
-export splunk_platform_token="<your_splunk_platform_hec_token>"
-
-ansible-playbook playbooks/deploy_observability.yaml
+python3 scripts/deploy_ai_pod.py --role observability
 ```
 
-Or run the full Cisco AI Pods workflow (all domains) instead:
+Or run the full Cisco AI PODs workflow (all domains) instead:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml
+python3 scripts/deploy_ai_pod.py
 ```
 
 **Required Environment Variables:**
@@ -180,7 +173,7 @@ The deployment playbook uses Jinja2 templates from the `roles/splunk_observabili
 
 ### How templates are applied
 
-During `ansible-playbook playbooks/deploy_ai_pod.yaml --tags observability`:
+During `ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags observability`:
 
 1. OpenTelemetry values are rendered and passed to the Helm chart installation.
 2. If Intersight integration is enabled, Intersight templates are rendered and applied as Kubernetes resources.

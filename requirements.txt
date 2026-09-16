@@ -1,4 +1,4 @@
-# Centralized Python dependencies for Cisco-AI-Pods automation
+# Centralized Python dependencies for Cisco-AI-PODs automation
 boto3
 distro
 dotmap

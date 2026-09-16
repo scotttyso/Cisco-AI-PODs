@@ -1,0 +1,1130 @@
+{
+    "$id": "intersight.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "configure": {
+            "allOf": [
+                {},
+                {
+                    "properties": {
+                        "policies": {
+                            "$ref": "#/definitions/policies"
+                        },
+                        "pools": {
+                            "$ref": "#/definitions/pools"
+                        },
+                        "profiles": {
+                            "$ref": "#/definitions/profiles"
+                        },
+                        "templates": {
+                            "$ref": "#/definitions/templates"
+                        }
+                    },
+                    "required": [],
+                    "title": "configure - Intersight Configuration Options.  Policies, Pools, Profiles, and Templates can be configured for each organization.",
+                    "type": "object"
+                }
+            ],
+            "description": "Organization provides multi-tenancy within an account. Multiple organizations can be present under an account. Resources are associated to organization using resource groups. Organization can have heterogeneous resources. Resources can be shared among multiple organizations. Organizations are associated to user permissions and privileges can be specified to provide access control. User can have access to multiple organizations in same permission and with different privileges on each organization.\n\nOptional Attributes:\n  * `policies`\n  * `pools`\n  * `profiles`\n  * `templates`",
+            "title": "organizations - Intersight Uri: organization/Organizations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "organization.Organization",
+            "x-intersight-type": "organization",
+            "x-intersight-uri": "organization/Organizations"
+        },
+        "policies": {
+            "additionalProperties": false,
+            "description": "Policies in Cisco Intersight provide different configurations for UCS servers, including BIOS settings, firmware versions, disk group creation, Simple Mail Transfer Protocol (SMTP), Intelligent Platform Management Interface (IPMI) settings, and more. A policy that is once configured can be assigned to any number of servers to provide a configuration baseline. Policies in Cisco Intersight are native to the application and are not directly imported from the UCS Systems. Policy-based configuration with Server Profiles is a Cisco Intersight Essentials functionality.\n\nOptions are:\n\n  * `adapter_configuration`\n  * `auditd`\n  * `bios`\n  * `boot_order`\n  * `certificate_management`\n  * `drive_security`\n  * `device_connector`\n  * `ethernet_adapter`\n  * `ethernet_network`\n  * `ethernet_network_control`\n  * `ethernet_network_group`\n  * `ethernet_qos`\n  * `fc_zone`\n  * `fibre_channel_adapter`\n  * `fibre_channel_network`\n  * `fibre_channel_qos`\n  * `firmware`\n  * `flow_control`\n  * `id_mapping`\n  * `imc_access`\n  * `ipmi_over_lan`\n  * `iscsi_adapter`\n  * `iscsi_boot`\n  * `iscsi_static_target`\n  * `lan_connectivity`\n  * `ldap`\n  * `link_aggregation`\n  * `link_control`\n  * `local_user`\n  * `mac_sec`\n  * `multicast`\n  * `name`_prefix`\n  * `name`_suffix`\n  * `network_connectivity`\n  * `ntp`\n  * `pcie_connectivity`\n  * `persistent_memory`\n  * `port`\n  * `power`\n  * `san_connectivity`\n  * `schedule_policy`\n  * `sd_card`\n  * `server_pool_qualification`\n  * `serial_over_lan`\n  * `smtp`\n  * `snmp`\n  * `ssh`\n  * `storage`\n  * `switch_control`\n  * `syslog`\n  * `system_qos`\n  * `thermal`\n  * `virtual_kvm`\n  * `virtual_media`\n  * `vlan`\n  * `vsan`",
+            "properties": {
+                "adapter_configuration": {
+                    "description": "An Adapter Configuration Policy configures the Ethernet and Fibre-Channel settings for the Virtual Interface Card (VIC) adapter.\n\nRequired Attributes:\n  * `add_vic_adapter_configuration`\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/adapter_configuration"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "adapter_configuration - Adapter Configuration - Intersight Uri: adapter/ConfigPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "adapter.ConfigPolicy",
+                    "x-intersight-uri": "adapter/ConfigPolicies"
+                },
+                "auditd": {
+                    "description": "A policy to configure the kernel level AuditD settings in the Fabric Interconnect/Servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `enable`\n  * `minimum_severity_to_report`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/auditd"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "auditd - Auditd - Intersight Uri: auditd/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "auditd.Policy",
+                    "x-intersight-uri": "auditd/Policies"
+                },
+                "bios": {
+                    "description": "A BIOS policy automates the configuration of BIOS settings on servers. You can create one or more BIOS policies that contain a specific grouping of BIOS settings, matching the needs of a server or a set of servers. If you do not specify a BIOS policy for a server, the BIOS settings will default to set of values for a brand new baremetal server or to a set of values previously configured using Cisco IMC. If a BIOS policy is specified, its values replace any previously configured values on the server.\n\nAll BIOS tokens are not applicable to all servers. If unsupported tokens are pushed to a server, those tokens are ignored.\n\nRequired Attributes:\n  * `name`\n\nRecommended Attribute:\n\n  * `bios_template`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n#+++++++++++++++++++++++++++++++\n# Advanced Section\n#+++++++++++++++++++++++++++++++\n  * `latency_optimized_mode`\n#+++++++++++++++++++++++++++++++\n# Boot Options Section\n#+++++++++++++++++++++++++++++++\n  * `boot_option_num_retry`\n  * `boot_option_re_cool_down`\n  * `boot_option_retry`\n  * `ipv4http`\n  * `ipv4pxe`\n  * `ipv6http`\n  * `ipv6pxe`\n  * `network_stack`\n  * `onboard_scu_storage_support`\n  * `onboard_scu_storage_sw_stack`\n  * `pop_support`\n  * `psata`\n  * `sata_mode_select`\n  * `vmd_enable`\n#+++++++++++++++++++++++++++++++\n# Intel Directed IO Section\n#+++++++++++++++++++++++++++++++\n  * `intel_vt_for_directed_io`\n  * `intel_vtd_coherency_support`\n  * `intel_vtd_interrupt_remapping`\n  * `intel_vtd_pass_through_dma_support`\n  * `intel_vtdats_support`\n#+++++++++++++++++++++++++++++++\n# LOM and PCIe Slots Section\n#+++++++++++++++++++++++++++++++\n  * `acs_control_gpu1state`\n  * `acs_control_gpu2state`\n  * `acs_control_gpu3state`\n  * `acs_control_gpu4state`\n  * `acs_control_gpu5state`\n  * `acs_control_gpu6state`\n  * `acs_control_gpu7state`\n  * `acs_control_gpu8state`\n  * `acs_control_slot11state`\n  * `acs_control_slot12state`\n  * `acs_control_slot13state`\n  * `acs_control_slot14state`\n  * `cbs_cmn_pcie_cap_link_speed`\n  * `cdn_support`\n  * `edpc_en`\n  * `enable_clock_spread_spec`\n  * `lom_port0state`\n  * `lom_port1state`\n  * `lom_port2state`\n  * `lom_port3state`\n  * `lom_ports_all_state`\n  * `pch_pcie_pll_ssc`\n  * `pci_option_ro_ms`\n  * `pci_rom_clp`\n  * `pcie_ari_support`\n  * `pcie_pll_ssc`\n  * `pcie_slot_mraid1link_speed`\n  * `pcie_slot_mraid1option_rom`\n  * `pcie_slot_mraid2link_speed`\n  * `pcie_slot_mraid2option_rom`\n  * `pcie_slot_mstorraid_link_speed`\n  * `pcie_slot_mstorraid_option_rom`\n  * `pcie_slot_nvme1link_speed`\n  * `pcie_slot_nvme1option_rom`\n  * `pcie_slot_nvme2link_speed`\n  * `pcie_slot_nvme2option_rom`\n  * `pcie_slot_nvme3link_speed`\n  * `pcie_slot_nvme3option_rom`\n  * `pcie_slot_nvme4link_speed`\n  * `pcie_slot_nvme4option_rom`\n  * `pcie_slot_nvme5link_speed`\n  * `pcie_slot_nvme5option_rom`\n  * `pcie_slot_nvme6link_speed`\n  * `pcie_slot_nvme6option_rom`\n  * `slot10link_speed`\n  * `slot10state`\n  * `slot11link_speed`\n  * `slot11state`\n  * `slot12link_speed`\n  * `slot12state`\n  * `slot13state`\n  * `slot14state`\n  * `slot1link_speed`\n  * `slot1state`\n  * `slot2link_speed`\n  * `slot2state`\n  * `slot3link_speed`\n  * `slot3state`\n  * `slot4link_speed`\n  * `slot4state`\n  * `slot5link_speed`\n  * `slot5state`\n  * `slot6link_speed`\n  * `slot6state`\n  * `slot7link_speed`\n  * `slot7state`\n  * `slot8link_speed`\n  * `slot8state`\n  * `slot9link_speed`\n  * `slot9state`\n  * `slot_flom_link_speed`\n  * `slot_front_nvme1link_speed`\n  * `slot_front_nvme2link_speed`\n  * `slot_front_nvme2option_rom`\n  * `slot_front_nvme3link_speed`\n  * `slot_front_nvme3option_rom`\n  * `slot_front_nvme4link_speed`\n  * `slot_front_nvme4option_rom`\n  * `slot_front_nvme5link_speed`\n  * `slot_front_nvme5option_rom`\n  * `slot_front_nvme6link_speed`\n  * `slot_front_nvme6option_rom`\n  * `slot_front_nvme7link_speed`\n  * `slot_front_nvme7option_rom`\n  * `slot_front_nvme8link_speed`\n  * `slot_front_nvme8option_rom`\n  * `slot_front_nvme9link_speed`\n  * `slot_front_nvme9option_rom`\n  * `slot_front_nvme1option_rom`\n  * `slot_front_nvme10link_speed`\n  * `slot_front_nvme10option_rom`\n  * `slot_front_nvme11link_speed`\n  * `slot_front_nvme11option_rom`\n  * `slot_front_nvme12link_speed`\n  * `slot_front_nvme12option_rom`\n  * `slot_front_nvme13link_speed`\n  * `slot_front_nvme13option_rom`\n  * `slot_front_nvme14link_speed`\n  * `slot_front_nvme14option_rom`\n  * `slot_front_nvme15link_speed`\n  * `slot_front_nvme15option_rom`\n  * `slot_front_nvme16link_speed`\n  * `slot_front_nvme16option_rom`\n  * `slot_front_nvme17link_speed`\n  * `slot_front_nvme17option_rom`\n  * `slot_front_nvme18link_speed`\n  * `slot_front_nvme18option_rom`\n  * `slot_front_nvme19link_speed`\n  * `slot_front_nvme19option_rom`\n  * `slot_front_nvme20link_speed`\n  * `slot_front_nvme20option_rom`\n  * `slot_front_nvme21link_speed`\n  * `slot_front_nvme21option_rom`\n  * `slot_front_nvme22link_speed`\n  * `slot_front_nvme22option_rom`\n  * `slot_front_nvme23link_speed`\n  * `slot_front_nvme23option_rom`\n  * `slot_front_nvme24link_speed`\n  * `slot_front_nvme24option_rom`\n  * `slot_front_nvme25link_speed`\n  * `slot_front_nvme25option_rom`\n  * `slot_front_nvme26link_speed`\n  * `slot_front_nvme26option_rom`\n  * `slot_front_nvme27link_speed`\n  * `slot_front_nvme27option_rom`\n  * `slot_front_nvme28link_speed`\n  * `slot_front_nvme28option_rom`\n  * `slot_front_nvme29link_speed`\n  * `slot_front_nvme29option_rom`\n  * `slot_front_nvme30link_speed`\n  * `slot_front_nvme30option_rom`\n  * `slot_front_nvme31link_speed`\n  * `slot_front_nvme31option_rom`\n  * `slot_front_nvme32link_speed`\n  * `slot_front_nvme32option_rom`\n  * `slot_front_slot5link_speed`\n  * `slot_front_slot6link_speed`\n  * `slot_gpu1state`\n  * `slot_gpu2state`\n  * `slot_gpu3state`\n  * `slot_gpu4state`\n  * `slot_gpu5state`\n  * `slot_gpu6state`\n  * `slot_gpu7state`\n  * `slot_gpu8state`\n  * `slot_hba_link_speed`\n  * `slot_hba_state`\n  * `slot_lom1link`\n  * `slot_lom2link`\n  * `slot_mezz_state`\n  * `slot_mlom_link_speed`\n  * `slot_mlom_state`\n  * `slot_mraid_link_speed`\n  * `slot_mraid_state`\n  * `slot_n10state`\n  * `slot_n11state`\n  * `slot_n12state`\n  * `slot_n13state`\n  * `slot_n14state`\n  * `slot_n15state`\n  * `slot_n16state`\n  * `slot_n17state`\n  * `slot_n18state`\n  * `slot_n19state`\n  * `slot_n1state`\n  * `slot_n20state`\n  * `slot_n21state`\n  * `slot_n22state`\n  * `slot_n23state`\n  * `slot_n24state`\n  * `slot_n2state`\n  * `slot_n3state`\n  * `slot_n4state`\n  * `slot_n5state`\n  * `slot_n6state`\n  * `slot_n7state`\n  * `slot_n8state`\n  * `slot_n9state`\n  * `slot_raid_link_speed`\n  * `slot_raid_state`\n  * `slot_rear_nvme1link_speed`\n  * `slot_rear_nvme1state`\n  * `slot_rear_nvme2link_speed`\n  * `slot_rear_nvme2state`\n  * `slot_rear_nvme3link_speed`\n  * `slot_rear_nvme3state`\n  * `slot_rear_nvme4link_speed`\n  * `slot_rear_nvme4state`\n  * `slot_rear_nvme5state`\n  * `slot_rear_nvme6state`\n  * `slot_rear_nvme7state`\n  * `slot_rear_nvme8state`\n  * `slot_riser1link_speed`\n  * `slot_riser1slot1link_speed`\n  * `slot_riser1slot2link_speed`\n  * `slot_riser1slot3link_speed`\n  * `slot_riser2link_speed`\n  * `slot_riser2slot4link_speed`\n  * `slot_riser2slot5link_speed`\n  * `slot_riser2slot6link_speed`\n  * `slot_sas_state`\n  * `slot_ssd_slot1link_speed`\n  * `slot_ssd_slot2link_speed`\n#+++++++++++++++++++++++++++++++\n# Main Section\n#+++++++++++++++++++++++++++++++\n  * `gpu_direct_cpu1`\n  * `gpu_direct_cpu2`\n  * `gpu_direct_cpu3`\n  * `gpu_direct_cpu4`\n  * `pcie_slots_cdn_enable`\n  * `post_error_pause`\n  * `tpm_support`\n#+++++++++++++++++++++++++++++++\n# Memory Section\n#+++++++++++++++++++++++++++++++\n  * `acpi_srat_sp_flag_en`\n  * `adaptive_refresh_mgmt_level`\n  * `advanced_mem_test`\n  * `bme_dma_mitigation`\n  * `burst_and_postponed_refresh`\n  * `cbs_cmn_cpu_sev_asid_space_limit`\n  * `cbs_cmn_cpu_smee`\n  * `cbs_cmn_gnb_nb_iommu`\n  * `cbs_cmn_mem_cs_interleave_ddr`\n  * `cbs_cmn_mem_ctrl_bank_group_swap_ddr4`\n  * `cbs_cmn_mem_ctrller_bank_swap_mode_ddr`\n  * `cbs_cmn_mem_dram_refresh_rate`\n  * `cbs_cmn_mem_healing_bist_enable_bit_mask_ddr`\n  * `cbs_cmn_mem_map_bank_interleave_ddr4`\n  * `cbs_cmn_mem_speed_ddr47xx2`\n  * `cbs_cmn_mem_speed_ddr47xx3`\n  * `cbs_dbg_cpu_snp_mem_cover`\n  * `cbs_dbg_cpu_snp_mem_size_cover`\n  * `cbs_df_cmn4link_max_xgmi_speed`\n  * `cbs_df_cmn_dram_nps`\n  * `cbs_df_cmn_dram_scrub_time`\n  * `cbs_df_cmn_mem_intlv`\n  * `cbs_df_cmn_mem_intlv_control`\n  * `cbs_df_cmn_mem_intlv_size`\n  * `cbs_gnb_dbg_pcie_tbt_support`\n  * `cbs_sev_snp_support`\n  * `cke_low_policy`\n  * `cr_qos`\n  * `crfastgo_config`\n  * `dcpmm_firmware_downgrade`\n  * `dram_refresh_rate`\n  * `dram_sw_thermal_throttling`\n  * `eadr_support`\n  * `enable_rmt`\n  * `error_check_scrub`\n  * `lv_ddr_mode`\n  * `memory_bandwidth_boost`\n  * `memory_refresh_rate`\n  * `memory_size_limit`\n  * `memory_thermal_throttling`\n  * `mirroring_mode`\n  * `mmioh_base`\n  * `mmioh_size`\n  * `numa_optimized`\n  * `nvmdimm_perform_config`\n  * `operation_mode`\n  * `panic_high_watermark`\n  * `partial_cache_line_sparing`\n  * `partial_mirror_mode_config`\n  * `partial_mirror_percent`\n  * `partial_mirror_value1`\n  * `partial_mirror_value2`\n  * `partial_mirror_value3`\n  * `partial_mirror_value4`\n  * `pc_ie_ras_support`\n  * `pre_boot_dma_protection`\n  * `post_package_repair`\n  * `runtime_post_package_repair`\n  * `select_memory_ras_configuration`\n  * `select_ppr_type`\n  * `sev`\n  * `smee`\n  * `snoopy_mode_for2lm`\n  * `snoopy_mode_for_ad`\n  * `sparing_mode`\n  * `tsme`\n  * `uefi_mem_map_sp_flag_en`\n  * `uma_based_clustering`\n  * `vol_memory_mode`\n#+++++++++++++++++++++++++++++++\n# PCI Section\n#+++++++++++++++++++++++++++++++\n  * `aspm_support`\n  * `ioh_resource`\n  * `memory_mapped_io_above4gb`\n  * `mmcfg_base`\n  * `onboard10gbit_lom`\n  * `onboard_gbit_lom`\n  * `pc_ie_ssd_hot_plug_support`\n  * `resize_bar_support`\n  * `sr_iov`\n  * `vga_priority`\n#+++++++++++++++++++++++++++++++\n# Power and Performance Section\n#+++++++++++++++++++++++++++++++\n  * `c1auto_demotion`\n  * `c1auto_un_demotion`\n  * `cbs_cmn_cpu_cpb`\n  * `cbs_cmn_cpu_global_cstate_ctrl`\n  * `cbs_cmn_cpu_l1_burst_prefetch_mode`\n  * `cbs_cmn_cpu_l1stream_hw_prefetcher`\n  * `cbs_cmn_cpu_l2stream_hw_prefetcher`\n  * `cbs_cmn_determinism_slider`\n  * `cbs_cmn_efficiency_mode_en`\n  * `cbs_cmn_efficiency_mode_en_rs`\n  * `cbs_cmn_gnb_smucppc`\n  * `cbs_cmnc_tdp_ctl`\n  * `cpu_perf_enhancement`\n  * `llc_alloc`\n  * `optimized_power_mode`\n  * `upi_link_enablement`\n  * `upi_power_management`\n  * `virtual_numa`\n  * `x2apic_opt_out`\n  * `xpt_remote_prefetch`\n#+++++++++++++++++++++++++++++++\n# Processor Section\n#+++++++++++++++++++++++++++++++\n  * `adjacent_cache_line_prefetch`\n  * `altitude`\n  * `auto_cc_state`\n  * `autonumous_cstate_enable`\n  * `boot_performance_mode`\n  * `cbs_cmn_apbdis`\n  * `cbs_cmn_apbdis_df_pstate_rs`\n  * `cbs_cmn_cpu_avx512`\n  * `cbs_cmn_cpu_frequency_control`\n  * `cbs_cmn_cpu_gen_downcore_ctrl`\n  * `cbs_cmn_cpu_streaming_stores_ctrl`\n  * `cbs_cmn_edc_control_throttle`\n  * `cbs_cmn_fixed_soc_pstate`\n  * `cbs_cmn_gnb_smu_df_cstates`\n  * `cbs_cmn_gnb_smu_dffo_rs`\n  * `cbs_cmn_gnb_smu_dlwm_support`\n  * `cbs_cmn_mem_ctrller_pwr_dn_en_ddr`\n  * `cbs_cmn_preferred_io7xx2`\n  * `cbs_cmn_preferred_io7xx3`\n  * `cbs_cmnx_gmi_force_link_width_rs`\n  * `cbs_cpu_ccd_ctrl_ssp`\n  * `cbs_cpu_core_ctrl`\n  * `cbs_cpu_down_core_ctrl_bergamo`\n  * `cbs_cpu_down_core_ctrl_genoa`\n  * `cbs_cpu_smt_ctrl`\n  * `cbs_dbg_cpu_gen_cpu_wdt`\n  * `cbs_dbg_cpu_lapic_mode`\n  * `cbs_df_cmn_acpi_srat_l3numa`\n  * `cbs_df_dbg_xgmi_link_cfg`\n  * `channel_inter_leave`\n  * `cisco_xgmi_max_speed`\n  * `closed_loop_therm_throtl`\n  * `cmci_enable`\n  * `config_tdp`\n  * `config_tdp_level`\n  * `core_multi_processing`\n  * `cpu_energy_performance`\n  * `cpu_frequency_floor`\n  * `cpu_performance`\n  * `cpu_power_management`\n  * `demand_scrub`\n  * `dfx_osb_en`\n  * `direct_cache_access`\n  * `dram_clock_throttling`\n  * `energy_efficient_turbo`\n  * `eng_perf_tuning`\n  * `enhanced_intel_speed_step_tech`\n  * `epp_enable`\n  * `epp_profile`\n  * `execute_disable_bit`\n  * `extended_apic`\n  * `hardware_prefetch`\n  * `hwpm_enable`\n  * `imc_interleave`\n  * `intel_dynamic_speed_select`\n  * `intel_hyper_threading_tech`\n  * `intel_speed_select`\n  * `intel_turbo_boost_tech`\n  * `intel_virtualization_technology`\n  * `ioat_config_cpm`\n  * `ioh_error_enable`\n  * `ip_prefetch`\n  * `kti_prefetch`\n  * `llc_prefetch`\n  * `memory_inter_leave`\n  * `package_cstate_limit`\n  * `patrol_scrub`\n  * `patrol_scrub_duration`\n  * `prmrr_size`\n  * `processor_c1e`\n  * `processor_c3report`\n  * `processor_c6report`\n  * `processor_cstate`\n  * `pstate_coord_type`\n  * `pwr_perf_tuning`\n  * `qpi_link_speed`\n  * `rank_inter_leave`\n  * `single_pctl_enable`\n  * `smt_mode`\n  * `snc`\n  * `speculative_lock_enable`\n  * `streamer_prefetch`\n  * `svm_mode`\n  * `ufs_disable`\n  * `ufs_disable_io`\n  * `work_load_config`\n  * `xpt_prefetch`\n#+++++++++++++++++++++++++++++++\n# QPI Section\n#+++++++++++++++++++++++++++++++\n  * `qpi_link_frequency`\n  * `qpi_snoop_mode`\n#+++++++++++++++++++++++++++++++\n# Security Section\n#+++++++++++++++++++++++++++++++\n  * `enable_tdx`\n  * `enable_tdx_seamldr`\n#+++++++++++++++++++++++++++++++\n# Serial Port Section\n#+++++++++++++++++++++++++++++++\n  * `serial_port_aenable`\n#+++++++++++++++++++++++++++++++\n# Server Management Section\n#+++++++++++++++++++++++++++++++\n  * `assert_nmi_on_perr`\n  * `assert_nmi_on_serr`\n  * `baud_rate`\n  * `cdn_enable`\n  * `cisco_adaptive_mem_training`\n  * `cisco_debug_level`\n  * `cisco_oprom_launch_optimization`\n  * `console_redirection`\n  * `flow_control`\n  * `frb2enable`\n  * `legacy_os_redirection`\n  * `os_boot_watchdog_timer`\n  * `os_boot_watchdog_timer_policy`\n  * `os_boot_watchdog_timer_timeout`\n  * `out_of_band_mgmt_port`\n  * `putty_key_pad`\n  * `redirection_after_post`\n  * `serial_mux`\n  * `terminal_type`\n  * `ucsm_boot_order_rule`\n#+++++++++++++++++++++++++++++++\n# Trusted Platform Section\n#+++++++++++++++++++++++++++++++\n  * `cpu_pa_limit`\n  * `enable_mktme`\n  * `dma_ctrl_opt_in`\n  * `enable_sgx`\n  * `enable_tme`\n  * `epoch_update`\n  * `sgx_auto_registration_agent`\n  * `sgx_epoch0`\n  * `sgx_epoch1`\n  * `sgx_factory_reset`\n  * `sgx_le_pub_key_hash0`\n  * `sgx_le_pub_key_hash1`\n  * `sgx_le_pub_key_hash2`\n  * `sgx_le_pub_key_hash3`\n  * `sgx_le_wr`\n  * `sgx_package_info_in_band_access`\n  * `sgx_qos`\n  * `sha1pcr_bank`\n  * `sha256pcr_bank`\n  * `sha384pcr_bank`\n  * `tpm_control`\n  * `tpm_pending_operation`\n  * `tpm_ppi_required`\n  * `txt_support`\n#+++++++++++++++++++++++++++++++\n# USB Section\n#+++++++++++++++++++++++++++++++\n  * `all_usb_devices`\n  * `legacy_usb_support`\n  * `make_device_non_bootable`\n  * `pch_usb30mode`\n  * `usb_emul6064`\n  * `usb_port_front`\n  * `usb_port_internal`\n  * `usb_port_kvm`\n  * `usb_port_rear`\n  * `usb_port_sd_card`\n  * `usb_port_vmedia`\n  * `usb_xhci_support`\n\n#+++++++++++++++++++++++++++++++\n# C885A - BIOS Tokens\n#+++++++++++++++++++++++++++++++\n\n  * `svm_mode` -> SVM Mode\n  * `cbs_cmn_apbdis` -> APBDIS\n  * `cbs_cmn_cpu_avx512` -> AVX512\n  * `cbs_cmn_cpu_cpb` -> Core Performance Boost\n  * `cbs_cmn_cpu_global_cstate_ctrl` -> Global C-state Control\n  * `cbs_cmn_cpu_l1_burst_prefetch_mode` -> L1 Burst Prefetch Mode\n  * `cbs_cmn_cpu_l1stream_hw_prefetcher` -> L1 Stream HW Prefetcher\n  * `cbs_cmn_cpu_l2stream_hw_prefetcher` -> L2 Stream HW Prefetcher\n  * `cbs_cmn_cpu_smee` -> SMEE\n  * `cbs_cmn_cpu_streaming_stores_ctrl` -> Streaming Stores Control\n  * `cbs_cmn_gnb_nb_iommu` -> IOMMU\n  * `post_package_repair` -> DRAM Boot Time Post Package Repair\n  * `cbs_cmn_mem_cs_interleave_ddr` -> Chipselect Interleaving\n  * `cbs_cmn_mem_ctrller_bank_swap_mode_ddr` -> BankSwapMode\n  * `cbs_cmn_mem_ctrller_pwr_dn_en_ddr` -> Power Down Enable\n  * `cbs_cmn_mem_dram_refresh_rate` -> DRAM Refresh Rate\n  * `cbs_df_cmn_dram_scrub_time` -> DRAM Scrub Time\n  * `cbs_cmn_mem_healing_bist_enable_bit_mask_ddr` -> DDR Healing BIST\n  * `runtime_post_package_repair` -> DRAM Runtime Post Package Repair\n  * `tsme` -> TSME\n  * `cbs_cmn_pcie_cap_link_speed` -> PCIE Link Speed Capability\n  * `cbs_cpu_ccd_ctrl_ssp` -> CCD Control\n  * `cbs_cpu_smt_ctrl` -> SMT Control\n  * `cbs_dbg_cpu_lapic_mode` -> Local APIC Mode\n  * `cbs_df_cmn4link_max_xgmi_speed` -> 3-link xGMI max speed\n  * `cbs_df_cmn_acpi_srat_l3numa` -> ACPI SRAT L3 Cache As NUMA Domain\n  * `cbs_df_cmn_dram_nps` -> NUMA nodes per socket\n  * `cbs_df_cmn_mem_intlv_control` -> Memory interleaving\n  * `cbs_sev_snp_support` -> SEV-SNP Support\n  * `os_boot_watchdog_timer` -> OS Watchdog Timer\n  * `os_boot_watchdog_timer_timeout` -> OS Wtd Timer Timeout\n  * `os_boot_watchdog_timer_policy` -> OS Wtd Timer Policy\n  * `pop_support` -> Password protection of Runtime Variables\n  * `ipv4pxe` -> IPv4 PXE Support\n  * `ipv6pxe` -> IPv6 PXE Support\n  * `ipv4http` -> IPv4 HTTP Support\n  * `ipv6http` -> IPv6 HTTP Support\n  * `sr_iov` -> SR-IOV Support\n  * `bme_dma_mitigation` -> BME DMA Mitigation\n  * `tpm_pending_operation` -> Pending operation\n  * `console_redirection` -> Console Redirection\n  * `baud_rate` -> Bits per second\n  * `terminal_type` -> Terminal Type\n  * `flow_control` -> Flow Control",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/bios"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "bios - Bios - Intersight Uri: bios/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "bios.Policy",
+                    "x-intersight-uri": "bios/Policies"
+                },
+                "boot_order": {
+                    "description": "The Boot Order policy configures the linear ordering of devices and enables you to change the boot order and boot mode. You can also add multiple devices under various device types, rearrange the boot order, and set parameters for each boot device type.\n\nRequired Attributes:\n  * `boot_devices`\n  * `enable_secure_boot`\n  * `name`\n\nOptional Attributes:\n  * `boot_mode`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/boot_order"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "boot_order - Boot Order - Intersight Uri: boot/PrecisionPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "boot.PrecisionPolicy",
+                    "x-intersight-uri": "boot/PrecisionPolicies"
+                },
+                "certificate_management": {
+                    "description": "Allows you to specify the certificate and private key-pair details for an external certificate.\n\nNote: Currently, Cisco Intersight supports Certificate Management of IMC Certificates only.\n\nRequired Attributes:\n  * `assigned_sensitive_data`\n  * `certificate`\n  * `name`\n  * `private_key`\n\nOptional Attributes:\n  * `enabled`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/certificate_management"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "certificate_management - Certificate Management - Intersight Uri: certificatemanagement/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "certificatemanagement.Policy",
+                    "x-intersight-uri": "certificatemanagement/Policies"
+                },
+                "device_connector": {
+                    "description": "Device Connector Policy lets you choose the Configuration from Intersight only option to control configuration changes allowed from Cisco IMC. The Configuration from Intersight only option is enabled by default. You will observe the following changes when you deploy the Device Connector policy in Intersight:\n\n  * Validation tasks will fail:\n    - If Intersight Read-only mode is enabled in the claimed device.\n    - If the firmware version of the Cisco UCS Standalone C-Series Servers is lower than 4.0(1).\n  * If Intersight Read-only mode is enabled, firmware upgrades will be successful only when performed from Intersight. Firmware upgrade performed locally from Cisco IMC will fail.\n  * IPMI over LAN privileges will be reset to read-only level if Configuration from Intersight only is enabled through the Device Connector policy, or if the same configuration is enabled in the Device Connector in Cisco IMC.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `configuration_from_intersight_only`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/device_connector"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "device_connector - Device Connector - Intersight Uri: deviceconnector/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "deviceconnector.Policy",
+                    "x-intersight-uri": "deviceconnector/Policies"
+                },
+                "drive_security": {
+                    "description": "In Intersight Managed Mode, the Drive Security Policy allows you to specify the KMIP server details and attach the policy to the server profile.  Either `manual_key` or `remote_key_management` must be specified, but not both.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `manual_key`\n  * `remote_key_management`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/drive_security"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "drive_security - Drive Security - Intersight Uri: storage/DriveSecurityPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "storage.DriveSecurityPolicy",
+                    "x-intersight-uri": "storage/DriveSecurityPolicies"
+                },
+                "ethernet_adapter": {
+                    "description": "An Ethernet adapter policy governs the host-side behavior of the adapter, including how the adapter handles traffic. For each VIC Virtual Ethernet Interface, you can configure various features like Virtual Extensible LAN (VXLAN), Network Virtualization using Generic Routing Encapsulation (NVGRE), Accelerated Receive Flow Steering (ARFS), Interrupt settings, and TCP Offload settings.\n\nThe Ethernet Adapter policy include the recommended settings for the virtual Ethernet interface, for each supported server operating system. Operating systems are sensitive to the settings in these policies. In general, the storage vendors require non-default adapter settings. You can find the details of these required settings on the support list provided by those vendors.\n\nIMPORTANT NOTE: If GENEVE Offload is Enabled be sure to Read the Following Guidance: https://www.cisco.com/c/en/us/td/docs/unified_computing/Intersight/b_Intersight_Managed_Mode_Configuration_Guide/b_intersight_managed_mode_guide_chapter_0110.html#reference_ofm_khm_5jb\n\nRequired Attributes:\n  * `name`\n\nRecommended Attribute:\n\n `adapter_template`\n\nOptional Attributes:\n  * `completion`\n  * `description`\n  * `enable_accelerated_receive_flow_steering`\n  * `enable_advanced_filter`\n  * `enable_ether_channel_pinning`\n  * `enable_geneve_offload`\n  * `enable_interrupt_scaling`\n  * `enable_nvgre_offload`\n  * `enable_precision_time_protocol`\n  * `enable_vxlan_offload`\n  * `interrupt_settings`\n  * `receive`\n  * `receive_side_scaling`\n  * `roce_settings`\n  * `tags`\n  * `tcp_offload`\n  * `transmit`\n  * `uplink_failback_timeout`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ethernet_adapter"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ethernet_adapter - Ethernet Adapter - Intersight Uri: vnic/EthAdapterPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.EthAdapterPolicy",
+                    "x-intersight-uri": "vnic/EthAdapterPolicies"
+                },
+                "ethernet_network": {
+                    "description": "An Ethernet Network policy determines if the port can carry single VLAN (Access) or multiple VLANs (Trunk) traffic. You can specify the VLAN to be associated with an Ethernet packet if no tag is found.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `default_vlan`\n  * `description`\n  * `tags`\n  * `vlan_mode`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ethernet_network"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ethernet_network - Ethernet Network - Intersight Uri: vnic/EthNetworkPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.EthNetworkPolicy",
+                    "x-intersight-uri": "vnic/EthNetworkPolicies"
+                },
+                "ethernet_network_control": {
+                    "description": "Ethernet Network Control policies configure the network control settings for the UCS Domain. This policy is applicable only for the Appliance Ports defined in a Port Policy and for the vNICs defined in a LAN Connectivity Policy, on an FI-Attached UCS Servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `action_on_uplink_fail`\n  * `cdp_enable`\n  * `description`\n  * `lldp_enable_receive`\n  * `lldp_enable_transmit`\n  * `mac_register_mode`\n  * `mac_security_forge`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ethernet_network_control"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ethernet_network_control - Ethernet Network Control - Intersight Uri: fabric/EthNetworkControlPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.EthNetworkControlPolicy",
+                    "x-intersight-uri": "fabric/EthNetworkControlPolicies"
+                },
+                "ethernet_network_group": {
+                    "description": "Ethernet Network Group policies configure the Allowed VLANs and Native VLAN settings for the UCS Domain.\n\nRequired Attributes:\n  * `allowed_vlans`\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `native_vlan`\n  * `qinq_vlan`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ethernet_network_group"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ethernet_network_group - Ethernet Network Group - Intersight Uri: fabric/EthNetworkGroupPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.EthNetworkGroupPolicy",
+                    "x-intersight-uri": "fabric/EthNetworkGroupPolicies"
+                },
+                "ethernet_qos": {
+                    "description": "An Ethernet Quality of Service (QoS) policy assigns a system class to the outgoing traffic for a vNIC. This system class determines the quality of service for the outgoing traffic. For certain adapters, you can also specify additional controls like burst and rate on the outgoing traffic.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `burst`\n  * `class_of_service`\n  * `description`\n  * `enable_trust_host_cos`\n  * `mtu`\n  * `priority`\n  * `rate_limit`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ethernet_qos"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ethernet_qos - Ethernet Qos - Intersight Uri: vnic/EthQosPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.EthQosPolicy",
+                    "x-intersight-uri": "vnic/EthQosPolicies"
+                },
+                "fc_zone": {
+                    "description": "This policy allows you to set up access control between hosts and storage devices.\n\n  * Certain points to be noted when creating the FC Zone policy:\n  * Deploying a storage VSAN using a domain profile, for the first time, clears all the unmanaged zones from the Fabric Interconnect.\n  * SAN boot targets with a storage VSAN have a zone entry in the Fabric Interconnect.\n  * A one-time SAN boot with a storage VSAN has a zone entry in the Fabric Interconnect.\n  * Editing the FC Zone policy causes the server profile status to be changed to Pending Changes.\n  * When the Fabric Interconnect is rebooted, there is a replay of zones in the configuration.\n  * Detection of configuration drift is not supported for FC Zone policy.\n\nRequired Attributes:\n  * `name`\n  * `targets`\n\nOptional Attributes:\n  * `description`\n  * `fc_target_zoning_type`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/fc_zone"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "fc_zone - Fc Zone - Intersight Uri: fabric/FcZonePolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.FcZonePolicy",
+                    "x-intersight-uri": "fabric/FcZonePolicies"
+                },
+                "fibre_channel_adapter": {
+                    "description": "A Fibre Channel adapter policy governs the host-side behavior of the adapter, including how the adapter handles traffic. You can enable FCP Error Recovery, change the default settings of Queues, and Interrupt handling for performance enhancement.\nNote: We recommend that you use the values in these policies for the applicable operating system. Do not modify any of the values in the default policies unless directed to do so by Cisco Technical Support.\n\nRequired Attributes:\n  * `name`\n\nRecommended Attribute:\n\n  * `adapter_template`\n\nOptional Attributes:\n  * `description`\n  * `error_detection_timeout`\n  * `error_recovery`\n  * `flogi`\n  * `interrupt`\n  * `io_throttle_count`\n  * `lun_queue_depth`\n  * `maximum_luns_per_target`\n  * `plogi`\n  * `receive`\n  * `resource_allocation_timeout`\n  * `scsi_io`\n  * `tags`\n  * `transmit`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/fibre_channel_adapter"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "fibre_channel_adapter - Fibre Channel Adapter - Intersight Uri: vnic/FcAdapterPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.FcAdapterPolicy",
+                    "x-intersight-uri": "vnic/FcAdapterPolicies"
+                },
+                "fibre_channel_network": {
+                    "description": "A Fibre Channel Network policy governs the Virtual Storage Area Network (VSAN) configuration for the virtual interfaces.\n\nRequired Attributes:\n  * `name`\n  * `vsan_id`\n\nOptional Attributes:\n  * `default_vlan`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/fibre_channel_network"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "fibre_channel_network - Fibre Channel Network - Intersight Uri: fabric/FcNetworkPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.FcNetworkPolicy",
+                    "x-intersight-uri": "fabric/FcNetworkPolicies"
+                },
+                "fibre_channel_qos": {
+                    "description": "The Fibre Channel QoS policy assigns a system class to the outgoing traffic for a vHBA. This system class determines the quality of service for the outgoing traffic. For certain adapters, you can also specify additional controls like burst and rate on the outgoing traffic.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `burst`\n  * `class_of_service`\n  * `description`\n  * `max_data_field_size`\n  * `rate_limit`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/fibre_channel_qos"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "fibre_channel_qos - Fibre Channel Qos - Intersight Uri: vnic/FcQosPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.FcQosPolicy",
+                    "x-intersight-uri": "vnic/FcQosPolicies"
+                },
+                "firmware": {
+                    "description": "This policy allows you to see the firmware present in your systems, as against the firmware baseline. Firmware policy also enables you to bring the firmware of your systems in line with the desired version and thereby enables the drive to compliance.\n\nRequired Attributes:\n  * `model_bundle_version`\n  * `name`\n\nOptional Attributes:\n  * `advanced_mode`\n  * `description`\n  * `tags`\n  * `target_platform`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/firmware"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "firmware - Firmware - Intersight Uri: firmware/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "firmware.Policy",
+                    "x-intersight-uri": "firmware/Policies"
+                },
+                "firmware_authenticate": {
+                    "$ref": "./intersight/policies.json#/definitions/firmware_authenticate"
+                },
+                "flow_control": {
+                    "description": "Configure the Priority Flow Control for each port, to enable the no-drop behavior for the CoS defined by the System QoS Policy and an Ethernet QoS policy. In Auto and On priorities, the Receive and Send link level flow control will be Off.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `priority`\n  * `receive`\n  * `send`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/flow_control"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "flow_control - Flow Control - Intersight Uri: fabric/FlowControlPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.FlowControlPolicy",
+                    "x-intersight-uri": "fabric/FlowControlPolicies"
+                },
+                "id_mapping": {
+                    "description": "A policy to define a grouping of deployment targets (resource groups and organizations) which can be mapped to ID blocks.\n\nRequired Attributes:\n  * `name`\n  * `shared_organization`\n\nOptional Attributes:\n  * `description`\n  * `organizations`\n  * `resource_groups`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/id_mapping"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "id_mapping - IP Mapping - Intersight Uri: pool/IdMappingPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "pool.IdMappingPolicy",
+                    "x-intersight-uri": "pool/IdMappingPolicies"
+                },
+                "imc_access": {
+                    "description": "Enables you to manage and configure your network through mapping of IP pools to the server profile. This policy allows you to configure a VLAN and associate it with an IP address through the IP pool address.  In-Band IP address, Out-of-Band IP address, or both In-Band and Out-of-Band IP addresses can be configured using IMC Access Policy and are supported on the following:\n\n  * Drive Security, SNMP, Syslog, and vMedia policies\n  * vKVM, IPMI, SOL, and vMedia policies using vKVM client\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `inband_ip_pool`\n  * `inband_vlan_id`\n  * `inband_vlan_id`\n  * `ipv4_address_configuration`\n  * `ipv6_address_configuration`\n  * `out_of_band_ip_pool`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/imc_access"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "imc_access - Imc Access - Intersight Uri: access/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "access.Policy",
+                    "x-intersight-uri": "access/Policies"
+                },
+                "ipmi_over_lan": {
+                    "description": "Defines the protocols for interfacing with a service processor that is embedded in a server platform. The Intelligent Platform Management Interface (IPMI) enables an operating system to obtain information about the system health and control system hardware and directs the Cisco IMC to perform the required actions. You can create an IPMI Over LAN policy to manage the IPMI messages through Cisco Intersight.  You can assign these user roles to an IPMI user per session:\n  * `admin` \u2014 IPMI users can perform all available actions. If you select this option, IPMI users with the `Administrator` user role can create admin, user, and read-only sessions on this server.\n  * `read-only` \u2014 Can view information but cannot make any changes. IPMI users with the `Administrator`, `Operator`, or `User` user roles can only create read-only IPMI sessions, regardless of their other IPMI privileges.\n  * `user` \u2014 IPMI users can perform some functions but cannot perform administrative tasks. If you select this option, IPMI users with the `Administrator` or `Operator` user role can create user and read-only sessions on this server.\n\nRequired Attributes:\n  * `name`\n  * `privilege`\n\nOptional Attributes:\n  * `description`\n  * `enabled`\n  * `encryption_key`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ipmi_over_lan"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ipmi_over_lan - Ipmi Over Lan - Intersight Uri: ipmioverlan/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "ipmioverlan.Policy",
+                    "x-intersight-uri": "ipmioverlan/Policies"
+                },
+                "iscsi_adapter": {
+                    "description": "The iSCSI Adapter policy allows you to configure values for TCP Connection Timeout, DHCP Timeout, and the Retry Count if the specified LUN ID is busy.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `dhcp_timeout`\n  * `lun_busy_retry_count`\n  * `tags`\n  * `tcp_connection_timeout`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/iscsi_adapter"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "iscsi_adapter - Iscsi Adapter - Intersight Uri: vnic/IscsiAdapterPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.IscsiAdapterPolicy",
+                    "x-intersight-uri": "vnic/IscsiAdapterPolicies"
+                },
+                "iscsi_boot": {
+                    "description": "iSCSI boot support allows you to initialize the Operating System on FI-attached blade and rack servers from a remote disk across a Storage Area Network. The remote disk, known as the target, is accessed using TCP/IP and iSCSI boot firmware.\nPrerequisites - The following are required to configure the iSCSI boot device:\n\n  * iSCSI Static Target Policy\u2014When you select Static as the mode for configuring the iSCSI boot policy, you can use the iSCSI Static Target policy to specify the primary target details. You can also specify the details of a secondary target, if required.\n  * iSCSI Adapter Policy\u2014Using this policy you can specify the TCP and DHCP Connection Timeout and the retry count when the logical unit number of the boot device is busy.\n  * Creating an IQN Pool\u2014Using this policy you can specify the TCP and DHCP Connection Timeout and the retry count when the logical unit number of the boot device is busy.\n\n########################################\n# If target_source_type is Auto\n########################################\n\nRequired Attributes:\n  * `dhcp_vendor_id_iqn`\n  * `name`\n  * `target_source_type`\n\nOptional Attributes:\n  * `description`\n  * `iscsi_adapter_policy`\n  * `tags`\n\n########################################\n# If target_source_type is Static\n########################################\n\nRequired Attributes:\n  * `name`\n  * `primary_iscsi_static_target`\n\n\nOptional Attributes:\n  * `authentication`\n  * `description`\n  * `initiator_ip_pool`\n  * `initiator_ip_source`\n  * `initiator_static_ipv4_config`\n  * `initiator_static_ipv6_config`\n  * `ip_protocol`\n  * `iscsi_adapter_policy`\n  * `password`\n  * `tags`\n  * `username`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/iscsi_boot"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "iscsi_boot - Iscsi Boot - Intersight Uri: vnic/IscsiBootPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.IscsiBootPolicy",
+                    "x-intersight-uri": "vnic/IscsiBootPolicies"
+                },
+                "iscsi_static_target": {
+                    "description": "The iSCSI Static Target policy allows you to specify the name, IP address, port, and logical unit number of the primary target for iSCSI boot. You can optionally specify these details for a secondary target as well.\n\nRequired Attributes:\n  * `ip_address`\n  * `name`\n  * `target_name`\n\nOptional Attributes:\n  * `description`\n  * `lun_id`\n  * `port`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/iscsi_static_target"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "iscsi_static_target - Iscsi Static Target - Intersight Uri: vnic/IscsiStaticTargetPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.IscsiStaticTargetPolicy",
+                    "x-intersight-uri": "vnic/IscsiStaticTargetPolicies"
+                },
+                "lan_connectivity": {
+                    "description": "A LAN Connectivity Policy determines the connections and the network communication resources between the server and the LAN on the network. You can specify MAC address pools, or static MAC addresses, to assign MAC addresses to servers and to identify the vNICs that the servers use to communicate with the network.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\n########################################\n# FIAttached Servers \n########################################\n\nOptional Attributes:\n  * `description`\n  * `enable_azure_stack_host_qos`\n  * `iqn_pool`\n  * `iqn_static_identifier`\n  * `tags`\n  * `vnic_placement_mode`\n  * `vnics`\n  * `vnics_from_template`\n\n########################################\n# Standalone Servers \n########################################\n\nOptional Attributes:\n  * `description`\n  * `iqn_pool`\n  * `iqn_static_identifier`\n  * `tags`\n  * `vnic_placement_mode`\n  * `vnics`\n\n########################################\n# Unified Edge Servers \n########################################\n\nOptional Attributes:\n  * `description`\n  * `tags`\n  * `vnics`\n",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/lan_connectivity"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "lan_connectivity - Lan Connectivity - Intersight Uri: vnic/LanConnectivityPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.LanConnectivityPolicy",
+                    "x-intersight-uri": "vnic/LanConnectivityPolicies"
+                },
+                "ldap": {
+                    "description": "Lightweight Directory Access Protocol (LDAP) stores and maintains directory information in a network. When LDAP is enabled in the Cisco IMC, user authentication and role authorization is performed by the LDAP server for user accounts not found in the local user database. You can enable and configure LDAP, and configure LDAP servers and LDAP groups.\n\nRequired Attributes:\n  * `base_settings`\n  * `ldap_groups`\n  * `ldap_servers`\n  * `name`\n\nOptional Attributes:\n  * `binding_parameters`\n  * `description`\n  * `enable_encryption`\n  * `enable_group_authorization`\n  * `enable_ldap`\n  * `ldap_from_dns`\n  * `nested_group_search_depth`\n  * `tags`\n  * `timeout`\n  * `user_search_precedence`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ldap"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ldap - Ldap - Intersight Uri: iam/LdapPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "iam.LdapPolicy",
+                    "x-intersight-uri": "iam/LdapPolicies"
+                },
+                "link_aggregation": {
+                    "description": "This policy can be used to configure Link Aggregation properties.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `lacp_rate`\n  * `suspend_individual`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/link_aggregation"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "link_aggregation - Link Aggregation - Intersight Uri: fabric/LinkAggregationPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.LinkAggregationPolicy",
+                    "x-intersight-uri": "fabric/LinkAggregationPolicies"
+                },
+                "link_control": {
+                    "description": "This policy enables configuration of link control administrative state and configuration (normal or aggressive) mode for ports.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `admin_state`\n  * `description`\n  * `mode`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/link_control"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "link_control - Link Control - Intersight Uri: fabric/LinkControlPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.LinkControlPolicy",
+                    "x-intersight-uri": "fabric/LinkControlPolicies"
+                },
+                "local_user": {
+                    "description": "Automates the configuration of local user preferences. You can create one or more Local User policies which contain a list of local users that need to be configured.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `password_properties`\n  * `tags`\n  * `users`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/local_user"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "local_user - Local User - Intersight Uri: iam/EndPointUserPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "iam.EndPointUserPolicy",
+                    "x-intersight-uri": "iam/EndPointUserPolicies"
+                },
+                "mac_sec": {
+                    "description": "A placeholder for MACSec (Media Access Control Security) configuration parameters, Primary/Fallback key chain and EAPol (Extensible Authentication Protocol over LAN) configurations.\n\nRequired Attributes:\n  * `eapol_configurations`\n  * `mac_sec_primary_key_chain`\n  * `name`\n\nOptional Attributes:\n  * `chipher_suite`\n  * `confidentiality_offset`\n  * `description`\n  * `include_icv_indicator`\n  * `key_server_priority`\n  * `mac_sec_fallback_key_chain`\n  * `replay_window_size`\n  * `sak_expiry_time`\n  * `security_policy`\n  * `tags`\n",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/mac_sec"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "mac_sec - MacSec - Intersight Uri: fabric/MacSecPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.MacSecPolicy",
+                    "x-intersight-uri": "fabric/MacSecPolicies"
+                },
+                "memory": {
+                    "description": "Memory Management policy models a configuration that can be applied to servers to manage memory features.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `dimm_blocklisting`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/memory"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "memory - Memory - Intersight Uri: memory/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "memory.Policy",
+                    "x-intersight-uri": "memory/Policies"
+                },
+                "multicast": {
+                    "description": "The multicast policy is used to configure Internet Group Management Protocol (IGMP) snooping and IGMP querier.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `querier_ip_address`\n  * `querier_ip_address_peer`\n  * `querier_state`\n  * `snooping_state`\n  * `source_ip_proxy_state`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/multicast"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "multicast - Multicast - Intersight Uri: fabric/MulticastPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.MulticastPolicy",
+                    "x-intersight-uri": "fabric/MulticastPolicies"
+                },
+                "name_prefix": {
+                    "$ref": "./intersight/policies.json#/definitions/name_prefix"
+                },
+                "name_suffix": {
+                    "$ref": "./intersight/policies.json#/definitions/name_suffix"
+                },
+                "netflow_configuration": {
+                    "description": "This policy allows for detailed monitoring of network traffic flows, enabling security anomaly detection and performance analysis within the Intersight dashboard.  NetFlow collects IP traffic metadata to monitor bandwidth and analyze performance. It is configured within Intersight, defining collectors, exporters, and flow parameters to monitor traffic across the Fabric Interconnects.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `flow_definitions`\n  * `flow_exporters`\n  * `flow_monitors`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/netflow_configuration"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "netflow_configuration - NetFlow Configuration - Intersight Uri: fabric/NetflowPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.NetFlowPolicy",
+                    "x-intersight-uri": "fabric/NetflowPolicies"
+                },
+                "network_connectivity": {
+                    "description": "The Network Connectivity policy enables you to configure and assign IPv4 and IPv6 addresses.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `dns_servers_v4`\n  * `dns_servers_v6`\n  * `enable_dynamic_dns`\n  * `enable_ipv6`\n  * `obtain_ipv4_dns_from_dhcp`\n  * `obtain_ipv6_dns_from_dhcp`\n  * `tags`\n  * `update_domain`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/network_connectivity"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "network_connectivity - Network Connectivity - Intersight Uri: networkconfig/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "networkconfig.Policy",
+                    "x-intersight-uri": "networkconfig/Policies"
+                },
+                "ntp": {
+                    "description": "The NTP policy enables the NTP service to configure a UCS system that is managed by Cisco Intersight to synchronize the time with an NTP server. You must enable and configure the NTP service by specifying the IP/DNS address of at least one server or a maximum of four servers that function as NTP servers. When you enable the NTP service, Cisco Intersight configures the NTP details on the endpoint.\n\nRequired Attributes:\n  * `name`\n  * `ntp_servers`\n\nOptional Attributes:\n  * `description`\n  * `enabled`\n  * `tags`\n  * `timezone`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ntp"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ntp - NTP - Intersight Uri: ntp/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "ntp.Policy",
+                    "x-intersight-uri": "ntp/Policies"
+                },
+                "persistent_memory": {
+                    "description": "Persistent Memory Modules (PMem Modules) are non-volatile memory modules that bring together the low latency of memory and the persistence of storage. PMem Modules provide faster access to data and retain across power cycles, based on the mode. Intersight supports the configuration of Intel\u00ae Optane\u2122 PMem Module modules on the UCS M5 servers that are based on the Second Generation Intel\u00ae Xeon\u00ae Scalable processors. Intel\u00ae Optane\u2122 PMem Modules can be used only with the Second-Generation Intel\u00ae Xeon\u00ae Scalable processors. The Persistent Memory Policy allows the configuration of security, Goals, and Namespaces of Persistent Memory Modules.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `management_mode`\n  * `memory_mode_percentage`\n  * `name`spaces`\n  * `persistent_memory_type`\n  * `retain_namespaces`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/persistent_memory"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "persistent_memory - Persistent Memory - Intersight Uri: memory/PersistentMemoryPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "memory.PersistentMemoryPolicy",
+                    "x-intersight-uri": "memory/PersistentMemoryPolicies"
+                },
+                "port": {
+                    "description": "The port policy is used for configuring the port parameters such as unified ports that carry Ethernet or Fibre Channel traffic, port roles and speed.\n\nRequired Attributes:\n  * `device_model`\n  * `name`\n  * `target_platform`\n\n########################################\n# Unified Edge\n########################################\n\nOptional Attributes:\n  * `description`\n  * `port_channel_ethernet_uplinks`\n  * `port_role_ethernet_uplinks`\n  * `tags`\n\n\n########################################\n# UCS Domain\n########################################\n\nOptional Attributes:\n  * `description`\n  * `port_channel_appliances`\n  * `port_channel_ethernet_uplinks`\n  * `port_channel_fc_uplinks`\n  * `port_channel_fcoe_uplinks`\n  * `port_modes`\n  * `port_role_appliances`\n  * `port_role_ethernet_uplinks`\n  * `port_role_fc_storage`\n  * `port_role_fc_uplinks`\n  * `port_role_fcoe_uplinks`\n  * `port_role_servers`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/port"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "port - Port - Intersight Uri: fabric/PortPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.PortPolicy",
+                    "x-intersight-uri": "fabric/PortPolicies"
+                },
+                "power": {
+                    "description": "Enables the management of power for FI-attached servers and chassis. This policy allows you to set the power profiling the power priority of the server, and the power restore state of the system.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\nBase Optional Attributes:\n  * `description`\n  * `tags`\n\n###########################################\n# UCS Chassis Optional Attributes\n###########################################\n\n  * `extended_power_capacity`\n  * `dynamic_power_rebalancing`\n  * `power_redundancy`\n  * `power_save_mode`\n  * `power_allocation`\n\n###########################################\n# FIAttached Server Optional Attributes\n###########################################\n\nOptional Attributes:\n  * `power_priority`\n  * `power_restore`\n  * `processor_package_power_limit`\n\n\n###########################################\n# Standalone Server Optional Attributes\n###########################################\n\nOptional Attributes:\n  * `power_restore`\n  * `processor_package_power_limit`\n\n\n###########################################\n# Unified Edge Optional Attributes\n###########################################\n\nOptional Attributes:\n  * `power_allocation`\n  * `power_redundancy`\n\n\n##############################################\n# Unified Edge Server  Optional Attributes\n##############################################\n\nOptional Attributes:\n  * `power_profiling`\n  * `power_restore`\n\n\n###########################################\n# All Platforms Optional Attributes\n###########################################\n\nOptional Attributes:\n  * `dynamic_power_rebalancing`\n  * `extended_power_capacity`\n  * `power_allocation`\n  * `power_priority`\n  * `power_profiling`\n  * `power_redundancy`\n  * `power_restore`\n  * `power_save_mode`\n  * `processor_package_power_limit`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/power"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "power - Power - Intersight Uri: power/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "power.Policy",
+                    "x-intersight-uri": "power/Policies"
+                },
+                "san_connectivity": {
+                    "description": "Determines the network storage resources and the connections between the server and the SAN on the network. This policy enables you to configure vHBAs that the servers use to communicate with the Storage Area Network. You can use WWNN and WWPN address pools, or static WWNN and WWPN addresses to add vHBAs and to configure them. You must create the Fibre Channel Adapter, Fibre Channel QoS, and Fibre Channel Network policies as part of the SAN connectivity policy.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n  * `target_platform`\n  * `vhba_placement_mode`\n  * `wwnn_pool`\n  * `wwnn_static_address`\n  * `vhbas`\n  * `vhbas_from_template`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/san_connectivity"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "san_connectivity - San Connectivity - Intersight Uri: vnic/SanConnectivityPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic,SanConnectivityPolicy",
+                    "x-intersight-uri": "vnic/SanConnectivityPolicies"
+                },
+                "scrub": {
+                    "description": "The scrub policy models the data cleanup on the host. If scrub policy is associated, then its configuration will be used to initiate data erase during the server profile undeploy or disassociation.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `bios`\n  * `description`\n  * `disk`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/scrub"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "scrub - Scrub - Intersight Uri: compute/ScrubPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "compute.ScrubPolicy",
+                    "x-intersight-uri": "compute/ScrubPolicies"
+                },
+                "sd_card": {
+                    "description": "Configures the Cisco FlexFlash and FlexUtil Secure Digital (SD) cards for the Cisco UCS C-Series Standalone M4 and M5 servers. This policy specifies details of virtual drives on the SD cards. You can configure the SD cards in the Operating System Only, Utility Only, or Operating System + Utility modes.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `enable_diagnostics`\n  * `enable_drivers`\n  * `enable_huu`\n  * `enable_os`\n  * `enable_scu`\n  * `tags`:",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/sd_card"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "sd_card - Sd Card - Intersight Uri: sdcard.Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "sdcard.Policy",
+                    "x-intersight-uri": "sdcard/Policies"
+                },
+                "serial_over_lan": {
+                    "description": "Enables the input and output of the serial port of a managed system to be redirected over IP. You can create one or more Serial over LAN policies which contain a specific grouping of Serial over LAN attributes that match the needs of a server or a set of servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `baud_rate`\n  * `com_port`\n  * `description`\n  * `enabled`\n  * `ssh_port`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/serial_over_lan"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "serial_over_lan - Serial Over Lan - Intersight Uri: sol/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "sol.Policy",
+                    "x-intersight-uri": "sol/Policies"
+                },
+                "server_pool_qualification": {
+                    "description": "A server will be included in the resource pool if it matches the conditions of all the qualifiers present in the policy. The qualifiers are of four types:\n  * `Domain` \u2014 All FI-attached servers in any domain that match the provided Fabric Interconnect PID and domain name qualify under this type.\n  * `Server` \u2014 All blade and/or rack servers that match the provided server IDs, PIDs, tags, user labels, and chassis IDs qualify under this type.\n  * `Tag` \u2014 All servers that match any of the provided server tags, domain profile, and chassis tags qualify under this type. Domain profile and chassis tags are applicable only for FI-attached servers.\n  * `Hardware` \u2014 All servers with hardware components that match the provided CPU, memory, GPU, and Network adapters qualify under this type.\n\nThis policy is applicable for Intersight Managed Mode and Standalone servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `domain_qualifiers`\n  * `hardware_qualifiers`\n  * `server_qualifiers`\n  * `tag_qualifiers`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/server_pool_qualification"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "server_pool_qualification - Server Pool Qualification - Intersight Uri: resourcepool/QualificationPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "resourcepool.QualificationPolicy",
+                    "x-intersight-uri": "resourcepool/QualificationPolicies"
+                },
+                "smtp": {
+                    "description": "Sets the state of the SMTP client in the managed device. You can specify the preferred settings for outgoing communication and select the fault severity level to report and the mail recipients.\n\nRequired Attributes:\n  * `mail_alert_recipients`\n  * `name`\n  * `server_family`\n  * `smtp_server_address`\n\nOptional Attributes:\n  * `description`\n  * `enable_smtp`\n  * `minimum_severity`\n  * `smtp_alert_sender_address`\n  * `smtp_port`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/smtp"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "smtp - Smtp - Intersight Uri: smtp/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "smtp.Policy",
+                    "x-intersight-uri": "smtp/Policies"
+                },
+                "snmp": {
+                    "description": "Configures the SNMP settings for sending fault and alert information by SNMP traps from the managed devices. Any existing SNMP Users or SNMP Traps configured previously on the managed devices are removed and replaced with users or traps that you configure in this policy. If you have not added any users or traps in the policy, the existing users or traps on the server are removed but not replaced.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `access_community_string`\n  * `enable_snmp`\n  * `description`\n  * `snmp_community_access`\n  * `snmp_engine_input_id`\n  * `snmp_port`\n  * `snmp_trap_destinations`\n  * `snmp_users`\n  * `system_contact`\n  * `system_location`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/snmp"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "snmp - Snmp - Intersight Uri: snmp/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "snmp.Policy",
+                    "x-intersight-uri": "snmp/Policies"
+                },
+                "ssh": {
+                    "description": "Enables an SSH client to make a secure, encrypted connection. You can create one or more SSH policies that contain a specific grouping of SSH properties for a server or a set of servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `enable_ssh`\n  * `ssh_port`\n  * `ssh_timeout`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/ssh"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "ssh - Ssh - Intersight Uri: ssh/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "ssh.Policy",
+                    "x-intersight-uri": "ssh/Policies"
+                },
+                "storage": {
+                    "description": "A Storage policy allows you to create drive groups, virtual drives, configure the storage capacity of a virtual drive, and configure the M.2 RAID controllers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `default_drive_state`\n  * `description`\n  * `drive_groups`\n  * `global_hot_spares`\n  * `hybrid_slot_configuration:direct_attached_nvme_slots`\n  * `hybrid_slot_configuration:raid_attached_nvme_slots`\n  * `m2_raid_configuration`\n  * `secure_jbod_disk_slots`\n  * `single_drive_raid0_configuration`\n  * `tags`\n  * `unused_disks_state`\n  * `use_jbod_for_vd_creation`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/storage"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "storage - Storage - Intersight Uri: storage/StoragePolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "storage.StoragePolicy",
+                    "x-intersight-uri": "storage/StoragePolicies"
+                },
+                "switch_control": {
+                    "description": "The Switch Control policy supports VLAN port count optimization, configuring MAC address aging time, and configuring Link Control Global settings.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\n########################################\n# Unified Edge\n########################################\n\nOptional Attributes:\n  * `description`\n  * `enable_jumbo_frames`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n\n########################################\n# UCS Domain\n########################################\n\nOptional Attributes:\n  * `aes_primary_key`\n  * `description`\n  * `switching_mode_ethernet`\n  * `switching_mode_fc`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n  * `reserved_vlan_start_id`\n  * `udld_global_settings`\n  * `vlan_port_count_optimization`\n",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/switch_control"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "switch_control - Switch Control - Intersight Uri: fabric/SwitchControlPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SwitchControlPolicy",
+                    "x-intersight-uri": "fabric/SwitchControlPolicies"
+                },
+                "syslog": {
+                    "description": "The Syslog policy defines the minimum severity as logging level from an endpoint. The policy also defines the target destination to store the Syslog messages, and the Hostname or the IP Address, the port information, and the communication protocol for the Remote Logging Servers.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `local_logging`\n  * `remote_logging`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/syslog"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "syslog - Syslog - Intersight Uri: syslog/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "syslog.Policy",
+                    "x-intersight-uri": "syslog/Policies"
+                },
+                "system_qos": {
+                    "description": "A System Quality of Service (QoS) policy assigns a system class to the outgoing traffic. This system class determines the quality of service for the outgoing traffic.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\nOptional Attributes:\n  * `classes`\n  * `configure_default_classes`\n  * `configure_recommended_classes`\n  * `description`\n  * `jumbo_mtu` - only for UCS Domain\n  * `priority_flow_control_watchdog_configuration` - only UCS Domain\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/system_qos"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "system_qos - System Qos - Intersight Uri: fabric/SystemQosPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SystemQosPolicy",
+                    "x-intersight-uri": "fabric/SystemQosPolicies"
+                },
+                "thermal": {
+                    "description": "This policy enables controlling the speed of the server fans.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `fan_control_mode`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/thermal"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "thermal - Thermal - Intersight Uri: thermal/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "thermal.Policy",
+                    "x-intersight-uri": "thermal/Policies"
+                },
+                "virtual_kvm": {
+                    "description": "\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `allow_tunneled_vkvm`\n  * `description`\n  * `enable_local_server_video`\n  * `enable_video_encryption`\n  * `enable_virtual_kvm`\n  * `maximum_sessions`\n  * `remote_port`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/virtual_kvm"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "virtual_kvm - Virtual Kvm - Intersight Uri: kvm/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "kvm.Policy",
+                    "x-intersight-uri": "kvm/Policies"
+                },
+                "virtual_media": {
+                    "description": "\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `add_virtual_media`\n  * `description`\n  * `enable_low_power_usb`\n  * `enable_virtual_media`\n  * `enable_virtual_media_encryption`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/virtual_media"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "virtual_media - Virtual Media - Intersight Uri: vmedia/Policies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vmedia.Policy",
+                    "x-intersight-uri": "vmedia/Policies"
+                },
+                "vlan": {
+                    "description": "VLAN policies create a connection to a specific external LAN. The VLAN isolates traffic to that external LAN, including broadcast traffic. You can create VLANs and Private VLANs using the VLAN policy.\nNote: Ensure that each VLAN is associated with a multicast policy. You can edit the existing VLANs and associate them to a multicast policy. You cannot associate a Multicast policy to a Private VLAN.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n  * `vlans`",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/vlan"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "vlan - Vlan - Intersight Uri: fabric/EthNetworkPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.EthNetworkPolicy",
+                    "x-intersight-uri": "fabric/EthNetworkPolicies"
+                },
+                "vsan": {
+                    "description": "With the Virtual SAN Identifier (VSAN) policy, you can create Virtual SANs (VSANs) to isolate devices physically connected to the same SAN fabric. VSANs improve security and stability in Fibre Channel fabrics and let you create several logical SANs over a common physical infrastructure.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n  * `uplink_trunking`\n  * `vsans",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/vsan"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "vsan - Vsan - Intersight Uri: fabric.FcNetworkPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.FcNetworkPolicy",
+                    "x-intersight-uri": "fabric/FcNetworkPolicies"
+                }
+            },
+            "title": "Intersight Policies",
+            "type": "object"
+        },
+        "pools": {
+            "additionalProperties": false,
+            "description": "Pools are the basic building blocks for uniquely identifying hardware resources. As the basis for the UCS management model, they allow Service Profiles to be associated with any blade server, while still providing the exact same ID and presentation to the upstream LAN or SAN. If a pool is actively associated with a profile, the pool cannot be deleted.\n\nOptions are:\n  * `ip`\n  * `iqn`\n  * `name`_prefix`\n  * `name`_suffix`\n  * `resource`\n  * `uuid`\n  * `wwnn`\n  * `wwpn`",
+            "properties": {
+                "ip": {
+                    "description": "An IP pool is a sequential range of IP addresses within a certain network. You can assign multiple pool blocks within a pool configuration.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `ipv4_blocks`\n  * `ipv4_configuration`\n  * `ipv6_blocks`\n  * `ipv6_configuration`\n  * `tags`\nNote: For each Address Family IPv4/IPv6, both ipv(4|6)_blocks and ipv(4|6)_configuration must be defined.",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/ip"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "ip - IP Pool - Intersight Uri: ippool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "ippool.Pool",
+                    "x-intersight-uri": "ippool/Pools"
+                },
+                "iqn": {
+                    "description": "An IQN pool is a collection of iSCSI Qualified Names (IQNs) for use as initiator identifiers by iSCSI vNICs. IQN pool members are of the form prefix: suffix: number, where you can specify the prefix, suffix, and a block (range) of numbers.\n\nRequired Attributes:\n  * `iqn_blocks`\n  * `name`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `prefix`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/iqn"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "iqn - Iqn Pool - Intersight Uri: iqnpool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "iqnpool.Pool",
+                    "x-intersight-uri": "iqnpool/Pools"
+                },
+                "mac": {
+                    "description": "A MAC pool is a collection of network identities, or MAC addresses, that are unique in their Layer 2 environment and are available to be assigned to vNICs on a server. If you use MAC pools in server profiles, you do not have to manually configure the MAC addresses to be used by the server associated with the server profile.\n\nRequired Attributes:\n  * `mac_blocks`\n  * `name`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/mac"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "mac - MAC Pool - Intersight Uri: macpool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "macpool.Pool",
+                    "x-intersight-uri": "macpool/Pools"
+                },
+                "name_prefix": {
+                    "$ref": "./intersight/pools.json#/definitions/name_prefix"
+                },
+                "name_suffix": {
+                    "$ref": "./intersight/pools.json#/definitions/name_suffix"
+                },
+                "resource": {
+                    "description": "A resource pool is an aggregation of homogeneous resources that are managed in Intersight.  A resource pool enables you to manage the utilization of resources for certain Intersight features like Server Profile. Currently, Intersight supports only server type as a resource for the resource pool.\n\nRequired Attributes:\n  * `name`\n  * `serial_number_list`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `pool_type`\n  * `resource_type`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/resource"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "resource - Resource Pool - Intersight Uri: resourcepool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "resourcepool.Pool",
+                    "x-intersight-uri": "resourcepool/Pools"
+                },
+                "uuid": {
+                    "description": "A Universally Unique Identifier (UUID) pool is a collection of UUIDs that are assigned to servers. The prefix and suffix of the UUID are variable values. A UUID pool ensures that these variable values are unique for each server associated with a server profile that uses a particular pool to avoid conflicts.\n\nRequired Attributes:\n  * `name`\n  * `uuid_blocks`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `prefix`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/uuid"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "uuid - UUID Pool - Intersight Uri: uuidpool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "uuidpool.Pool",
+                    "x-intersight-uri": "uuidpool/Pools"
+                },
+                "wwnn": {
+                    "description": "A WWNN pool is a WWN pool that contains only WW node names. If you include a pool of WWNNs in a server profile, the associated server is assigned a WWNN from that pool.\n\nRequired Attributes:\n  * `id_blocks`\n  * `name`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/wwnn"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "wwnn - WWNN Pool - Intersight Uri: fcpool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fcpool.Pool",
+                    "x-intersight-uri": "fcpool/Pools"
+                },
+                "wwpn": {
+                    "description": "A WWPN pool is a WWN pool that contains only WW port names. If you include a pool of WWPNs in a server profile, the port on each vHBA of the associated server is assigned a WWPN from that pool.\n\nRequired Attributes:\n  * `id_blocks`\n  * `name`\n\nOptional Attributes:\n  * `assignment_order`\n  * `description`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/pools.json#/definitions/wwpn"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "wwpn - WWPN Pool - Intersight Uri: fcpool/Pools",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fcpool.Pool",
+                    "x-intersight-uri": "fcpool/Pools"
+                }
+            },
+            "title": "Intersight Pools",
+            "type": "object"
+        },
+        "profiles": {
+            "additionalProperties": false,
+            "description": "Profiles in Cisco Intersight assign the Policy Configurations to UCS chassis/domains/servers, Policy-based configuration with Chassis/Domain/Server Profiles is a Cisco Intersight Essentials functionality.\nOptions are:\n\n  * `chassis`\n  * `domain`\n  * `name`_prefix`\n  * `name`_suffix`\n  * `server`",
+            "properties": {
+                "chassis": {
+                    "description": "A UCS Chassis profile enables to create and associate chassis policies to an Intersight Managed Mode (IMM) claimed chassis. When a chassis profile is associated to a chassis, Cisco Intersight automatically configures the chassis to match the configuration specified in the policies of the chassis profile. The chassis-related policies can be attached to the profile either at the time of creation or later.\n\nImportant:\n  * The chassis profile feature is available in Cisco Intersight only if:\n     - You have installed the Cisco Intersight Essentials License.\n     - You are either an Account Administrator or Server Administrator.\n  * Policies that are attached to a chassis profile can be created ahead of creating a profile or during the creation of the profile.\n  * If chassis polices are changed after deployment, the chassis profile will be set in Pending Changes state and you must manually re-associate the changed policies to chassis.\n  * Chassis policies will be applied to both the input/output modules (IFMs/IOMs) in a chassis. The chassis policies association workflow will fail if the policy cannot be applied to one of the IFMs/IOMs.\n\nRequired Base Attributes:\n  * `action`\n  * `attach_template`\n  * `targets`\n\nOptional Base Attributes:\n  * `tags`\n  * `ucs_chassis_profile_template`\n\n#=======================================\n# Chassis Configuration\n#=======================================\n  * `imc_access_policy`\n  * `power_policy`\n  * `snmp_policy`\n  * `thermal_policy`",
+                    "items": {
+                        "$ref": "./intersight/profiles.json#/definitions/chassis"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "chassis - Chassis Profiles - Intersight Uri: chassis/Profiles",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "chassis.Profile",
+                    "x-intersight-uri": "chassis/Profiles"
+                },
+                "domain": {
+                    "description": "A UCS Domain Profile configures a Fabric Interconnect pair through reusable policies, allowing for configuration of the ports and port channels, and configures the VLANs and VSANs in the network. It defines the characteristics of, and configures ports on Fabric Interconnects. You can create a UCS Domain profile and associate it with a Fabric Interconnect Domain. The Domain-related policies can be attached to the profile either at the time of creation or later. One UCS Domain profile can be assigned to one Fabric Interconnect Domain.\n\nImportant:\n  * You can use a single port policy per UCS Domain profile or a port-policy per FI.\n  * Policies that are attached to a UCS Domain profile can be created ahead of creating a profile or during the creation of the profile.\n  * Policies that are attached to a UCS Domain and the global policies of all UCS Domain Profiles associated with a specific UCS Domain are shared.\n\nRequired Base Attributes:\n  * `action`\n  * `name`\n  * `serial_numbers`\n\nOptional Base Attributes:\n  * `attach_template`\n  * `description`\n  * `tags`\n  * `user_label`\n  * `ucs_domain_profile_template` - to assign to a template\n\n#=======================================\n# VLAN & VSAN Configuration\n#=======================================\n  * `vlan_policies` - required (If not attached to a domain template) - A list of one or two VLAN policies.  A list of one will assign the same policy to both fabrics.\n  * `vsan_policies` - A list of one or two VSAN policies.  A list of one will assign the same policy to both fabrics.\n\n#=======================================\n# Ports Configuration\n#=======================================\n  * `port_policies` - required (If not attached to a domain template)\n\n#=======================================\n# UCS Domain Configuration - Management\n#=======================================\n  * `certificate_management_policy`\n  * `ldap_policy`\n  * `network_connectivity_policy`\n  * `ntp_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n\n#=======================================\n# UCS Domain Configuration - Network\n#=======================================\n  * `auditd_policy`\n  * `netflow_configuration`\n  * `switch_control_policy`\n  * `system_qos_policy` - required (If not attached to a domain template)",
+                    "items": {
+                        "$ref": "./intersight/profiles.json#/definitions/domain"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "domain - Domain Cluster Profile - Intersight Uri: fabric/SwitchClusterProfiles",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SwitchClusterProfile",
+                    "x-intersight-uri": "fabric/SwitchClusterProfiles"
+                },
+                "name_prefix": {
+                    "$ref": "./intersight/profiles.json#/definitions/name.prefix_suffix"
+                },
+                "name_suffix": {
+                    "$ref": "./intersight/profiles.json#/definitions/name.prefix_suffix"
+                },
+                "server": {
+                    "description": "In Cisco Intersight, a Server Profile enables resource management by streamlining policy alignment, and server configuration. You can create Server Profiles using the Server Profile wizard or you can import the configuration details of C-series servers in standalone mode and FI-attached servers in Intersight Managed Mode (IMM), directly from Cisco IMC. You can create Server Profiles using the Server Profile wizard to provision servers, create policies to ensure smooth deployment of servers, and eliminate failures that are caused by inconsistent configuration. The Server Profiles wizard groups the server policies into the following four categories to provide a quick Summary View of the policies that are attached to a profile:\n  * Compute Policies \u2014 BIOS, Boot Order, Firmware, Power, Thermal, UUID Pool, and Virtual Media.\n  * Management Policies \u2014 Certificate Management, Device Connector, IMC Access, IPMI Over LAN, LDAP, Local User, Network Connectivity, SMTP, SNMP, SSH, Serial over LAN, Syslog, NTP, and Virtual KVM policies\n  * Network Policies \u2014 Adapter Configuration, LAN Connectivity, and SAN Connectivity policies.\n     - The LAN Connectivity policy requires you to create an Ethernet Adapter Policy, Ethernet Network Policy (Standalone only), and Ethernet QoS Policy. When you attach a LAN Connectivity policy to a server profile, the addresses of the MAC address Pool, or the static MAC address, are automatically assigned.\n     - Note: A LAN Connectivity policy that has a static MAC address can be attached to only one server profile.\n     - The SAN Connectivity policy requires you to create an Fibre Channel Adapter Policy, Fibre Channel Network Policy, and Fiber Channel QoS Policy. When you attach a SAN Connectivity policy to a server profile, the addresses of the WWPN and WWNN Pools, or the static WWPN and WWNN addresses, are automatically assigned.\n     - Note:  A SAN Connectivity policy that has a static WWPN, or a static WWNN can be attached to only one server profile.\n  * Storage Policies \u2014 Drive Security, SD Card, and Storage policies.\n\nIMPORTANT:\n  * The server profile feature is available in Cisco Intersight only if:\n     - You have assigned a Cisco Intersight Essentials License to the physical servers.\n\nRequired Base Attributes:\n  * `action`\n  * `attach_template`\n  * `targets`\n  * `server_family` - Only required for Standalone\n  * `target_platform`\n\nRequired for FIAttached when using pre-assignment with the targets:\n  * `domain_name`\n\nOptional Attributes\n  * `detach_template`\n  * `ignore_reservations`\n  * `resource_pool`\n  * `tags`\n  * `ucs_server_profile_template`\n\n\n#===========================================================\n# FIAttached and Unified Edge Server - Pools/Policies\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`\n  * `firmware_policy`\n  * `memory_policy`\n  * `pcie_connectivity_policy` - FIAttached\n  * `power_policy`\n  * `scrub_policy\n  * `thermal_policy` - FIAttached\n  * `uuid_pool`\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `imc_access_policy`\n  * `ipmi_over_lan_policy`\n  * `local_user_policy`\n  * `serial_over_lan_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration\n#===========================================\n  * `drive_security_policy` - FIAttached\n  * `sd_card_policy` - FIAttached\n  * `storage_policy`\n\n#===========================================\n# Network Configuration\n#===========================================\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy` - FIAttached\n\n\n#===========================================================\n# Standalone - Policies -  C845A/C885A and UCSC2XX/4XX\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`  - UCSC2XX/4XX Only\n  * `firmware_policy`\n  * `memory_policy` - UCSC2XX/4XX Only\n  * `persistent_memory_policy` - UCSC2XX/4XX Only\n  * `power_policy`\n  * `thermal_policy` - UCSC2XX/4XX Only\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `device_connector_policy` - UCSC2XX/4XX Only\n  * `ipmi_over_lan_policy`\n  * `ldap_policy` - UCSC2XX/4XX Only\n  * `local_user_policy`\n  * `network_connectivity_policy` - UCSC2XX/4XX Only\n  * `ntp_policy`\n  * `serial_over_lan_policy`\n  * `smtp_policy`\n  * `snmp_policy` - UCSC2XX/4XX Only\n  * `ssh_policy`\n  * `syslog_policy` - UCSC2XX/4XX Only\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `drive_security_policy`\n  * `sd_card_policy`\n  * `storage_policy`\n\n#===========================================\n# Network Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `adapter_configuration_policy`\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy`",
+                    "items": {
+                        "$ref": "./intersight/profiles.json#/definitions/server"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "server - Server Profile - Intersight Uri: server/Profiles",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "server.Profile",
+                    "x-intersight-uri": "server/Profiles"
+                },
+                "unified_edge": {
+                    "description": "A Unified Edge Profile configures a the chassis and eCMC modules through reusable policies, allowing for configuration of the ports and port channels, and configures the VLANs in the network. It defines the characteristics of, and configures ports on the Unified Edge system. You can create a Unified Edge profile and associate it with a Unified Edge system. The related policies can be attached to the profile either at the time of creation or later. One Unified Edge profile can be assigned to one system.\n\nImportant:\n  * You can use a single port policy per Unified Edge profile or a port-policy per eCMC.\n  * Policies that are attached to a Unified Edge profile can be created ahead of creating a profile or during the creation of the profile.\n  * Policies that are attached to a Unified Edge and the global policies of all Unified Edge Profiles associated with a specific Unified Edge are shared.\n\nRequired Base Attributes:\n  * `action`\n  * `name`\n  * `serial_number`\n\nOptional Base Attributes:\n  * `attach_template`\n  * `description`\n  * `tags`\n  * `unified_edge_profile_template` - to assign to a template\n\n#=======================================\n# Chassis Configuration\n#=======================================\n  * `power_policy`\n  * `thermal_policy`\n\n#=======================================\n# Switch Configuration\n#=======================================\n  * `port_policies` - required (If not attached to a domain template)\n  * `switch_control_policy`\n  * `system_qos_policy` - required (If not attached to a domain template)\n  * `vlan_policies` - required (If not attached to a domain template) - A list of one or two VLAN policies.  A list of one will assign the same policy to both fabrics.\n\n#=======================================\n# Management Configuration\n#=======================================\n  * `local_user_policy`\n  * `network_connectivity_policy`\n  * `ntp_policy`\n  * `syslog_policy`",
+                    "items": {
+                        "$ref": "./intersight/profiles.json#/definitions/unified_edge"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "unified_edge - Unified Edge Cluster Profile - Intersight Uri: fabric/SwitchClusterProfiles",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SwitchClusterProfile",
+                    "x-intersight-uri": "fabric/SwitchClusterProfiles"
+                }
+            },
+            "title": "Intersight Profiles",
+            "type": "object"
+        },
+        "script_settings": {
+            "additionalProperties": false,
+            "description": "Global Settings for Terraform Module Setup.",
+            "properties": {
+                "include_script_tags": {
+                    "default": true,
+                    "description": "Include script tags in the output.",
+                    "type": "boolean"
+                },
+                "intersight_fqdn": {
+                    "default": "intersight.com",
+                    "description": "The default value is `intersight.com`.  Intersight Fully Qualified Domain Name.",
+                    "examples": [
+                        "intersight.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "intersight_fqdn",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "An arbitrary key and value pair that can be used to tag REST resources and organize managed objects by\nassigning meta-data tags to any object.\n\nRequired Attributes:\n  * `key`\n  * `value`",
+                    "items": {
+                        "$ref": "#/definitions/tags.mo"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "tags - Tags",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "global_settings",
+            "type": "object"
+        },
+        "system": {
+            "additionalProperties": false,
+            "description": "Pools are the basic building blocks for uniquely identifying hardware resources. As the basis for the UCS management model, they allow Service Profiles to be associated with any blade server, while still providing the exact same ID and presentation to the upstream LAN or SAN. If a pool is actively associated with a profile, the pool cannot be deleted.\n\nOptions are:\n  * `ip`\n  * `iqn`\n  * `name`_prefix`\n  * `name`_suffix`\n  * `resource`\n  * `uuid`\n  * `wwnn`\n  * `wwpn`",
+            "properties": {
+                "locations": {
+                    "description": "The geographic location of a managed target.\n\nRequired Attributes:\n  * `input_by`\n  * `name`\n\nOptional Attributes:\n  * `address`\n  * `address_details`\n  * `gps_coordinates`\n  * `tags`",
+                    "items": {
+                        "$ref": "./intersight/system.json#/definitions/locations"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "locations - Geo locations - Intersight Uri: asset/GeoLocations",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "asset.GeoLocation",
+                    "x-intersight-uri": "asset/GeoLocations"
+                },
+                "organizations": {
+                    "description": "Organization provides multi-tenancy within an account. Multiple organizations can be present under an account. Resources are associated to organization using resource groups. Organization can have heterogeneous resources. Resources can be shared among multiple organizations. Organizations are associated to user permissions and privileges can be specified to provide access control. User can have access to multiple organizations in same permission and with different privileges on each organization.\n\nOptional Attributes:\n  * `description`\n  * `organizations_to_share_with`\n  * `resource_groups`",
+                    "items": {
+                        "$ref": "./intersight/system.json#/definitions/organizations"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "organizations - Intersight Uri: organization/Organizations",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "organization.Organization",
+                    "x-intersight-uri": "organization/Organizations"
+                },
+                "path_tags": {
+                    "description": "PathTag propagation can originate from GeoLocations or inventory objects such as Chassis, Fabric Interconnects, and Rack Servers. From these sources, PathTags propagate downstream to any related resources, such as Blade Servers, Server Profiles, Alarms, and Workload Instances.\n\nRequired Attributes:\n  * `path_tag`",
+                    "items": {
+                        "$ref": "./intersight/system.json#/definitions/path_tags"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "path_tags - Geo locations - Intersight Uri: asset/GeoLocations",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "asset.GeoLocation",
+                    "x-intersight-uri": "asset/GeoLocations"
+                },
+                "resource_groups": {
+                    "description": "A List of Resource Groups.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `resources` - List of Resources to Add to the Resource Group.",
+                    "items": {
+                        "$ref": "./intersight/system.json#/definitions/resource_groups"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "resource_groups",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "title": "Intersight : System",
+            "type": "object"
+        },
+        "templates": {
+            "additionalProperties": false,
+            "description": "Use this section to Create or Define UCS Templates.  Options are:\n\n  * `chassis`\n  * `domain`\n  * `name`_prefix`\n  * `name`_suffix`\n  * `server`",
+            "properties": {
+                "chassis": {
+                    "description": "In Cisco Intersight, a Chassis Profile Template enables resource management by streamlining policy alignment, and chassis configuration. You can create Chassis Profile Templates using the UCS Chassis Profile Template wizard to provision chassis, create policies to ensure smooth deployment of a chassis, and eliminate failures that are caused by inconsistent configuration. The UCS Chassis Profile Templates wizard has the following policies that are attached to a template:\n\n  * `Chassis Configuration` \u2014 IMC Access, Power, SNMP and Thermal\n\nRequired Base Attributes:\n  * `create_template`\n  * `name`\n\nOptional Base Attributes:\n  * `description`\n  * `tags`\n\n#=======================================\n# Chassis Configuration\n#=======================================\n  * `imc_access_policy`\n  * `power_policy`\n  * `snmp_policy`\n  * `thermal_policy`",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/chassis"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "chassis - Chassis Profile Template - Intersight Uri: chassis/ProfileTemplates",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "chassis.Profile",
+                    "x-intersight-uri": "chassis/Profiles"
+                },
+                "domain": {
+                    "description": "In Cisco Intersight, a Domain Profile Template enables resource management by streamlining policy alignment, and domain configuration. You can create Domain Profile Templates using the UCS Domain Profile Template wizard to provision Fabric Interconnects, create policies to ensure smooth deployment of a Pair of Fabric Interconnects, and eliminate failures that are caused by inconsistent configuration. The Domain Profile Templates wizard groups the domain policies into the following three categories to provide a quick Summary View of the policies that are attached to a template:\n  * `VLAN & VSAN Configuration` \u2014 VLAN and VSAN policies for Fabric Interconnect A and Fabric Interconnect B.\n     - Note: Both Fabrics can share the same policies or they can be distinct.\n  * `Ports Configuration` \u2014 Port policies.\n     - Note: Both Fabrics can share the same port policy or they can be distinct.\n  * `UCS Domain Configuration` \u2014 Management: NTP, Syslog, Network Connectivity and SNMP.  Network: System QoS and Switch Control.\n\nRequired Base Attributes:\n  * `create_template`\n  * `name`\n\nOptional Base Attributes:\n  * `description`\n  * `tags`\n\n#=======================================\n# VLAN & VSAN Configuration\n#=======================================\n  * `vlan_policies` - required - A list of one or two VLAN policies.  A list of one will assign the same policy to both fabrics.\n  * `vsan_policies` - A list of one or two VSAN policies.  A list of one will assign the same policy to both fabrics.\n\n#=======================================\n# Ports Configuration\n#=======================================\n  * `port_policies` - required\n\n#=======================================\n# UCS Domain Configuration - Management\n#=======================================\n  * `certificate_management_policy`\n  * `ldap_policy`\n  * `network_connectivity_policy`\n  * `ntp_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n\n#=======================================\n# UCS Domain Configuration - Network\n#=======================================\n  * `auditd_policy`\n  * `netflow_configuration`\n  * `switch_control_policy`\n  * `system_qos_policy` - required",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/domain"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "domain - Domain Cluster Profile Template - Intersight Uri: fabric/SwitchClusterProfileTemplates",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SwitchClusterProfileTemplate",
+                    "x-intersight-uri": "fabric/SwitchClusterProfiles"
+                },
+                "name_prefix": {
+                    "$ref": "./intersight/templates.json#/definitions/name.prefix_suffix"
+                },
+                "name_suffix": {
+                    "$ref": "./intersight/templates.json#/definitions/name.prefix_suffix"
+                },
+                "server": {
+                    "description": "In Cisco Intersight, a Server Profile Template enables resource management by streamlining policy alignment, and server configuration. You can create Server Profile Templates using the UCS Server Profile Template wizard to provision servers, create policies to ensure smooth deployment of servers, and eliminate failures that are caused by inconsistent configuration. The Server Profile Templates wizard groups the server policies into the following four categories to provide a quick Summary View of the policies that are attached to a profile:\n  * Compute Policies \u2014 BIOS, Boot Order, Firmware, Power, Thermal, UUID Pool, and Virtual Media.\n  * Management Policies \u2014 Certificate Management, Device Connector, IMC Access, IPMI Over LAN, LDAP, Local User, Network Connectivity, SMTP, SNMP, SSH, Serial over LAN, Syslog, NTP, and Virtual KVM policies\n  * Network Policies \u2014 Adapter Configuration, LAN Connectivity, and SAN Connectivity policies.\n     - The LAN Connectivity policy requires you to create an Ethernet Adapter Policy, Ethernet Network Policy (Standalone only), and Ethernet QoS Policy. When you attach a LAN Connectivity policy to a server profile, the addresses of the MAC address Pool, or the static MAC address, are automatically assigned.\n     - Note: A LAN Connectivity policy that has a static MAC address can be attached to only one server profile.\n     - The SAN Connectivity policy requires you to create an Fibre Channel Adapter Policy, Fibre Channel Network Policy, and Fiber Channel QoS Policy. When you attach a SAN Connectivity policy to a server profile, the addresses of the WWPN and WWNN Pools, or the static WWPN and WWNN addresses, are automatically assigned.\n     - Note:  A SAN Connectivity policy that has a static WWPN, or a static WWNN can be attached to only one server profile.\n  * Storage Policies \u2014 Drive Security, SD Card, and Storage policies.\n\nRequired Attributes:\n  * `create_template`\n  * `name`\n  * `server_family` - Set to All unless Standalone\n  * `target_platform`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n\n\n#===========================================================\n# FIAttached and Unified Edge Server - Pools/Policies\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`\n  * `firmware_policy`\n  * `memory_policy`\n  * `pcie_connectivity_policy` - FIAttached\n  * `power_policy`\n  * `scrub_policy\n  * `thermal_policy` - FIAttached\n  * `uuid_pool`\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `imc_access_policy`\n  * `ipmi_over_lan_policy`\n  * `local_user_policy`\n  * `serial_over_lan_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration\n#===========================================\n  * `drive_security_policy` - FIAttached\n  * `sd_card_policy` - FIAttached\n  * `storage_policy`\n\n#===========================================\n# Network Configuration\n#===========================================\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy` - FIAttached\n\n\n#===========================================================\n# Standalone - Policies -  C845A and UCSC2XX/4XX\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`  - UCSC2XX/4XX Only\n  * `firmware_policy`\n  * `memory_policy` - UCSC2XX/4XX Only\n  * `persistent_memory_policy` - UCSC2XX/4XX Only\n  * `power_policy`\n  * `thermal_policy` - UCSC2XX/4XX Only\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `device_connector_policy` - UCSC2XX/4XX Only\n  * `ipmi_over_lan_policy`\n  * `ldap_policy` - UCSC2XX/4XX Only\n  * `local_user_policy`\n  * `network_connectivity_policy` - UCSC2XX/4XX Only\n  * `ntp_policy`\n  * `serial_over_lan_policy`\n  * `smtp_policy`\n  * `snmp_policy` - UCSC2XX/4XX Only\n  * `ssh_policy`\n  * `syslog_policy` - UCSC2XX/4XX Only\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `drive_security_policy`\n  * `sd_card_policy`\n  * `storage_policy`\n\n#===========================================\n# Network Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `adapter_configuration_policy`\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy`",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/server"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "server - Server Profile Template - Intersight Uri: server/ProfileTemplates",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "server.ProfileTemplate",
+                    "x-intersight-uri": "server/ProfileTemplates"
+                },
+                "unified_edge": {
+                    "description": "In Cisco Intersight, a Unifed Edge Template enables resource management by streamlining policy alignment, and configuration. You can create Unified Edge Profile Templates using the Unified Edge Profile Template wizard to provision, create policies to ensure smooth deployment of a Unified Edge system; eliminating failures that are caused by inconsistent configuration. The Unifed Edge Profile Templates wizard groups the unified edge policies into the following three categories:\n  * `Chassis Configuration` \u2014 Power and Thermal policies for the chassis.\n  * `Switch Configuration` \u2014 VLAN, Port, System QoS, and Switch Control policies.\n     - Note: Unified Edge eCIMC can share the same port and vlan policies or they can be distinct.\n  * `Management Configuration` \u2014 NTP, Syslog, Network Connectivity and Local User.\n\nRequired Base Attributes:\n  * `create_template`\n  * `name`\n\nOptional Base Attributes:\n  * `description`\n  * `tags`\n\n#=======================================\n# Chassis Configuration\n#=======================================\n  * `power_policy`\n  * `thermal_policy`\n\n#=======================================\n# Switch Configuration\n#=======================================\n  * `port_policies` - required\n  * `switch_control_policy`\n  * `system_qos_policy` - required\n  * `vlan_policies` - required - A list of one or two VLAN policies.  A list of one will assign the same policy to both eCMCs.\n\n#=======================================\n# Management Configuration\n#=======================================\n  * `local_user_policy`\n  * `network_connectivity_policy`\n  * `ntp_policy`\n  * `syslog_policy`",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/unified_edge"
+                    },
+                    "maxItems": 1024,
+                    "minItems": 1,
+                    "title": "unified_edge - Unified Edge Cluster Profile Template - Intersight Uri: fabric/SwitchClusterProfileTemplates",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "fabric.SwitchClusterProfileTemplate",
+                    "x-intersight-uri": "fabric/SwitchClusterProfiles"
+                },
+                "vhba_template": {
+                    "description": "A vNIC or vHBA template consists of common configurations that you can reuse across multiple vNICs or vHBAs, used in various Server Profiles. This approach simplifies network configuration across multiple servers. You can create vNICs or vHBAs from the template using the Derive operation while creating the policy. Additionally, you can attach an existing vNIC or vHBA to a template to utilize the configurations set in the template. These templates can be created with or without override options. The override option allows the configuration of the derived vNIC or vHBA to override the template configuration.\n\nRequired Attributes:\n  * `fibre_channel_qos_policy`\n  * `name`\n\nOptional Attributes:\n  * `allow_override`\n  * `description`\n  * `fc_zone_policies`\n  * `fibre_channel_adapter_policy` - required if allow_override is false`\n  * `fibre_channel_network_policy` - required if allow_override is false`\n  * `persistent_lun_bindings`\n  * `placement_switch_id`\n  * `tags`\n  * `vhba_type`\n  * `wwpn_pool` - required if allow_override is false",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/vhba_template"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "vhba_template - vHBA Template - Intersight Uri: vnic/VhbaTemplate",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.VhbaTemplate",
+                    "x-intersight-uri": "vnic/VhbaTemplates"
+                },
+                "vnic_template": {
+                    "description": "A vNIC or vHBA template consists of common configurations that you can reuse across multiple vNICs or vHBAs, used in various Server Profiles. This approach simplifies network configuration across multiple servers. You can create vNICs or vHBAs from the template using the Derive operation while creating the policy. Additionally, you can attach an existing vNIC or vHBA to a template to utilize the configurations set in the template. These templates can be created with or without override options. The override option allows the configuration of the derived vNIC or vHBA to override the template configuration.\n\nRequired Attributes:\n  * `ethernet_network_control_policy`\n  * `ethernet_network_group_policy`\n  * `ethernet_qos_policy`\n  * `name`\n\nOptional Attributes:\n  * `allow_override`\n  * `cdn_source`\n  * `cdn_value`\n  * `description`\n  * `enable_failover`\n  * `ethernet_adapter_policy` - required if allow_override is false`\n  * `flow_monitor_policies`\n  * `iscsi_boot_policy`\n  * `mac_address_pool` - required if allow_override is false`\n  * `placement_switch_id`\n  * `sriov`\n  * `tags`\n  * `usnic`\n  * `vmq`",
+                    "items": {
+                        "$ref": "./intersight/templates.json#/definitions/vnic_template"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "vnic_template - vNIC Template - Intersight Uri: vnic/VnicTemplate",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "vnic.VnicTemplate",
+                    "x-intersight-uri": "vnic/VnicTemplates"
+                }
+            },
+            "required": [],
+            "title": "Intersight Profile Templates",
+            "type": "object"
+        }
+    },
+    "description": "JSON Schema for validating Cisco Intersight configuration used by Cisco AI PODs, including organizations, resource pools, policies, server profiles, chassis and domain profiles, templates, firmware settings, networking, storage, security, and related UCS resources.",
+    "title": "Cisco AI PODs - Intersight Schema"
+}

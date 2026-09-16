@@ -1,0 +1,203 @@
+---
+# OpenShift post-install configuration (phase 2)
+# Requires a reachable cluster from the iServer installation started after phase 1.
+- name: Deploy and Configure OpenShift for AI Pod - Phase 2 (Post Install)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ansible_python_interpreter: "{{ (lookup('ansible.builtin.env', 'VIRTUAL_ENV') + '/bin/python3') if lookup('ansible.builtin.env', 'VIRTUAL_ENV') else 'python3' }}"
+    host_vars_dir: "{{ host_vars_dir | default(playbook_dir ~ '/../host_vars') }}"
+
+  environment:
+    KUBECONFIG: "{{ openshift_kubeconfig_path | default(lookup('ansible.builtin.env', 'KUBECONFIG') | default('')) }}"
+    K8S_AUTH_KUBECONFIG: "{{ openshift_kubeconfig_path | default(lookup('ansible.builtin.env', 'K8S_AUTH_KUBECONFIG') | default('')) }}"
+    openshift_api_url: "{{ openshift_api_url_resolved | default(lookup('ansible.builtin.env', 'openshift_api_url') | default('')) }}"
+    openshift_token_id: "{{ openshift_token_id_resolved | default(lookup('ansible.builtin.env', 'openshift_token_id') | default('')) }}"
+
+  pre_tasks:
+    - name: Find Variable Files Under host_vars
+      ansible.builtin.find:
+        paths: "{{ host_vars_dir }}/openshift"
+        patterns:
+          - "*.ezai.yaml"
+        file_type: file
+      register: openshift_var_files
+      tags: always
+
+    - name: Merge Variable Files Into a Single Dictionary
+      ansible.builtin.set_fact:
+        merged_vars: "{{ merged_vars | default({}) | combine((lookup('ansible.builtin.file', item.path) | from_yaml), recursive=True) }}"
+      loop: "{{ openshift_var_files.files | sort(attribute='path') }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      tags: always
+
+    - name: Set Merged OpenShift Object
+      ansible.builtin.set_fact:
+        openshift: "{{ merged_vars.openshift | default({}) }}"
+      tags: always
+
+    - name: Create Temporary Model File for Sensitive Variable Validation
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .json
+      register: sensitive_model_file
+      tags: always
+
+    - name: Write Merged Variables for Sensitive Variable Validation
+      ansible.builtin.copy:
+        dest: "{{ sensitive_model_file.path }}"
+        content: "{{ merged_vars | to_nice_json }}"
+        mode: "0600"
+      tags: always
+
+    - name: Validate Sensitive Environment Variables
+      ansible.builtin.command:
+        cmd: "{{ ansible_python_interpreter }} {{ playbook_dir }}/../scripts/validate_sensitive_variables.py --models {{ sensitive_model_file.path }}"
+      register: sensitive_validation_result
+      changed_when: false
+      failed_when: false
+      tags: always
+
+    - name: Fail with readable sensitive variable validation output
+      ansible.builtin.fail:
+        msg: |
+          Sensitive environment variable validation failed.
+
+          {% if sensitive_validation_result.stdout_lines | default([]) | length > 0 %}Summary:
+          {{ sensitive_validation_result.stdout_lines | join('\n') }}
+
+          {% endif %}{% if sensitive_validation_result.stderr_lines | default([]) | length > 0 %}Details:
+          {{ sensitive_validation_result.stderr_lines | join('\n') }}
+          {% endif %}
+      when: sensitive_validation_result.rc != 0
+      tags: always
+
+    - name: Remove Temporary Model File
+      ansible.builtin.file:
+        path: "{{ sensitive_model_file.path }}"
+        state: absent
+      tags: always
+
+    - name: Set kubeconfig candidate paths
+      ansible.builtin.set_fact:
+        openshift_kubeconfig_candidates:
+          - "{{ lookup('ansible.builtin.env', 'HOME') }}/.itool/ocp-clusters/{{ openshift.install.bare_metal.cluster_name }}/kubeconfig"
+          - "{{ playbook_dir | dirname }}/assisted-installer/auth/kubeconfig"
+          - "{{ playbook_dir | dirname }}/assisted-installer/kubeconfig"
+          - "{{ lookup('ansible.builtin.env', 'HOME') }}/.kube/config"
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+    - name: Discover kubeconfig file from known locations
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ openshift_kubeconfig_candidates | default([]) }}"
+      register: openshift_kubeconfig_stats
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+    - name: Select kubeconfig path for post-install roles
+      ansible.builtin.set_fact:
+        openshift_kubeconfig_path: "{{ (openshift_kubeconfig_stats.results | selectattr('stat.exists', 'defined') | selectattr('stat.exists') | map(attribute='stat.path') | list | first) | default('') }}"
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+    - name: Read kubeconfig file
+      ansible.builtin.slurp:
+        src: "{{ openshift_kubeconfig_path }}"
+      register: openshift_kubeconfig_raw
+      when: openshift.install is defined and openshift.install.bare_metal is defined and openshift_kubeconfig_path | length > 0
+      tags: always
+
+    - name: Parse kubeconfig content
+      ansible.builtin.set_fact:
+        openshift_kubeconfig: "{{ openshift_kubeconfig_raw.content | b64decode | from_yaml }}"
+      when: openshift.install is defined and openshift.install.bare_metal is defined and openshift_kubeconfig_path | length > 0
+      tags: always
+
+    - name: Derive OpenShift API URL and token from kubeconfig
+      ansible.builtin.set_fact:
+        openshift_api_url_resolved: "{{ (openshift_kubeconfig.clusters[0].cluster.server | default('')) if (openshift_kubeconfig.clusters is defined and openshift_kubeconfig.clusters | length > 0) else (lookup('ansible.builtin.env', 'openshift_api_url') | default('')) }}"
+        openshift_token_id_resolved: "{{ (openshift_kubeconfig.users[0].user.token | default('')) if (openshift_kubeconfig.users is defined and openshift_kubeconfig.users | length > 0) else (lookup('ansible.builtin.env', 'openshift_token_id') | default('')) }}"
+      when: openshift.install is defined and openshift.install.bare_metal is defined and openshift_kubeconfig_path | length > 0
+      tags: always
+
+    - name: Require kubeconfig after iServer installation
+      ansible.builtin.assert:
+        that:
+          - openshift_kubeconfig_path | length > 0
+        fail_msg: "kubeconfig not found. Expected one of: {{ openshift_kubeconfig_candidates | join(', ') }}"
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+    - name: Note when kubeconfig does not expose token-backed environment variables
+      ansible.builtin.debug:
+        msg:
+          - "Cluster kubeconfig selected: {{ openshift_kubeconfig_path }}"
+          - "The kubeconfig did not expose both openshift_api_url and openshift_token_id."
+          - "Post-install roles will continue with kubeconfig-based authentication."
+          - "If you run a role outside this playbook and it still expects env vars, export them explicitly."
+      when:
+        - openshift.install is defined
+        - openshift.install.bare_metal is defined
+        - openshift_kubeconfig_path | length > 0
+        - openshift_api_url_resolved | length == 0 or openshift_token_id_resolved | length == 0
+      tags: always
+
+    - name: Verify OpenShift API readiness before post-install roles
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: default
+      environment:
+        KUBECONFIG: "{{ openshift_kubeconfig_path }}"
+        K8S_AUTH_KUBECONFIG: "{{ openshift_kubeconfig_path }}"
+      register: openshift_api_readiness_check
+      retries: 20
+      delay: 15
+      until: openshift_api_readiness_check is succeeded
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+    - name: Show kubeconfig exports for operator shell
+      ansible.builtin.debug:
+        msg:
+          - "Cluster kubeconfig selected: {{ openshift_kubeconfig_path }}"
+          - "If needed in your shell, run:"
+          - "  export KUBECONFIG={{ openshift_kubeconfig_path }}"
+          - "  export K8S_AUTH_KUBECONFIG={{ openshift_kubeconfig_path }}"
+          - "  export openshift_api_url={{ openshift_api_url_resolved }}"
+          - "  export openshift_token_id=<redacted-token>"
+          - "Only export openshift_api_url/openshift_token_id if a standalone role or external tool requires them."
+      when: openshift.install is defined and openshift.install.bare_metal is defined
+      tags: always
+
+  roles:
+    # - role: cisco.ai_pods.openshift_certificates
+    - role: openshift_certificates
+      tags: [certificates]
+      when: openshift.certificates is defined and openshift.certificates.api_key_file | length > 0
+
+    # - role: cisco.ai_pods.openshift_auth
+    - role: openshift_auth
+      tags: [auth]
+      when: openshift.ldap is defined and openshift.ldap.url | length > 0
+
+    - role: openshift_gitea
+      tags: [gitea]
+      when: openshift.operators.gitea.enabled | default(false) | bool
+
+    - role: openshift_argo_cd
+      tags: [argocd]
+      when: openshift.operators.openshift_gitops.enable | default(false) | bool
+
+    # - role: cisco.ai_pods.openshift_gitops
+    - role: openshift_gitops
+      tags: [gitops]
+      when: openshift.operators.openshift_gitops.enable | default(false) | bool
+
+    # - role: cisco.ai_pods.gpu_operators
+    #   tags: [gpu]

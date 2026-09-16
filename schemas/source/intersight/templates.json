@@ -1,0 +1,1722 @@
+{
+    "$id": "templates.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "abstract_attributes": {
+            "description": "",
+            "properties": {
+                "description": {
+                    "default": "default",
+                    "description": "The default value is `default`.  Description of the profile.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9]+[\\x00-\\xFF]*$",
+                    "title": "description",
+                    "type": "string",
+                    "x-intersight-api": "Description"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  Name of the profile instance or profile template.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                    "title": "name",
+                    "type": "string",
+                    "x-intersight-api": "Name"
+                },
+                "tags": {
+                    "description": "An arbitrary key and value pair that can be used to tag Cisco Intersight managed objects and REST resources.",
+                    "items": {
+                        "$ref": "./tags.json#/definitions/mo"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Intersight Tags",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "user_label": {
+                    "default": "",
+                    "description": "The default value is ``.  User label assigned to the profile.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 64,
+                    "minLength": 0,
+                    "pattern": "^$|^[ !#$%&\\(\\)\\*\\+,\\-\\./:;\\?@\\[\\]_\\{\\|\\}~a-zA-Z0-9]+$",
+                    "title": "user_label",
+                    "type": "string",
+                    "x-intersight-api": "UserLabel"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "title": "abstract_attributes - policy.AbstractProfile",
+            "type": "object",
+            "x-intersight-object-type": "policy.AbstractProfile"
+        },
+        "chassis": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "description": "Definition of the list of properties defined in 'chassis.ProfileTemplate', excluding properties defined in parent classes.",
+                    "properties": {
+                        "create_template": {
+                            "default": false,
+                            "description": "The default value is `false`.  Flag to determine if these Template Should be created or just used as a Policy Reference.",
+                            "title": "create_template",
+                            "type": "boolean",
+                            "x-intersight-api": "create_template"
+                        },
+                        "imc_access_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the IMC Access Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "imc_access_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:access.Policy:Moid"
+                        },
+                        "power_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Power Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "power_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:power.Policy:Moid"
+                        },
+                        "snmp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SNMP Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "snmp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:snmp.Policy:Moid"
+                        },
+                        "thermal_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Thermal Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "thermal_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:thermal.Policy:Moid"
+                        }
+                    },
+                    "required": [
+                        "create_template"
+                    ],
+                    "title": "ucs_chassis_profile_template",
+                    "type": "object"
+                }
+            ],
+            "description": "A profile template specifying configuration settings for a physical chassis.",
+            "title": "chassis_template - Templates > UCS Chassis Profile Templates - Intersight Uri: chassis/ProfileTemplates",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "chassis.ProfileTemplate",
+            "x-intersight-type": "templates",
+            "x-intersight-uri": "chassis/ProfileTemplates"
+        },
+        "domain": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "description": "Definition of the list of properties defined in 'fabric.SwitchClusterProfiles', excluding properties defined in parent classes.",
+                    "properties": {
+                        "auditd_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the AuditD Policy to Assign to the Domain Profile. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "auditd_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:auditd.Policy:Moid"
+                        },
+                        "certificate_management_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Certificate Management Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "certificate_management_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:certificatemanagement.Policy:Moid"
+                        },
+                        "create_template": {
+                            "default": false,
+                            "description": "The default value is `false`.  Flag to determine if these Template Should be created or just used as a Policy Reference.",
+                            "title": "create_template",
+                            "type": "boolean",
+                            "x-intersight-api": "create_template"
+                        },
+                        "ldap_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the LDAP Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ldap_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:iam.LdapPolicy:Moid"
+                        },
+                        "netflow_configuration_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the NetFlow Configuration Policy to Assign to the Domain Profile. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "netflow_configuration_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:fabric.NetflowPolicy:Moid"
+                        },
+                        "network_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Network Connectivity Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "network_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:networkconfig.Policy:Moid"
+                        },
+                        "ntp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the NTP Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ntp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:ntp.Policy:Moid"
+                        },
+                        "port_policies": {
+                            "description": "A List of Port Policies to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the Port Policy to Assign to the Domain Profile Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "port_policy",
+                                "type": "string",
+                                "x-intersight-api": "$pbucket:fabric.PortPolicy:Moid"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "port_policies - A List of one or two Port Policies.",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$pbucket:fabric.PortPolicy:Moid"
+                        },
+                        "snmp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SNMP Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "snmp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:snmp.Policy:Moid"
+                        },
+                        "switch_control_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Switch Control Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "switch_control_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:fabric.SwitchControlPolicy:Moid"
+                        },
+                        "syslog_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Syslog Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "syslog_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:syslog.Policy:Moid"
+                        },
+                        "system_qos_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the System QoS Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "system_qos_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:fabric.SystemQosPolicy:Moid"
+                        },
+                        "vlan_policies": {
+                            "description": "A List of One or Two VLAN Policies to Assign to the Domain Profile Template.  If One is used both FI's will inherit the same policy. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the VLAN Policy to Assign to the Domain Profile Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "vlan_policy",
+                                "type": "string",
+                                "x-intersight-api": "$pbucket:fabric.EthNetworkPolicy:Moid"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "vlan_policies - VLAN Policies - Intersight Uri: fabric/EthNetworkPolicies",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$pbucket:fabric.EthNetworkPolicy:Moid",
+                            "x-intersight-object-type": "fabric.EthNetworkPolicy"
+                        },
+                        "vsan_policies": {
+                            "description": "A List of One or Two VSAN Policies to Assign to the Domain Profile Template.  If One is used both FI's will inherit the same policy. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the VSAN Policy to Assign to the Domain Profile Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "vsan_policy",
+                                "type": "string",
+                                "x-intersight-api": "$pbucket:fabric.FcNetworkPolicy:Moid"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "vsan_policies - VSAN Policies - Intersight Uri: fabric/FcNetworkPolicies",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$pbucket:fabric.FcNetworkPolicy:Moid",
+                            "x-intersight-object-type": "fabric.FcNetworkPolicy"
+                        }
+                    },
+                    "required": [
+                        "create_template",
+                        "port_policies",
+                        "switch_control_policy",
+                        "system_qos_policy",
+                        "vlan_policies"
+                    ],
+                    "title": "server_profile_template",
+                    "type": "object"
+                }
+            ],
+            "description": "A profile template specifying configuration settings for a physical domain.",
+            "title": "domain_template - Templates > UCS Domain Profile Templates - Intersight Uri: fabric/SwitchClusterProfileTemplates",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fabric.SwitchClusterProfileTemplate",
+            "x-intersight-object-type-switch": "fabric.SwitchProfileTemplate",
+            "x-intersight-type": "templates",
+            "x-intersight-uri": "fabric/SwitchClusterProfileTemplates",
+            "x-intersight-uri-switch": "fabric/SwitchProfileTemplates"
+        },
+        "domain.switch": {
+            "description": "UCS Domain Profile Template - Switch Profile Template.",
+            "title": "domain - Switch Profile Template - Intersight Uri: fabric/SwitchProfileTemplates",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fabric.SwitchProfileTemplate",
+            "x-intersight-type": "templates",
+            "x-intersight-uri": "fabric/SwitchProfileTemplates"
+        },
+        "name.prefix_suffix": {
+            "additionalProperties": false,
+            "description": "A list of prefixes/suffixes to add to the Profile/Template Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific prefix/suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`\n  * `vhba_template`\n  * `vnic_template`",
+            "properties": {
+                "chassis": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Chassis Profile/Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "chassis",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default prefix/suffix value to add to the all the profile/template names.  An individual profile/template prefix/suffix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "domain": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Domain Profile/Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "domain",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "server": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Server Profile/Template Names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "server",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "unified_edge": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Profile/Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "unified_edge",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "vhba_template": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the vHBA Template name.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "vhba_template",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "vnic_template": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the vNIC Template name.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "vnic_template",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                }
+            },
+            "title": "Profile Name Prefix/Suffix",
+            "type": "object",
+            "x-intersight-object-type": "not_applicable"
+        },
+        "server": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "anyOf": [
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "adapter_configuration_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "device_connector_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ldap_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "network_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ntp_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "persistent_memory_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "smtp_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ssh_policy"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "server_family": {
+                                    "const": "All"
+                                },
+                                "target_platform": {
+                                    "const": "FIAttached"
+                                }
+                            }
+                        },
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "adapter_configuration_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "device_connector_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "drive_security_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ldap_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "network_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ntp_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "pcie_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "persistent_memory_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "san_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "sd_card_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "smtp_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ssh_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "thermal_policy"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "server_family": {
+                                    "const": "All"
+                                },
+                                "target_platform": {
+                                    "const": "UnifiedEdgeServer"
+                                }
+                            }
+                        },
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "imc_access_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "pcie_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "scrub_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "uuid_pool"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "server_family": {
+                                    "const": "UCSC2XX/4XX"
+                                },
+                                "target_platform": {
+                                    "const": "Standalone"
+                                }
+                            }
+                        },
+                        {
+                            "not": {
+                                "anyOf": [
+                                    {
+                                        "required": [
+                                            "boot_order_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "device_connector_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "imc_access_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "ldap_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "memory_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "network_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "persistent_memory_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "pcie_connectivity_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "scrub_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "snmp_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "syslog_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "thermal_policy"
+                                        ]
+                                    },
+                                    {
+                                        "required": [
+                                            "uuid_pool"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "properties": {
+                                "server_family": {
+                                    "const": "UCSC845A"
+                                },
+                                "target_platform": {
+                                    "const": "Standalone"
+                                }
+                            }
+                        }
+                    ],
+                    "description": "Definition of the list of properties defined in 'server.ProfileTemplate', excluding properties defined in parent classes.",
+                    "properties": {
+                        "adapter_configuration_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Adapter Configuration Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "adapter_configuration_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:adapter.ConfigPolicy:Moid"
+                        },
+                        "bios_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the BIOS Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "bios_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:bios.Policy:Moid"
+                        },
+                        "boot_order_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Boot Order Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "boot_order_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:boot.PrecisionPolicy:Moid"
+                        },
+                        "certificate_management_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Certificate Management Policy to Assign to the Profile(s).  This is only Applicable to FIAttached Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "certificate_management_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:certificatemanagement.Policy:Moid"
+                        },
+                        "create_template": {
+                            "default": false,
+                            "description": "The default value is `false`.  Flag to determine if these Template Should be created or just used as a Policy Reference.",
+                            "title": "create_template",
+                            "type": "boolean",
+                            "x-intersight-api": "create_template"
+                        },
+                        "device_connector_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Device Connector Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "device_connector_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:deviceconnector.Policy:Moid"
+                        },
+                        "drive_security_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Drive Security Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "drive_security_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:storage.DriveSecurityPolicy:Moid"
+                        },
+                        "firmware_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Firmware Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "firmware_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:firmware.Policy:Moid"
+                        },
+                        "imc_access_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the IMC Access Policy to Assign to the Profile(s).  This is only Applicable to FIAttached Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "imc_access_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:access.Policy:Moid"
+                        },
+                        "ipmi_over_lan_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the IPMI over LAN Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ipmi_over_lan_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:ipmioverlan.Policy:Moid"
+                        },
+                        "lan_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the LAN Connectivity Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "lan_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:vnic.LanConnectivityPolicy:Moid"
+                        },
+                        "ldap_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the LDAP Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ldap_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:iam.LdapPolicy:Moid"
+                        },
+                        "local_user_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Local User Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "local_user_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:iam.EndPointUserPolicy:Moid"
+                        },
+                        "memory_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Memory Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "memory_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:memory.Policy:Moid"
+                        },
+                        "network_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Network Connectivity Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "network_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:networkconfig.Policy:Moid"
+                        },
+                        "ntp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the NTP Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ntp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:ntp.Policy:Moid"
+                        },
+                        "pcie_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the PCIe Connectivity Policy to Assign to the Profile(s).  This is only Applicable to FIAttached Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "pcie_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:compute.PcieConnectivityPolicy:Moid"
+                        },
+                        "persistent_memory_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Persistent Memory Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "persistent_memory_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:memory.PersistentMemoryPolicy:Moid"
+                        },
+                        "power_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Power Policy to Assign to the Profile(s).  This is only Applicable to FIAttached Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "power_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:power.Policy:Moid"
+                        },
+                        "san_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SAN Connectivity Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "san_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:vnic.SanConnectivityPolicy:Moid"
+                        },
+                        "scrub_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Scrub Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "scrub_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:compute.ScrubPolicy.Relationship:compute.ScrubPolicy"
+                        },
+                        "sd_card_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SD Card Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "sd_card_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:sdcard.Policy:Moid"
+                        },
+                        "serial_over_lan_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Serial over LAN Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "serial_over_lan_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:sol.Policy:Moid"
+                        },
+                        "server_family": {
+                            "default": "All",
+                            "description": "The default valus is `All`.  The server family type applicable to a server profile when the target platform is Standalone. For all other platform types, the value should be All.\n\nOptions are:\n\n  * `All` - All server family types are included under this category.\n  * `UCSC845A` - Server Family type for UCS C845A servers.\n  * `UCSC2XX/4XX` - Server Family type for UCS C2XX/4XX servers.",
+                            "enum": [
+                                "All",
+                                "UCSC845A",
+                                "UCSC2XX/4XX"
+                            ],
+                            "title": "server_family",
+                            "type": "string",
+                            "x-intersight-api": "ServerFamily"
+                        },
+                        "smtp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SMTP Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "smtp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:smtp.Policy:Moid"
+                        },
+                        "snmp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SNMP Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "snmp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:snmp.Policy:Moid"
+                        },
+                        "ssh_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the SSH Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ssh_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:ssh.Policy:Moid"
+                        },
+                        "storage_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Storage Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "storage_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:storage.StoragePolicy:Moid"
+                        },
+                        "syslog_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Syslog Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "syslog_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:syslog.Policy:Moid"
+                        },
+                        "target_platform": {
+                            "default": "FIAttached",
+                            "description": "The default value is `FIAttached`.  The platform for which the server profile is applicable. It can either be a server that is operating in standalone mode or which is attached to a Fabric Interconnect managed by Intersight.\n\nOptions are:\n  * `FIAttached` - Servers which are connected to a Fabric Interconnect that is managed by Intersight.\n  * `Standalone` - Servers which are operating in standalone mode i.e. not connected to a Fabric Interconnected.\n  * `UnifiedEdgeServer` - Unified Edge sleds that are managed by Intersight.",
+                            "enum": [
+                                "FIAttached",
+                                "Standalone",
+                                "UnifiedEdgeServer"
+                            ],
+                            "title": "target_platform",
+                            "type": "string",
+                            "x-intersight-api": "TargetPlatform"
+                        },
+                        "thermal_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Thermal Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "thermal_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:thermal.Policy:Moid"
+                        },
+                        "uuid_pool": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the UUID Pool to Assign to the Profile(s).  This is only Applicable to FIAttached Servers.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "uuid_pool",
+                            "type": "string",
+                            "x-intersight-api": "$ref:UuidPool:uuidpool.Pool:Moid"
+                        },
+                        "virtual_kvm_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the KVM Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "virtual_kvm_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:kvm.Policy:Moid"
+                        },
+                        "virtual_media_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Virtual Media Policy to Assign to the Profile(s). If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "virtual_media_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:vmedia.Policy:Moid"
+                        }
+                    },
+                    "required": [
+                        "create_template",
+                        "name",
+                        "server_family",
+                        "target_platform"
+                    ],
+                    "title": "server_profile_template",
+                    "type": "object"
+                }
+            ],
+            "description": "A profile template specifying configuration settings for a physical server.",
+            "title": "server_template - Templates > UCS Server Profile Templates - Intersight Uri: server/ProfileTemplates",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "server.ProfileTemplate",
+            "x-intersight-type": "templates",
+            "x-intersight-uri": "server/ProfileTemplates"
+        },
+        "unified_edge": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "description": "Definition of the list of properties defined in 'fabric.SwitchClusterProfiles', excluding properties defined in parent classes.",
+                    "properties": {
+                        "create_template": {
+                            "default": false,
+                            "description": "The default value is `false`.  Flag to determine if these Template Should be created or just used as a Policy Reference.",
+                            "title": "create_template",
+                            "type": "boolean",
+                            "x-intersight-api": "create_template"
+                        },
+                        "network_connectivity_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Network Connectivity Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "network_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:networkconfig.Policy:Moid"
+                        },
+                        "ntp_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the NTP Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ntp_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:ntp.Policy:Moid"
+                        },
+                        "port_policies": {
+                            "description": "A List of Port Policies to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the Port Policy to Assign to the Domain Profile Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "port_policy",
+                                "type": "string",
+                                "x-intersight-api": "$pbucket:fabric.PortPolicy:Moid"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "port_policies - A List of one or two Port Policies.",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$pbucket:fabric.PortPolicy:Moid"
+                        },
+                        "switch_control_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Switch Control Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "switch_control_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:fabric.SwitchControlPolicy:Moid"
+                        },
+                        "syslog_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Syslog Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "syslog_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:syslog.Policy:Moid"
+                        },
+                        "system_qos_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the System QoS Policy to Assign to the Domain Profile Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "system_qos_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:fabric.SystemQosPolicy:Moid"
+                        },
+                        "vlan_policies": {
+                            "description": "A List of One or Two VLAN Policies to Assign to the Domain Profile Template.  If One is used both FI's will inherit the same policy. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the VLAN Policy to Assign to the Domain Profile Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "vlan_policy",
+                                "type": "string",
+                                "x-intersight-api": "$pbucket:fabric.EthNetworkPolicy:Moid"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "vlan_policies - VLAN Policies - Intersight Uri: fabric/EthNetworkPolicies",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$pbucket:fabric.EthNetworkPolicy:Moid",
+                            "x-intersight-object-type": "fabric.EthNetworkPolicy"
+                        }
+                    },
+                    "required": [
+                        "create_template",
+                        "port_policies",
+                        "switch_control_policy",
+                        "system_qos_policy",
+                        "vlan_policies"
+                    ],
+                    "title": "server_profile_template",
+                    "type": "object"
+                }
+            ],
+            "description": "A profile template specifying configuration settings for a physical domain.",
+            "title": "domain_template - Templates > UCS Domain Profile Templates - Intersight Uri: fabric/SwitchClusterProfileTemplates",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fabric.SwitchClusterProfileTemplate",
+            "x-intersight-object-type-switch": "fabric.SwitchProfileTemplate",
+            "x-intersight-type": "templates",
+            "x-intersight-uri": "fabric/SwitchClusterProfileTemplates",
+            "x-intersight-uri-switch": "fabric/SwitchProfileTemplates"
+        },
+        "vhba_template": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "anyOf": [
+                        {
+                            "properties": {
+                                "target_platform": {
+                                    "const": "Unified Edge"
+                                }
+                            }
+                        },
+                        {
+                            "properties": {
+                                "target_platform": {
+                                    "const": "UCS Domain"
+                                }
+                            }
+                        }
+                    ],
+                    "description": "",
+                    "properties": {
+                        "allow_override": {
+                            "default": false,
+                            "description": "The default value is `false`.  When enabled, the configuration of the derived instances may override the template configuration.",
+                            "title": "allow_override",
+                            "type": "boolean",
+                            "x-intersight-api": "EnableOverride"
+                        },
+                        "fc_zone_policies": {
+                            "description": "List of FC Zone Policy Names to attach to the vHBA Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the FC Zone Policy to Assign to the vHBA Template.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "fc_zone_policy",
+                                "type": "string",
+                                "x-intersight-api": "$ref:FcZonePolicies:fabric.FcZonePolicy:Moid"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "fc_zone_policies - Fc Zone Policies - Intersight Uri: fabric/FcZonePoliy",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$ref:FcZonePolicies:fabric.FcZonePolicy:Moid"
+                        },
+                        "fibre_channel_adapter_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Fibre Channel Adapter Policy to Assign to the vHBA Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "fibre_channel_adapter_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:FcAdapterPolicy:vnic.FcAdapterPolicy:Moid"
+                        },
+                        "fibre_channel_network_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Fibre Channel Network Policy to Assign to the vHBA Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "fibre_channel_network_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:FcNetworkPolicy:vnic.FcNetworkPolicy:Moid"
+                        },
+                        "fibre_channel_qos_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Fibre-Channel QoS Policy to Assign to the vHBA Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "fibre_channel_qos_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:FcQosPolicy:vnic.FcQosPolicy:Moid"
+                        },
+                        "persistent_lun_bindings": {
+                            "default": false,
+                            "description": "The default value is `false`.  Enables retention of LUN ID associations in memory until they are manually cleared.",
+                            "title": "persistent_lun_bindings",
+                            "type": "boolean",
+                            "x-intersight-api": "PersistentBindings"
+                        },
+                        "pin_group_name": {
+                            "default": "",
+                            "description": "The default value is ``.  Pingroup name associated to vfc for static pinning. SCP deploy will resolve pingroup name and fetches the correspoding uplink port/port channel to pin the vfc traffic.",
+                            "examples": [
+                                ""
+                            ],
+                            "maxLength": 64,
+                            "minLength": 1,
+                            "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "pin_group_name",
+                            "type": "string",
+                            "x-intersight-api": "PinGroupName"
+                        },
+                        "placement_switch_id": {
+                            "default": "A",
+                            "description": "The default value is `A`.  The fabric port to which the vHBA will be associated.\n\n  * `None` - Fabric Id is not set to either A or B for the standalone case where the server is not connected to Fabric Interconnects. The value 'None' should be used.\n  * `A` - Fabric A of the FI cluster.\n  * `B` - Fabric B of the FI cluster.",
+                            "enum": [
+                                "A",
+                                "B",
+                                "None"
+                            ],
+                            "title": "placement_switch_id",
+                            "type": "string",
+                            "x-intersight-api": "SwitchId"
+                        },
+                        "vhba_type": {
+                            "default": "fc-initiator",
+                            "description": "The default value is `fc-initiator`.  vHBA Type configuration for SAN Connectivity Policy. This configuration is supported only on Cisco VIC 14XX series and higher series of adapters.\n  * `fc-initiator` - The default value set for vHBA Type Configuration. Fc-initiator specifies vHBA as a consumer of storage. Enables SCSI commands to transfer data and status information between host and target storage systems.\n  * `fc-nvme-initiator` - Fc-nvme-initiator specifies vHBA as a consumer of storage. Enables NVMe-based message commands to transfer data and status information between host and target storage systems.\n  * `fc-nvme-target` - Fc-nvme-target specifies vHBA as a provider of storage volumes to initiators. Enables NVMe-based message commands to transfer data and status information between host and target storage systems. Currently tech-preview, only enabled with an asynchronous driver.\n  * `fc-target` - Fc-target specifies vHBA as a provider of storage volumes to initiators. Enables SCSI commands to transfer data and status information between host and target storage systems. fc-target is enabled only with an asynchronous driver.",
+                            "enum": [
+                                "fc-initiator",
+                                "fc-nvme-initiator",
+                                "fc-nvme-target",
+                                "fc-target"
+                            ],
+                            "title": "vhba_type",
+                            "type": "string",
+                            "x-intersight-api": "Type"
+                        },
+                        "wwpn_pool": {
+                            "default": "default",
+                            "description": "The default value is `default`.  Name of the WWPN Pool to Assign to the vHBA Template. If this pool is originating from a shared organization, include the organization name with the pool via `org_name/pool_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "wwpn_pool",
+                            "type": "string",
+                            "x-intersight-api": "$ref:WwpnPool:fcpool.Pool:Moid"
+                        }
+                    },
+                    "required": [
+                        "fibre_channel_qos_policy"
+                    ],
+                    "title": "vhba_template",
+                    "type": "object"
+                }
+            ],
+            "description": "Virtual Fibre Channel Interface Template.",
+            "title": "vhba_template - vHBA Template - Intersight Uri: vnic/VhbaTemplate",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "vnic.VhbaTemplate",
+            "x-intersight-target-platforms": [
+                "server"
+            ],
+            "x-intersight-type": "policies",
+            "x-intersight-uri": "vnic/VhbaTemplates"
+        },
+        "vnic_template": {
+            "allOf": [
+                {
+                    "$ref": "./policies.json#/definitions/abstract_attributes"
+                },
+                {
+                    "description": "",
+                    "properties": {
+                        "allow_override": {
+                            "default": false,
+                            "description": "The default value is `false`.  When enabled, the configuration of the derived instances may override the template configuration.",
+                            "title": "allow_override",
+                            "type": "boolean",
+                            "x-intersight-api": "EnableOverride"
+                        },
+                        "cdn_value": {
+                            "default": "",
+                            "description": "The default value is ``.  Only used when `cdn_source` is `user` (aka user defined).",
+                            "examples": [
+                                ""
+                            ],
+                            "maxLength": 31,
+                            "minLength": 1,
+                            "pattern": "^[a-zA-Z0-9\\-\\._:]*${1,31}",
+                            "title": "cdn_value",
+                            "type": "string",
+                            "x-intersight-api": "$ref:Cdn:vnic.Cdn:Value"
+                        },
+                        "enable_failover": {
+                            "default": false,
+                            "description": "The default value is `false`.  Enabling failover ensures that traffic from the vNIC automatically fails over to the secondary Fabric Interconnect, in case the specified Fabric Interconnect path goes down. Failover applies only to Cisco VICs that are connected to a Fabric Interconnect cluster.",
+                            "title": "enable_failover",
+                            "type": "boolean",
+                            "x-intersight-api": "FailoverEnabled"
+                        },
+                        "ethernet_adapter_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Ethernet Adapter Policy to Assign to the vNIC Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ethernet_adapter_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:EthAdapterPolicy:vnic.EthAdapterPolicy:Moid"
+                        },
+                        "ethernet_network_control_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Ethernet Network Control Policy to Assign to the vNIC Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ethernet_network_control_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:FabricEthNetworkControlPolicy:fabric.EthNetworkControlPolicy:Moid"
+                        },
+                        "ethernet_network_group_policies": {
+                            "description": "The Name(s) of the Ethernet Network Group Policies to Assign. If these policies are originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the Ethernet Network Group Policy to Assign.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "ethernet_network_group_policy",
+                                "type": "string",
+                                "x-intersight-api": "$ref:FabricEthNetworkGroupPolicy:fabric.EthNetworkGroupPolicy:Moid"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "ethernet_network_group_policies - Ethernet Network Group Policies",
+                            "type": "array",
+                            "uniqueItems": false,
+                            "x-intersight-api": "$ref:FabricEthNetworkGroupPolicy:fabric.EthNetworkGroupPolicy:Moid",
+                            "x-intersight-object-type": "fabric.EthNetworkGroupPolicy"
+                        },
+                        "ethernet_qos_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the Ethernet QoS Policy to Assign to the vNIC Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "ethernet_network_group_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:EthQosPolicy:vnic.EthQosPolicy:Moid"
+                        },
+                        "flow_monitor_policies": {
+                            "description": "The Name(s) of the Netlfow Configuration -> Flow Monitor Policies to Assign.  If it is a list of 1 then the policy will be used by both vNICs.  If the list is greater than 1, then the list must be an even number, and it will be split between the vNICs. If these policies are originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "default",
+                                "description": "The default value is `default`.  The Name of the Netlfow Configuration -> Flow Monitor Policy to Assign.",
+                                "examples": [
+                                    "default"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "flow_monitor_policy",
+                                "type": "string",
+                                "x-intersight-api": "$ref:NetFlowMonitorSessions:fabric.NetFlowMonitor:Moid"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "flow_monitor_policies - Netflow Configuration > Flow Monitor Policies",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "$ref:NetFlowMonitorSessions:fabric.NetFlowMonitor:Moid",
+                            "x-intersight-object-type": "fabric.NetFlowMonitor"
+                        },
+                        "iscsi_boot_policy": {
+                            "default": "default",
+                            "description": "The default value is `default`.  The Name of the iSCSI Boot Policy to Assign to the vNIC Template. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "iscsi_boot_policy",
+                            "type": "string",
+                            "x-intersight-api": "$ref:IscsiBootPolicy:vnic.IscsiBootPolicy:Moid"
+                        },
+                        "mac_address_pool": {
+                            "default": "default",
+                            "description": "The default value is `default`.  Name of the MAC Pool to assign the vNIC Template. If this pool is originating from a shared organization, include the organization name with the pool via `org_name/pool_name`.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "mac_address_pool",
+                            "type": "string",
+                            "x-intersight-api": "$ref:MacPool:macpool.Pool:Moid"
+                        },
+                        "pin_group_name": {
+                            "default": "",
+                            "description": "The default value is ``.  Pingroup name associated to vNIC for static pinning. LCP deploy will resolve pingroup name and fetches the correspoding uplink port/port channel to pin the vNIC traffic.",
+                            "examples": [
+                                ""
+                            ],
+                            "maxLength": 64,
+                            "minLength": 1,
+                            "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "pin_group_name",
+                            "type": "string",
+                            "x-intersight-api": "PinGroupName"
+                        },
+                        "placement_switch_id": {
+                            "default": "A",
+                            "description": "The default value is `A`.  The fabric port to which the vNICs will be associated.\n\n  * `None` - Fabric Id is not set to either A or B for the standalone case where the server is not connected to Fabric Interconnects. The value 'None' should be used.\n  * `A` - Fabric A of the FI cluster.\n  * `B` - Fabric B of the FI cluster.",
+                            "enum": [
+                                "A",
+                                "B",
+                                "None"
+                            ],
+                            "title": "placement_switch_id",
+                            "type": "string",
+                            "x-intersight-api": "SwitchId"
+                        },
+                        "sriov": {
+                            "$ref": "./policies.json#/definitions/lan_connectivity.vnics.sriov"
+                        },
+                        "usnic": {
+                            "$ref": "./policies.json#/definitions/lan_connectivity.vnics.usnic"
+                        },
+                        "vmq": {
+                            "$ref": "./policies.json#/definitions/lan_connectivity.vnics.vmq"
+                        }
+                    },
+                    "required": [
+                        "ethernet_network_control_policy",
+                        "ethernet_network_group_policies",
+                        "ethernet_qos_policy"
+                    ],
+                    "title": "vnic_template",
+                    "type": "object"
+                }
+            ],
+            "description": "Virtual Ethernet Interface Template.",
+            "title": "vnic_template - vNIC Template - Intersight Uri: vnic/VnicTemplate",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "vnic.VnicTemplate",
+            "x-intersight-target-platforms": [
+                "server"
+            ],
+            "x-intersight-type": "policies",
+            "x-intersight-uri": "vnic/VnicTemplates"
+        }
+    },
+    "description": "JSON Schema for validating Cisco Intersight templates used by Cisco AI PODs, including chassis, domain, server, Unified Edge, vNIC, and vHBA templates and their reusable policy settings.",
+    "title": "Cisco AI PODs - Intersight - Templates Schema"
+}

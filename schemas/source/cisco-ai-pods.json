@@ -1,0 +1,339 @@
+{
+    "$id": "cisco-ai-pods.json",
+    "$ref": "#/definitions/cisco_ai_pods",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "contact": {
+        "email": "tyscott@cisco.com"
+    },
+    "definitions": {
+        "cisco_ai_pods": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "everpure": {
+                            "$ref": "#/definitions/everpure"
+                        },
+                        "intersight": {
+                            "$ref": "#/definitions/intersight"
+                        },
+                        "openshift": {
+                            "$ref": "#/definitions/openshift"
+                        },
+                        "shared_services": {
+                            "$ref": "#/definitions/shared_services"
+                        },
+                        "splunk_observability": {
+                            "$ref": "#/definitions/splunk_observability"
+                        }
+                    }
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "required": [],
+            "title": "Cisco AI PODs",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "everpure": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the required configuration settings for Everpure deployment.\n\nRequired fields are:\n  * `settings`\n\nOptional fields are:\n  * `flash_arrays`\n  * `flash_blades`\n  * `notifications`\n  * `portworx`",
+            "properties": {
+                "flash_arrays": {
+                    "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+                    "items": {
+                        "$ref": "./everpure.json#/definitions/flash_arrays"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Flash Arrays",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "flash_blades": {
+                    "description": "List of Everpure Flash Blades.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`\n  * `nfs_endpoint`",
+                    "items": {
+                        "$ref": "./everpure.json#/definitions/flash_blades"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Flash Blades",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "portworx": {
+                    "$ref": "./everpure.json#/definitions/portworx"
+                },
+                "settings": {
+                    "$ref": "./everpure.json#/definitions/settings"
+                }
+            },
+            "required": [
+                "settings"
+            ],
+            "title": "Everpure - Arrays",
+            "type": "object"
+        },
+        "intersight": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "script_settings": {
+                            "$ref": "./intersight.json#/definitions/intersight.script_settings"
+                        },
+                        "configure": {
+                            "description": "Intersight Organization Name for configuration of pools, policies, profiles, and templates.  This is a patternProperties field where the key is the Intersight Organization Name and the value is the configuration for that organization.",
+                            "patternProperties": {
+                                "^[a-zA-Z0-9_\\.:-]{1,64}$": {
+                                    "$ref": "./intersight.json#/definitions/intersight.configure"
+                                }
+                            },
+                            "title": "Intersight Configure",
+                            "type": "object"
+                        },
+                        "system": {
+                            "$ref": "./intersight.json#/definitions/intersight.system"
+                        }
+                    }
+                }
+            ],
+            "description": "This dictionary defines the Intersight deployment settings.\n\nOptional fields are:\n  * `configure` - Configuration of Pools, Policies, Profiles, and Templates\n  * `script_settings` - Global Script Settings like `intersight_fqdn`\n  * `system` - System settings for Intersight",
+            "required": [],
+            "title": "Intersight deployment settings",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "notifications": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the notification settings for Instant Messenger Applications.\n\nOptional fields are:\n  * `cisco_webex`\n  * `microsoft_teams`\n  * `slack`",
+            "properties": {
+                "cisco_webex": {
+                    "$ref": "./notifications.json#/definitions/notifications.cisco_webex"
+                },
+                "microsoft_teams": {
+                    "$ref": "./notifications.json#/definitions/notifications.microsoft_teams"
+                },
+                "slack": {
+                    "$ref": "./notifications.json#/definitions/notifications.slack"
+                }
+            },
+            "required": [],
+            "title": "Notifications",
+            "type": "object"
+        },
+        "openshift": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "base_dns_domain": {
+                            "$ref": "./openshift.json#/definitions/openshift.base_dns_domain"
+                        },
+                        "certificates": {
+                            "$ref": "./openshift.json#/definitions/openshift.certificates"
+                        },
+                        "cluster_name": {
+                            "$ref": "./openshift.json#/definitions/openshift.cluster_name"
+                        },
+                        "destination_directory": {
+                            "description": "Absolute path to the OpenShift GitOps Repository on the host.",
+                            "examples": [
+                                "/home/user/my_repos/cluster_argo_cd_sync"
+                            ],
+                            "maxLength": 4096,
+                            "minLength": 1,
+                            "pattern": "^(?:(?:/(?:[^\\0/]+/)*[^\\0/]+)|(?:[A-Za-z]:[\\\\/](?:[^<>:\"|?*\\r\\n]+[\\\\/])*[^<>:\"|?*\\r\\n]+)|(?:\\.{1,2}[\\\\/])?(?:[^<>:\"|?*\\r\\n\\\\/]+[\\\\/])*[^<>:\"|?*\\r\\n\\\\/]+)$",
+                            "title": "Destination Directory",
+                            "type": "string"
+                        },
+                        "file_storage_class": {
+                            "$ref": "./shared.json#/definitions/dns_1123_label",
+                            "default": "nfs-1",
+                            "description": "The default value is `nfs-1`.  The File Storage Class is required for the Ansible Automation Platform Operator installation.\n\nThe name must be unique within the cluster domain and can consist of lowercase letters, numbers, and hyphens. It must start with a letter and end with a letter or number.",
+                            "examples": [
+                                "nfs-1",
+                                "ocs-storagecluster-ceph-rbd"
+                            ],
+                            "title": "OpenShift File Storage Class",
+                            "type": "string"
+                        },
+                        "gpu_models": {
+                            "description": "List of GPU models available in the OpenShift cluster.\n\nOptions are:\n  * `B300 SXM`\n  * `H100`\n  * `H100 NVL`\n  * `H100 SXM`\n  * `H200 NVL`\n  * `H200 SXM`\n  * `L40`\n  * `L40S`\n  * `RTX PRO 4500 Blackwell Server Edition`\n  * `RTX PRO 6000 Blackwell Server Edition`",
+                            "examples": [
+                                ["H200 SXM", "H100 NVL", "RTX PRO 6000 Blackwell Server Edition"]
+                            ],
+                            "items": {
+                                "enum": [
+                                    "B300 SXM",
+                                    "H100",
+                                    "H100 NVL",
+                                    "H100 SXM",
+                                    "H200 NVL",
+                                    "H200 SXM",
+                                    "L40",
+                                    "L40S",
+                                    "RTX PRO 4500 Blackwell Server Edition",
+                                    "RTX PRO 6000 Blackwell Server Edition"
+                                ],
+                                "type": "string"
+                            },
+                            "title": "NVIDIA GPU Models in the Cluster",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "nvidia_ai_enterprise_version": {
+                            "default": "8.1",
+                            "description": "The version of NVIDIA AI Enterprise installed in the OpenShift cluster.\n\nSupport matrix: https://docs.nvidia.com/ai-enterprise/support-matrix/latest/index.html",
+                            "enum": [
+                                "7.0",
+                                "7.1",
+                                "7.2",
+                                "7.3",
+                                "7.4",
+                                "7.5",
+                                "7.6",
+                                "7.7",
+                                "8.0",
+                                "8.1"
+                            ],
+                            "title": "NVIDIA AI Enterprise Version",
+                            "type": "string"
+                        },
+                        "install": {
+                            "$ref": "./openshift.json#/definitions/openshift.install"
+                        },
+                        "ldap": {
+                            "$ref": "./openshift.json#/definitions/openshift.ldap"
+                        },
+                        "operators": {
+                            "$ref": "./openshift.json#/definitions/openshift.operators"
+                        }
+                    }
+                }
+            ],
+            "description": "This dictionary defines the OpenShift Container Platform (OCP) deployment settings.\n\nTo Install OpenShift the Required fields are:\n  * `install`\n\nTo Install API and Ingress Certificates after Install the Required fields are:\n  * `certificates`\n\nTo Configure OpenShift Auth after Install the Required fields are:\n  * `ldap`\n\nTo Install OpenShift Operators the Required fields are:\n  * `base_dns_domain`\n  * `cluster_name`\n  * `destination_directory`\n  * `file_storage_class`\n  * `gpu_models`\n  * `nvidia_ai_enterprise_version`\n  * `operators`",
+            "oneOf": [
+                {
+                    "required": [
+                        "base_dns_domain",
+                        "cluster_name",
+                        "destination_directory",
+                        "file_storage_class",
+                        "gpu_models",
+                        "nvidia_ai_enterprise_version",
+                        "operators"
+                    ]
+                },
+                {
+                    "required": [
+                        "certificates"
+                    ]
+                },
+                {
+                    "required": [
+                        "install"
+                    ]
+                },
+                {
+                    "required": [
+                        "ldap"
+                    ]
+                }
+            ],
+            "required": [],
+            "title": "OpenShift Container Platform (OCP) deployment settings",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "shared_services": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "dns_search_domains": {
+                            "$ref": "./shared.json#/definitions/dns_search_domains"
+                        },
+                        "dns_servers": {
+                            "$ref": "./shared.json#/definitions/dns_servers"
+                        },
+                        "domain_name": {
+                            "$ref": "./shared.json#/definitions/domain_name"
+                        },
+                        "ntp_servers": {
+                            "$ref": "./shared.json#/definitions/ntp_servers"
+                        },
+                        "proxy_servers": {
+                            "$ref": "./shared.json#/definitions/proxy_servers"
+                        }
+                    }
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `proxy_servers`",
+            "required": [],
+            "title": "Shared Services",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "splunk_observability": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "access_token": {
+                            "default": 1,
+                            "description": "The default value is `1`.  The Splunk Observability Cloud Access Token.  A number Between 1-64 to denote the variables splunk_observability_access_token_[1-64].  i.e. `export splunk_observability_access_token_1='a1234567-abcd-1234-5678-abcdef123456'`.",
+                            "maximum": 64,
+                            "minimum": 1,
+                            "title": "Splunk Observability Access Token Identifier",
+                            "type": "integer"
+                        },
+                        "intersight": {
+                            "$ref": "#/definitions/splunk_observability.intersight"
+                        },
+                        "nexus": {
+                            "$ref": "#/definitions/splunk_observability.nexus"
+                        },
+                        "openshift_cluster": {
+                            "$ref": "#/definitions/splunk_observability.openshift_cluster"
+                        },
+                        "otel_collector": {
+                            "$ref": "#/definitions/splunk_observability.otel_collector"
+                        },
+                        "realm": {
+                            "default": "us0",
+                            "description": "The default value is `us0`.  In Splunk Observability Cloud, a realm is a self-contained deployment that hosts your organization. Your realm dictates the specific API and ingest endpoints your agents or integrations must communicate with..",
+                            "enum": [
+                                "eu0",
+                                "us0",
+                                "us1"
+                            ],
+                            "title": "Splunk Observability Realm",
+                            "type": "string"
+                        },
+                        "splunk_platform": {
+                            "$ref": "#/definitions/splunk_observability.splunk_platform"
+                        }
+                    }
+                }
+            ],
+            "description": "This dictionary defines the Splunk Observability deployment settings.\n\nRequired fields are:\n  * `access_token`\n  * `openshift_cluster`\n  * `otel_collector`\n  * `splunk_platform`\n\nOptional fields are:\n  * `intersight`\n  * `nexus`\n  * `realm`",
+            "required": [
+                "access_token",
+                "openshift_cluster",
+                "otel_collector",
+                "splunk_platform"
+            ],
+            "title": "Splunk Observability Deployment Settings",
+            "type": "object",
+            "unevaluatedProperties": false
+        }
+    },
+    "description": "JSON Schema for Cisco AI PODs.",
+    "license": {
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT"
+    },
+    "title": "Cisco AI PODs - JSON Schema",
+    "x-schema-version": "0.1.0"
+}

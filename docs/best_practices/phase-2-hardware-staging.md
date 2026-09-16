@@ -4,7 +4,7 @@
 
 Phase 2 ensures every compute node, management interface, and physical link is installed consistently before fabric bring-up. The objective is to eliminate avoidable Day-1 failures caused by cabling mistakes, firmware drift, and incomplete out-of-band management setup.
 
-For Cisco AI Pods aligned to the current guidance in this repository, use:
+For Cisco AI PODs aligned to the current guidance in this repository, use:
 - Training-focused GPUs: B300 and H200
 - Inference-focused GPUs: RTX6000 and RTX4500
 

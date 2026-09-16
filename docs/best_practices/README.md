@@ -1,6 +1,6 @@
-# Cisco AI Pods Best Practices Phases
+# Cisco AI PODs Best Practices Phases
 
-This guide is the high-level entry point for the six-phase Cisco AI Pods best-practices runbook. It provides a structured progression from planning and hardware readiness to orchestration and workload operations.
+This guide is the high-level entry point for the six-phase Cisco AI PODs best-practices runbook. It provides a structured progression from planning and hardware readiness to orchestration and workload operations.
 
 Use these phases in order. Each phase builds on controls and validation steps from the previous phase.
 

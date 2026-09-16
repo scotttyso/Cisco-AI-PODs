@@ -1,6 +1,6 @@
 # GPU Operators Role
 
-Deploys and configures NVIDIA GPU-related operators for OpenShift-based Cisco AI Pods environments.
+Deploys and configures NVIDIA GPU-related operators for OpenShift-based Cisco AI PODs environments.
 
 ## Purpose
 
@@ -23,7 +23,7 @@ This role is the integration point for GPU operator deployment workflows. It is 
 Run the role through the main playbook:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags gpu_operators
+ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags gpu_operators
 ```
 
 ## Notes

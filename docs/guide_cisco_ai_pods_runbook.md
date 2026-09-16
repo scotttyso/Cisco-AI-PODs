@@ -1,11 +1,11 @@
-# Cisco AI Pods Runbook
+# Cisco AI PODs Runbook
 
 ## Top Level Documents
 * [Main README](README.md)
 * [Prepare the Environment](guide_prepare_the_environment.md)
 
 ## Table of Contents
-- [Cisco AI Pods Runbook](#cisco-ai-pods-runbook)
+- [Cisco AI PODs Runbook](#cisco-ai-pods-runbook)
   - [Top Level Documents](#top-level-documents)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
@@ -33,10 +33,10 @@
     - [4. Security Planning](#4-security-planning)
     - [Required Access and Credentials](#required-access-and-credentials)
     - [Back to Table of Contents](#back-to-table-of-contents-4)
-  - [Cisco AI Pods Intersight Deployment Guide](#cisco-ai-pods-intersight-deployment-guide)
-  - [Cisco AI Pods C885A M8 Server Deployment Guide](#cisco-ai-pods-c885a-m8-server-deployment-guide)
-  - [Cisco AI Pods Everpure Deployment Guide](#cisco-ai-pods-everpure-deployment-guide)
-  - [Cisco AI Pods OpenShift Container Platform Deployment Guide](#cisco-ai-pods-openshift-container-platform-deployment-guide)
+  - [Cisco AI PODs Intersight Deployment Guide](#cisco-ai-pods-intersight-deployment-guide)
+  - [Cisco AI PODs C885A M8 Server Deployment Guide](#cisco-ai-pods-c885a-m8-server-deployment-guide)
+  - [Cisco AI PODs Everpure Deployment Guide](#cisco-ai-pods-everpure-deployment-guide)
+  - [Cisco AI PODs OpenShift Container Platform Deployment Guide](#cisco-ai-pods-openshift-container-platform-deployment-guide)
     - [Back to Table of Contents](#back-to-table-of-contents-5)
   - [Post-Deployment Tasks](#post-deployment-tasks)
     - [Documentation Updates](#documentation-updates)
@@ -46,9 +46,20 @@
 
 ## Overview
 
+Deployment commands use the encrypted `vault-ai-pod.yaml` and the password file at
+`~/.config/cisco-ai-pods/vault-password` by default. Use `--vault-password-file`
+only when the password file is stored elsewhere.
+
+```bash
+python3 scripts/deploy_ai_pod.py
+```
+
+Create the vault from [examples/vault.example.yaml](../examples/vault.example.yaml)
+and keep the password file outside the repository.
+
 ⚠️ **CRITICAL:** Before continuing make sure you have completed the steps in `Prepare the Environment`.
 
-Cisco AI Pods is an automated deployment framework for Cisco FlashStack infrastructure optimized for AI/ML workloads. This runbook provides comprehensive deployment procedures for:
+Cisco AI PODs is an automated deployment framework for Cisco FlashStack infrastructure optimized for AI/ML workloads. This runbook provides comprehensive deployment procedures for:
 
 ### Management Components
 - **Cisco Intersight** - Provides adaptive cloud-powered infrastructure management with automation for agile IT delivery and global reach at any scale
@@ -177,50 +188,50 @@ If any phase fails, follow this rollback approach:
 
 ### [<ins>Back to Table of Contents<ins>](#table-of-contents)
 
-[Cisco AI Pods Network Configuration Guide](./network/README.md#cisco-ai-pods-network-configuration-guide)
+[Cisco AI PODs Network Configuration Guide](./network/README.md#cisco-ai-pods-network-configuration-guide)
 
-## Cisco AI Pods Automation Playbooks
+## Cisco AI PODs Deployment Module
 
-All deployment automation is orchestrated through centralized Ansible playbooks in the repository root:
+Run the unified deployment module from the repository root. Existing Ansible roles remain the implementation for roles that do not have a Python entry point.
 
-- **Full Stack Deployment:** `playbooks/deploy_ai_pod.yaml` — Orchestrates all domains (Intersight, Everpure, Portworx, OpenShift, Splunk) in deployment order
-- **OpenShift Only:** `playbooks/deploy_openshift.yaml` — OpenShift cluster installation and configuration (auth, certificates, GitOps, ArgoCD, Gitea)
-- **Storage Only:** `playbooks/deploy_storage.yaml` — Everpure arrays and Portworx CSI deployment
-- **Intersight/UCS:** `playbooks/deploy_intersight_ucs.yaml` — Intersight policy provisioning and server deployment
-- **Observability:** `playbooks/deploy_observability.yaml` — Splunk Observability integration
+- **Full Stack Deployment:** `python3 scripts/deploy_ai_pod.py` — Runs all configured domains in deployment order
+- **OpenShift Only:** `python3 scripts/deploy_ai_pod.py --role openshift` — OpenShift cluster installation and configuration
+- **Everpure Only:** `python3 scripts/deploy_ai_pod.py --role everpure` — Everpure array configuration
+- **Intersight/UCS:** `python3 scripts/deploy_ai_pod.py --role intersight` — Runs the existing Python provisioning module
+- **Observability:** `python3 scripts/deploy_ai_pod.py --role observability` — Runs the existing Ansible role with live output
 
 Run playbooks from the repository root:
 
 ```bash
 # Full stack deployment
-ansible-playbook playbooks/deploy_ai_pod.yaml
+python3 scripts/deploy_ai_pod.py
 
 # OpenShift only
-ansible-playbook playbooks/deploy_openshift.yaml
+python3 scripts/deploy_ai_pod.py --role openshift
 
 # Specific roles using tags
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags certificates
+ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags certificates
 ```
 
 Variables are automatically loaded from `host_vars/` subdirectories and merged at runtime.
 
-## Cisco AI Pods Intersight Deployment Guide
+## Cisco AI PODs Intersight Deployment Guide
 
 Follow the steps in the Intersight configuration section.
 
-[Cisco AI Pods Intersight Deployment Guide](./intersight.md#cisco-ai-pods-intersight-deployment-guide)
+[Cisco AI PODs Intersight Deployment Guide](./intersight.md#cisco-ai-pods-intersight-deployment-guide)
 
-## Cisco AI Pods Everpure Deployment Guide
+## Cisco AI PODs Everpure Deployment Guide
 
 Follow the steps in the Everpure configuration section.
 
-[Cisco AI Pods Everpure Deployment Guide](./everpure.md#cisco-ai-pods-everpure-deployment-guide)
+[Cisco AI PODs Everpure Deployment Guide](./everpure.md#cisco-ai-pods-everpure-deployment-guide)
 
-## Cisco AI Pods OpenShift Container Platform Deployment Guide
+## Cisco AI PODs OpenShift Container Platform Deployment Guide
 
 Follow the steps in the OpenShift configuration section.
 
-[Cisco AI Pods OpenShift Container Platform Deployment Guide](./openshift.md#cisco-ai-pods-openshift-container-platform-deployment-guide)
+[Cisco AI PODs OpenShift Container Platform Deployment Guide](./openshift.md#cisco-ai-pods-openshift-container-platform-deployment-guide)
 
 ### [<ins>Back to Table of Contents<ins>](#table-of-contents)
 

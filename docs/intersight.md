@@ -12,28 +12,28 @@ This document describes how to configure Cisco Intersight policies, pools, and p
 vi host_vars/intersight/intersight.ezai.yaml
 ```
 
-2. Export required Intersight API credentials:
+2. Provide the deployment vault password file. The vault supplies the environment
+	 variables to the Python library while it runs:
 
 ```bash
-export intersight_api_key_id="<your-intersight-api-key-id>"
-export intersight_api_key_secret="<path-to-your-intersight-api-key-secret>"
+python3 scripts/deploy_ai_pod.py --role intersight
 ```
 
 3. Run Intersight provisioning (optional):
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags intersight
+python3 scripts/deploy_ai_pod.py --role intersight
 ```
 
-Or run the full Cisco AI Pods workflow (all domains):
+Or run the full Cisco AI PODs workflow (all domains):
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml
+python3 scripts/deploy_ai_pod.py
 ```
 
 ## Folder Contents
 
-- `playbooks/deploy_ai_pod.yaml`: Full-stack entry point playbook (includes Intersight roles)
+- `playbooks/deploy_ai_pod_phase1.yaml`: Full-stack entry point playbook (Intersight runs through `scripts/deploy_ai_pod.py`)
 - `host_vars/intersight/`: Active Intersight configuration variables
 - `roles/intersight_pools/tasks/`: Policies for MAC, UUID, and IP pools
 - `roles/intersight_policies/tasks/`: BIOS, boot, network, and storage policy configurations

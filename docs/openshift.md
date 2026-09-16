@@ -1,6 +1,6 @@
 # OpenShift Deployment Guide
 
-This guide provides comprehensive workflows for deploying and configuring OpenShift clusters as part of the Cisco AI Pods infrastructure. Follow the sections in order, or jump to a specific role's section if you only need that component.
+This guide provides comprehensive workflows for deploying and configuring OpenShift clusters as part of the Cisco AI PODs infrastructure. Follow the sections in order, or jump to a specific role's section if you only need that component.
 
 ## Quick Navigation
 
@@ -15,21 +15,21 @@ This guide provides comprehensive workflows for deploying and configuring OpenSh
 
 ## How to Run
 
-### Run the full Cisco AI Pods stack:
+### Run the full Cisco AI PODs stack:
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml
+python3 scripts/deploy_ai_pod.py
 ```
 
 ### Run only OpenShift roles:
 ```bash
-ansible-playbook playbooks/deploy_openshift.yaml
+python3 scripts/deploy_ai_pod.py --role openshift
 ```
 
 ### Run a specific OpenShift role (examples):
 ```bash
-ansible-playbook playbooks/deploy_openshift.yaml --tags install
-ansible-playbook playbooks/deploy_openshift.yaml --tags auth
-ansible-playbook playbooks/deploy_openshift.yaml --tags certificates
+ansible-playbook playbooks/deploy_openshift_phase1.yaml --tags install
+ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags auth
+ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags certificates
 ```
 
 ---
@@ -68,7 +68,10 @@ Generate and deploy bare-metal OpenShift cluster manifests via Cisco iServer and
    - `openshift.install.bare_metal.iso_web_server` (IP, image URL, upload directory)
    - `openshift.install.bare_metal.servers` (hostnames, roles, interfaces, MACs)
 
-4. **Export sensitive credentials:**
+4. **Provide sensitive credentials:**
+
+   Put the credentials in the `openshift` section of `vault-ai-pod.yaml`. The
+   deployment script uses the default password file under your home directory.
    ```bash
    export redfish_password_1='replace-with-secret-1'
    export redfish_password_2='replace-with-secret-2'
@@ -80,7 +83,7 @@ Generate and deploy bare-metal OpenShift cluster manifests via Cisco iServer and
 
 4. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_ai_pod.yaml --tags install
+   python3 scripts/deploy_ai_pod.py --role openshift
    ```
 
 5. **Run iServer:**
@@ -140,7 +143,7 @@ Configure OpenShift OAuth to authenticate against Active Directory via LDAP/LDAP
 
 4. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_openshift.yaml --tags auth
+   ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags auth
    ```
 
 For detailed instructions, see [roles/openshift_auth/README.md](../roles/openshift_auth/README.md).
@@ -171,7 +174,7 @@ Manage custom CA bundle, ingress wildcard certificate, and API server certificat
 
 2. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_openshift.yaml --tags certificates
+   ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags certificates
    ```
 
 3. **Validate:**
@@ -210,7 +213,7 @@ Generate content for GitOps repositories (Helm charts and OLM catalogs for clust
 
 3. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_openshift.yaml --tags gitops
+   ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags gitops
    ```
 
 4. **Commit to GitOps repository:**
@@ -240,7 +243,7 @@ Install the OpenShift GitOps Operator (Argo CD) on the cluster.
 
 2. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_openshift.yaml --tags argocd
+   ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags argocd
    ```
 
 3. **Verify:**
@@ -269,7 +272,7 @@ Deploy an internal Git repository (Gitea) for onboarding repositories.
 
 2. **Run the playbook:**
    ```bash
-   ansible-playbook playbooks/deploy_openshift.yaml --tags gitea
+   ansible-playbook playbooks/deploy_openshift_phase2.yaml --tags gitea
    ```
 
 3. **Verify:**
@@ -305,4 +308,4 @@ Important: use the Red Hat YAML extension and schema mapping from [Prepare the E
 
 ---
 
-**Related:** [Cisco-AI-Pods README](../README.md)
+**Related:** [Cisco-AI-PODs README](../README.md)

@@ -1,0 +1,78 @@
+{
+    "$id": "tags.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "mo": {
+            "allOf": [
+                {
+                    "else": {
+                        "required": [
+                            "key",
+                            "value"
+                        ]
+                    },
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "PathTag"
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    "then": {
+                        "required": [
+                            "key"
+                        ]
+                    }
+                }
+            ],
+            "description": "",
+            "properties": {
+                "key": {
+                    "default": "key",
+                    "description": "The default value is `key`.  The tag key for which usage information is provided.",
+                    "examples": [
+                        "key"
+                    ],
+                    "maxLength": 356,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "key",
+                    "type": "string",
+                    "x-intersight-api": "Key"
+                },
+                "type": {
+                    "default": "KeyValue",
+                    "description": "The default value is `KeyValue`.  An enum type that defines the type of tag. Supported values are `PathTag` and `KeyValue`.\n  * `KeyValue` - KeyValue type of tag. Key is required for these tags. Value is required for these tags.\n  * `PathTag` - Key contain path information. Value is not present for these tags. The path is created by using the \\'/\\' character as a delimiter.For example, if the tag is \"A/B/C\", then \"A\" is the parent tag, \"B\" is the child tag of \"A\" and \"C\" is the child tag of \"B\".'",
+                    "enum": [
+                        "PathTag",
+                        "KeyValue"
+                    ],
+                    "title": "type",
+                    "type": "string",
+                    "x-intersight-api": "Type"
+                },
+                "value": {
+                    "default": "value",
+                    "description": "The default value is `value`.  The tag value that has been assigned to this Key.",
+                    "examples": [
+                        "value"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": "^.*$",
+                    "title": "value",
+                    "type": "string",
+                    "x-intersight-api": "Value"
+                }
+            },
+            "title": "tags",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-api": "Tags",
+            "x-intersight-object-type": "mo.Tag"
+        }
+    }
+}

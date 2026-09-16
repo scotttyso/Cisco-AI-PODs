@@ -8,4 +8,4 @@ sanity-ignore-check:
 		(echo "Sanity ignore files are out of sync. Run: make sanity-ignore-sync" && exit 1)
 
 ansible-lint:
-	./scripts/run_ansible_lint.sh -c .ansible-lint --offline --nocolor -f codeclimate playbooks/deploy_openshift.yaml
+	./scripts/run_ansible_lint.sh -c .ansible-lint --offline --nocolor -f codeclimate playbooks/deploy_openshift_phase1.yaml playbooks/deploy_openshift_phase2.yaml

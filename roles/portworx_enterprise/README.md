@@ -36,13 +36,13 @@ Required dependency:
 Run only Portworx after OpenShift install:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags portworx
+ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags portworx
 ```
 
 Run with Everpure credential generation:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags everpure,portworx
+ansible-playbook playbooks/deploy_ai_pod_phase2.yaml --tags everpure,portworx
 ```
 
 ## Validation

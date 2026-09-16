@@ -76,7 +76,7 @@ class system:
             kwargs = kwargs | DotMap(
                 names=names, method='get', uri='asset/Targets')
         else:
-            uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+            uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
             kwargs = kwargs | DotMap(
                 names=names, org='default', method='get', uri=uri)
         kwargs = api(category=self.category, type=self.type).calls(kwargs)
@@ -257,7 +257,7 @@ class system:
     # =========================================================================
     def path_tags(self, rdict, kwargs):
         names = list(e.path_tag for e in rdict)
-        uri = kwargs.ezdata[f'intersight.system.{self.type}'].intersight_uri
+        uri = kwargs.ezdata[f'intersight.system.{self.type}']['x-intersight-uri']
         kwargs = kwargs | DotMap(method='get', names=names, uri=uri)
         kwargs = api(category=self.category, type=self.type).calls(kwargs)
         for item in rdict:
@@ -332,7 +332,7 @@ class system:
         # Get Existing Resources
         # =====================================================================
         names = list(e.name for e in rdict)
-        uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+        uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
         kwargs = api(
             category=self.category,
             type=self.type).calls(
@@ -362,7 +362,7 @@ class system:
 
         def compare_resources_to_api(api_body, ptitle, kwargs):
             category = self.category.replace('_', ' ').title()
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
             check_flag = getattr(kwargs.args, 'check', False)
             akeys = list(api_body.keys())
             if 'Description' in akeys and api_body['Description'] == '':
@@ -406,7 +406,7 @@ class system:
         # POST Bulk Request if List > 0
         # =====================================================================
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
             kwargs = configure(
                 category=self.category,
                 type=self.type).create_bulk_request(kwargs)

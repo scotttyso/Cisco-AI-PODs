@@ -236,6 +236,7 @@ __marimo__/
 vault_pass*
 .vault_pass*
 vault.yaml
+vault-ai-pod.yaml
 credentials*
 *.retry
 .vscode/

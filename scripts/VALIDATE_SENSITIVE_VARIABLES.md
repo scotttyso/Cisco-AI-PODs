@@ -66,11 +66,14 @@ The validator currently maps detected variables to these schema keys:
 
 Validation is invoked automatically by these playbooks after host_vars are merged:
 
-- `playbooks/deploy_ai_pod.yaml`
-- `playbooks/deploy_intersight_ucs.yaml`
+- `playbooks/deploy_ai_pod_phase1.yaml`
+- `playbooks/deploy_ai_pod_phase2.yaml`
 - `playbooks/deploy_observability.yaml`
-- `playbooks/deploy_openshift.yaml`
+- `playbooks/deploy_openshift_phase1.yaml`
+- `playbooks/deploy_openshift_phase2.yaml`
 - `playbooks/deploy_storage.yaml`
+
+It also runs at the start of `scripts/deploy_ai_pod.py`.
 
 Each playbook creates a temporary merged JSON model, runs:
 
@@ -153,7 +156,7 @@ Validated model paths:
 set -e
 
 # Validation runs inside the deployment playbook pre_tasks
-ansible-playbook playbooks/deploy_ai_pod.yaml
+ansible-playbook playbooks/deploy_ai_pod_phase1.yaml
 ```
 
 ### Integration with Ansible Playbook
@@ -194,7 +197,7 @@ ansible-playbook playbooks/deploy_ai_pod.yaml
 
 ## Schema-Defined Variables
 
-The script dynamically loads constraints from `schema/cisco-ai-pods.json`, specifically from `definitions.abstract.sensitive_variables.properties`.
+The script dynamically loads constraints from `schemas/sensitive/variables.json`, using its top-level `definitions` entries.
 
 Important: discovery is not fully schema-driven. Variable detection depends on code-side mappings and path-aware logic in `validate_sensitive_variables.py`.
 
@@ -244,10 +247,11 @@ Potential improvements for broader coverage:
 ## Related Files
 
 - **Script:** `scripts/validate_sensitive_variables.py`
-- **Schema:** `schema/cisco-ai-pods.json` (definitions.abstract.sensitive_variables)
+- **Schema:** `schemas/sensitive/variables.json` (top-level definitions)
 - **Playbooks with Integrated Validation:**
-  - `playbooks/deploy_ai_pod.yaml`
-  - `playbooks/deploy_intersight_ucs.yaml`
+  - `playbooks/deploy_ai_pod_phase1.yaml`
+  - `playbooks/deploy_ai_pod_phase2.yaml`
   - `playbooks/deploy_observability.yaml`
-  - `playbooks/deploy_openshift.yaml`
+  - `playbooks/deploy_openshift_phase1.yaml`
+  - `playbooks/deploy_openshift_phase2.yaml`
   - `playbooks/deploy_storage.yaml`

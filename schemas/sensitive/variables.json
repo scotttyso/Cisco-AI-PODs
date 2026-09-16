@@ -1,0 +1,377 @@
+{
+    "$id": "variables.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "cco_password": {
+            "default": "",
+            "description": "Cisco.com Authentication Password.  It must meet the following criteria:\n * One Uppercase Letter\n * One Lowercase Letter\n * One Number\n * One Special Character: `!`, `@`, `#`, `$`, `%`, `^`, `&`, `*`, `+`, `_`, `=`, `-`\n * Be between 12 and 60 Characters in Length.",
+            "maxLength": 60,
+            "minLength": 12,
+            "pattern": "^$|^((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[=!&#$%+^@_*-])[a-zA-Z0-9=!&#$%+^@_*-]{12,60})$",
+            "title": "cco_password",
+            "type": "string"
+        },
+        "cco_user": {
+            "default": "",
+            "description": "Cisco Software Download User email address.  A number Between 1-64 to denote the variables cco_user_[1-64].  i.e. `export cco_user_1='user@example.com'`.",
+            "maxLength": 254,
+            "minLength": 6,
+            "pattern": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,63}$",
+            "title": "cco_user",
+            "type": "string"
+        },
+        "private_key_passphrase": {
+            "default": "",
+            "description": "Private key passphrase.  A number Between 1-64 to denote the variables private_key_passphrase_[1-64].  i.e. `export private_key_passphrase_1='cisco123'`.\n\nKey Requirements:\n  * Required only if private key is encrypted with a passphrase\n  * Character Set: Alphanumeric and special characters typically allowed\n  * Length: 1 to 255 characters\n  * Omit if private key is not passphrase-protected",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^.{1,}$",
+            "title": "private_key_passphrase",
+            "type": "string"
+        },
+        "certificate": {
+            "default": "",
+            "description": "X.509 certificate in PEM (Privacy-Enhanced Mail) format.\n\nRequirements:\n  * Must begin with `-----BEGIN CERTIFICATE-----`\n  * Must end with `-----END CERTIFICATE-----`\n  * Body must be Base64-encoded DER data, line-wrapped at 64 characters.\n  * Intermediate and root CA certificates follow the same format.\n  * Certificates can be chained by concatenating multiple PEM blocks.\n\nExample:\n```\n-----BEGIN CERTIFICATE-----\nMIID...base64...\n-----END CERTIFICATE-----\n```",
+            "maxLength": 65536,
+            "minLength": 50,
+            "pattern": "^-----BEGIN CERTIFICATE-----\\n[A-Za-z0-9+/=\\n]+\\n-----END CERTIFICATE-----\\n?$",
+            "title": "certificate",
+            "type": "string"
+        },
+        "drive_security_current_security_key_passphrase": {
+            "default": "",
+            "description": "Current Drive Security Key Passphrase configured on the server. From the security context, the passphrase should be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.  A number Between 1-64 to denote the variables drive_security_current_security_key_passphrase_[1-64].  i.e. `export drive_security_current_security_key_passphrase_1='Cisco123!'`.",
+            "maxLength": 32,
+            "minLength": 8,
+            "pattern": "^((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[=!&#$%+^@_*-])[a-zA-Z0-9=!&#$%+^@_*-]{8,32})$",
+            "title": "drive_security_current_security_key_passphrase",
+            "type": "string"
+        },
+        "drive_security_new_security_key_passphrase": {
+            "default": "",
+            "description": "New Drive Security Key Passphrase to be configured on the server. From the security context, the passphrase should be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.  A number Between 1-64 to denote the variables drive_security_new_security_key_passphrase_[1-64].  i.e. `export drive_security_new_security_key_passphrase_1='Cisco123!'`.",
+            "maxLength": 32,
+            "minLength": 8,
+            "pattern": "^((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[=!&#$%+^@_*-])[a-zA-Z0-9=!&#$%+^@_*-]{8,32})$",
+            "title": "drive_security_new_security_key_passphrase",
+            "type": "string"
+        },
+        "drive_security_authentication_password": {
+            "default": "",
+            "description": "Drive Security Authentication Password",
+            "maxLength": 80,
+            "minLength": 8,
+            "pattern": "^$|^[!\"#%&\\'\\(\\)\\*\\+,\\-\\./:;<>@\\[\\\\\\]\\^_`\\{\\|\\}~a-zA-Z0-9]{0,80}$",
+            "title": "drive_security_authentication_password",
+            "type": "string"
+        },
+        "drive_security_passphrase": {
+            "default": "",
+            "description": "Drive Security Current/New Security Key Passphrase for Manual or Remote Key Management.\n\nIntersight drive security passphrases for Self-Encrypting Drives (SEDs) must be 8 to 32 characters long, including at least one uppercase letter, one lowercase letter, one number, and one special character. These alphanumeric keys are critical for securing data on UCS servers, and if lost, cannot be recovered. \n\nKey Requirements & Best Practices:\n  * `Length`: 8\u201332 characters.\n  * `Complexity`: At least one: uppercase, lowercase, number, and special character.\n  * `Storage`: Passphrases are not stored by the system; save them externally.\n  * `Impact`: A lost passphrase causes irrecoverable loss of drive data.\n  * `Modification`: When re-keying or updating policies, ensure the \"Drive Security is Already Enabled\" box is checked if applicable.",
+            "maxLength": 32,
+            "minLength": 8,
+            "pattern": "^((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[=!&#$%+^@_*-])[a-zA-Z0-9=!&#$%+^@_*-]{8,32})$",
+            "title": "drive_security_passphrase",
+            "type": "string"
+        },
+        "everpure_api_token": {
+            "default": "",
+            "description": "Everpure Array API Token.  A number Between 1-64 to denote the variables everpure_api_token_[1-64].  i.e. `export everpure_api_token_1='token_string'`.\n\nKey Requirements:\n  * Required for authentication with Everpure FlashArray and FlashBlade systems\n  * Length: Typically 20-128 characters depending on Everpure version\n  * Character Set: Alphanumeric and special characters\n  * Sensitive: Never commit to version control; use environment variables for deployment\n  * Best Practice: Use dedicated API tokens with minimal required permissions",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[\\S]{1,}$",
+            "title": "everpure_api_token",
+            "type": "string"
+        },
+        "everpure_snmp_auth_passphrase": {
+            "default": "",
+            "description": "SNMPv3 only. Passphrase of 8 - 32 characters.  A number Between 1-64 to denote the variables everpure_snmp_auth_passphrase_[1-64].  i.e. `export everpure_snmp_auth_passphrase_1='cisco123'`.",
+            "maxLength": 32,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,32}$",
+            "title": "everpure_snmp_auth_passphrase",
+            "type": "string"
+        },
+        "everpure_snmp_community": {
+            "default": "",
+            "description": "Everpure SNMP v2c only. Manager community ID. Between 1 and 32 characters long.  A number Between 1-64 to denote the variables everpure_snmp_community_[1-64].  i.e. `export everpure_snmp_community_1='cisco123'`.",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[^\\s]{1,32}$",
+            "title": "everpure_snmp_community",
+            "type": "string"
+        },
+        "everpure_snmp_privacy_passphrase": {
+            "default": "",
+            "description": "Passphrase to encrypt SNMP messages. Must be between 8 and 63 non-space ASCII characters.  A number Between 1-64 to denote the variables everpure_snmp_privacy_passphrase_[1-64].  i.e. `export everpure_snmp_privacy_passphrase_1='cisco123'`.",
+            "maxLength": 63,
+            "minLength": 8,
+            "pattern": "^[\\x21-\\x7E]{8,63}$",
+            "title": "everpure_snmp_privacy_passphrase",
+            "type": "string"
+        },
+        "fabric_interconnect_password": {
+            "default": "",
+            "description": "Cisco UCS Fabric Interconnect administrator password.  A number Between 1-64 to denote the variables fabric_interconnect_password_[1-64].  i.e. `export fabric_interconnect_password_1='Cisco123!'`.\n\nKey Requirements:\n  * Length: 8 to 127 characters.\n  * No whitespace characters.\n  * Best Practice: Use a mix of uppercase letters, lowercase letters, digits, and special characters.",
+            "maxLength": 127,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,127}$",
+            "title": "fabric_interconnect_password",
+            "type": "string"
+        },
+        "intersight_api_key_id": {
+            "default": "",
+            "description": "Intersight API Key Identity.",
+            "maxLength": 74,
+            "minLength": 74,
+            "pattern": "^[\\da-f]{24}/[\\da-f]{24}/[\\da-f]{24}$",
+            "title": "intersight_api_key_id",
+            "type": "string"
+        },
+        "ipmi_encryption_key": {
+            "default": "",
+            "description": "The encryption key to use for IPMI communication. It should have an even number of hexadecimal characters and not exceed 40 characters. Use \"00\" to disable encryption key use. This configuration is supported by all Standalone C-Series servers. FI-attached C-Series servers with firmware at minimum of 4.2.3a support this configuration. B/X-Series servers with firmware at minimum of 5.1.0.x support this configuration. IPMI commands using this key should append zeroes to the key to achieve a length of 40 characters.",
+            "maxLength": 40,
+            "minLength": 2,
+            "pattern": "^(?:[\\da-fA-F]{2}){1,20}$",
+            "title": "ipmi_encryption_key",
+            "type": "string"
+        },
+        "iscsi_boot_password": {
+            "default": "",
+            "description": "iSCSI Boot Password.  Password of Initiator or Target Interface. Enter between 12 and 16 characters, including special characters except spaces, tabs, line breaks.",
+            "maxLength": 16,
+            "minLength": 12,
+            "pattern": "^[\\S]{12,16}$",
+            "title": "iscsi_boot_password",
+            "type": "string"
+        },
+        "iso_web_server_password": {
+            "default": "",
+            "description": "Password for HTTP/HTTPS basic authentication to the ISO web server.  A number Between 1-64 to denote the variables iso_web_server_password_[1-64].  i.e. `export iso_web_server_password_1='password123'`.\n\nKey Requirements:\n  * Length: 6 to 255 characters.\n  * No whitespace characters.\n  * Best Practice: Use a strong password; avoid `/`, `#`, backtick, and `,` characters to prevent URL parsing issues.",
+            "maxLength": 255,
+            "minLength": 6,
+            "pattern": "^[\\S]{6,255}$",
+            "title": "iso_web_server_password",
+            "type": "string"
+        },
+        "ldap_binding_password": {
+            "default": "",
+            "description": "LDAP Binding Password.  Intersight LDAP binding passwords must be a string, typically up to 254 characters long, excluding spaces, tabs, and line breaks. The password connects Intersight to Active Directory (AD) with read capabilities. For security, it is recommended to use a strong password and, if using Terraform, set this via secure variables. \n\nKey Requirements:\n  * Characters: Any string excluding spaces, tabs, or line breaks.\n  * Length: Up to 254 characters.\n  * Best Practice: Ensure the Bind DN user has appropriate read-only access in AD.",
+            "maxLength": 254,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,254}$",
+            "title": "ldap_binding_password",
+            "type": "string"
+        },
+        "linux_password": {
+            "default": "",
+            "description": "Generic Linux/Unix user password enforced by PAM (pam_pwquality / pam_cracklib defaults).\n\nKey Requirements:\n  * Length: 8 to 255 characters.\n  * Complexity: Must include characters from at least three of the following four categories:\n    - Uppercase letters `A-Z`\n    - Lowercase letters `a-z`\n    - Digits `0-9`\n    - Special characters: `!@#$%^&*()-_=+[]{}|;:',.<>?/`~`\n  * No whitespace (spaces, tabs, newlines).\n  * Best Practice: Use 16+ characters with all four categories for stronger security.",
+            "maxLength": 255,
+            "minLength": 8,
+            "pattern": "^(?:(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])|(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/~`])|(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/~`])|(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/`~]))[\\S]{8,255}$",
+            "title": "linux_password",
+            "type": "string"
+        },
+        "local_user_password": {
+            "default": "",
+            "description": "Local User Password.  Cisco Intersight local user passwords require 8 to 127 characters when \"Enforce Strong Password\" is enabled (default), including at least three of these categories: uppercase letters, lowercase letters, digits, and special characters (! , @, #, $, %, ^, &, *, -, _, +, =). If strong password enforcement is disabled, 8\u201320 characters are required. \n\nKey Requirements & Configuration\n  * Length: 8 to 127 characters (with Strong Password) or 8 to 20 characters (without).\n  * Complexity: Must include characters from three of the following: `A-Z`, `a-z`, `0-9`, and `!@#$%^&*- _+=`.\n  * Restriction: Must not contain the username.\n  * Expiry & Security: Policies can set an expiry duration (1\u20133650 days), notification period, and grace period.\n  * Admin User: Password changes for the admin user can be handled via the Local User Policy. \n\nPolicy Options\n  * Enforce Strong Password: Default true, enforced.\n  * Password History: Tracks history to prevent reuse.\n  * Disable Strong Password: If unchecked, 8-20 characters of any type can be used.",
+            "maxLength": 127,
+            "minLength": 8,
+            "pattern": "^(?:(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])|(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*\\-_+=])|(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*\\-_+=])|(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*\\-_+=]))[a-zA-Z0-9!@#$%^&*\\-_+=]{8,127}$",
+            "title": "local_user_password",
+            "type": "string"
+        },
+        "mac_sec_fallback_key_chain_secret": {
+            "default": "",
+            "description": "MacSec fallback key-chain secret. If cryptographic_algorithm is AES_256_CMAC, value must be 144 characters total starting with J and remaining characters hexadecimal. If cryptographic_algorithm is AES_128_CMAC, value must be 100 characters total starting with J and remaining characters hexadecimal.  A number Between 1-64 to denote the variables mac_sec_fallback_key_chain_secret_[1-64].",
+            "maxLength": 144,
+            "minLength": 100,
+            "pattern": "^J(?:[0-9A-Fa-f]{99}|[0-9A-Fa-f]{143})$",
+            "title": "mac_sec_fallback_key_chain_secret",
+            "type": "string"
+        },
+        "mac_sec_primary_key_chain_secret": {
+            "default": "",
+            "description": "MacSec primary key-chain secret. If cryptographic_algorithm is AES_256_CMAC, value must be 144 characters total starting with J and remaining characters hexadecimal. If cryptographic_algorithm is AES_128_CMAC, value must be 100 characters total starting with J and remaining characters hexadecimal.  A number Between 1-64 to denote the variables mac_sec_primary_key_chain_secret_[1-64].",
+            "maxLength": 144,
+            "minLength": 100,
+            "pattern": "^J(?:[0-9A-Fa-f]{99}|[0-9A-Fa-f]{143})$",
+            "title": "mac_sec_primary_key_chain_secret",
+            "type": "string"
+        },
+        "persistent_passphrase": {
+            "default": "",
+            "description": "Persistent Memory Passphrase.",
+            "maxLength": 32,
+            "minLength": 8,
+            "pattern": "^$|^[a-zA-Z0-9=!&#$%+^@_*-]+$",
+            "title": "persistent_passphrase",
+            "type": "string"
+        },
+        "proxy_password": {
+            "default": "",
+            "description": "Proxy password for authenticated proxy endpoints.  A number Between 1-64 to denote the variables proxy_password_[1-64].  i.e. `export proxy_password_1='cisco123'`.",
+            "maxLength": 255,
+            "minLength": 8,
+            "pattern": "^(?:(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])|(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/~`])|(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/~`])|(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()\\-_=+\\[\\]{}|;:',.<>?/`~]))[\\S]{8,255}$",
+            "title": "proxy_password",
+            "type": "string"
+        },
+        "private_key": {
+            "default": "",
+            "description": "Private key in PEM (Privacy-Enhanced Mail) format.\n\nSupported PEM headers:\n  * `-----BEGIN PRIVATE KEY-----` \u2014 PKCS#8 unencrypted (RSA, EC, Ed25519)\n  * `-----BEGIN RSA PRIVATE KEY-----` \u2014 PKCS#1 RSA private key\n  * `-----BEGIN EC PRIVATE KEY-----` \u2014 SEC1 EC private key\n  * `-----BEGIN OPENSSH PRIVATE KEY-----` \u2014 OpenSSH format (Ed25519, ECDSA, RSA)\n\nRequirements:\n  * Must begin and end with matching `-----BEGIN/END <TYPE> PRIVATE KEY-----` markers.\n  * Body must be Base64-encoded, line-wrapped at 64 characters (except OpenSSH format).\n  * Private keys must be kept strictly confidential and never committed to version control.\n  * Prefer encrypted private keys (passphrase-protected) for storage at rest.\n\nExample:\n```\n-----BEGIN PRIVATE KEY-----\nMIIE...base64...\n-----END PRIVATE KEY-----\n```",
+            "maxLength": 65536,
+            "minLength": 50,
+            "pattern": "^-----BEGIN (PRIVATE KEY|RSA PRIVATE KEY|EC PRIVATE KEY|OPENSSH PRIVATE KEY|ENCRYPTED PRIVATE KEY)-----\\n[A-Za-z0-9+/=\\n]+\\n-----END (PRIVATE KEY|RSA PRIVATE KEY|EC PRIVATE KEY|OPENSSH PRIVATE KEY|ENCRYPTED PRIVATE KEY)-----\\n?$",
+            "title": "private_key",
+            "type": "string"
+        },
+        "redfish_password": {
+            "default": "",
+            "description": "Redfish/BMC (iDRAC, iLO, CIMC) administrator password.  A number Between 1-64 to denote the variables redfish_password_[1-64].  i.e. `export redfish_password_1='Cisco123!'`.\n\nKey Requirements:\n  * Length: 8 to 127 characters.\n  * No whitespace characters.\n  * Best Practice: Use a mix of uppercase letters, lowercase letters, digits, and special characters consistent with your BMC vendor requirements.",
+            "maxLength": 127,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,127}$",
+            "title": "redfish_password",
+            "type": "string"
+        },
+        "root_password": {
+            "default": "",
+            "description": "REPLACE Root Password in plain text.  The Script will convert to an encrypted password.",
+            "maxLength": 254,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,254}$",
+            "title": "Root Password",
+            "type": "string"
+        },
+        "snmp_access_community_string": {
+            "default": "",
+            "description": "SNMP Access Community String (maps to SNMP community string constraints).  A number Between 1-64 to denote the variables snmp_access_community_string_[1-64].  i.e. `export snmp_access_community_string_1='cisco123'`.",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[^\\s@:]+$",
+            "title": "snmp_access_community_string",
+            "type": "string"
+        },
+        "snmp_community_string": {
+            "default": "",
+            "description": "SNMP Community String.\n\nAvoid using the @ and : characters in Cisco SNMP community strings. The @ character is reserved for indexing (VLAN designation), causing potential mapping issues, while : can cause delimiters issues in management systems. Most other characters (-=;,. ~#$%^&*()_+{}|<>?) are generally allowed, but it's best to avoid special characters. \n\nKey takeaways:\n * Avoid `@ and `:`.  Specifically, the `@` symbol is used for SNMP community string indexing (e.g., `community@vlan`).\n * Characters Allowed: Standard alphanumeric characters, along with special characters like `-`, `_`, `.`, `!`, `#`, `$`, `%`, etc., are generally supported.\n * Impact: Using an @ symbol can cause the switch to misunderstand which VLAN you are trying to query.\n * Best Practice: Use strong, long strings, but avoid the reserved `@` and `:` characters to prevent polling errors. \n\nIf you are encountering errors, you may want to try:\n * Checking for errors in the CLI: Use show running-config to verify the string actually applied correctly.\n * Using alphanumeric characters: Try avoiding symbols entirely if you are still experiencing issues.",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[^\\s@:]+$",
+            "title": "snmp_community_string",
+            "type": "string"
+        },
+        "snmp_password": {
+            "default": "",
+            "description": "SNMP Auth/Privacy Password.  Cisco Intersight SNMPv3 policies require (`SHA`|`SHA-256`|`SHA-384`|`SHA-512`) for authentication (auth) and `DES` or `AES` for privacy (priv). Passwords must be a minimum of 8 characters and can be up to 64 characters if in plain text. AuthPriv is the recommended, highly secure option, requiring unique passwords for both authentication and encryption. \n\nKey SNMPv3 Password and Policy Requirements:\nAuth Protocol: (`SHA`|`SHA-256`|`SHA-384`|`SHA-512`) is required; MD5 is not supported.\nPriv Protocol: (`DES`|`AES`) is required; AES (Advanced Encryption Standard) 128-bit is supported and conforms with RFC 3826.\nPassword Length: Minimum 8 characters.\nSecurity Level: AuthPriv (Authentication and Privacy) is the recommended security level for encryption.\nUser Constraints: You can define a maximum of 15 trap users, and the username can be up to 32 characters.",
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[a-zA-Z0-9]{8,64}$",
+            "title": "snmp_password",
+            "type": "string"
+        },
+        "snmp_trap_community": {
+            "default": "",
+            "description": "SNMP Trap Community String (maps to SNMP community string constraints).  A number Between 1-64 to denote the variables snmp_trap_community_[1-64].  i.e. `export snmp_trap_community_1='cisco123'`.",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[^\\s@:]+$",
+            "title": "snmp_trap_community",
+            "type": "string"
+        },
+        "snmp_user_auth_password": {
+            "default": "",
+            "description": "SNMP user auth password (maps to SNMP password constraints).  A number Between 1-64 to denote the variables snmp_user_auth_password_[1-64].  i.e. `export snmp_user_auth_password_1='cisco123'`.",
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[a-zA-Z0-9]{8,64}$",
+            "title": "snmp_user_auth_password",
+            "type": "string"
+        },
+        "snmp_user_privacy_password": {
+            "default": "",
+            "description": "SNMP user privacy password (maps to SNMP password constraints).  A number Between 1-64 to denote the variables snmp_user_privacy_password_[1-64].  i.e. `export snmp_user_privacy_password_1='cisco123'`.",
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[a-zA-Z0-9]{8,64}$",
+            "title": "snmp_user_privacy_password",
+            "type": "string"
+        },
+        "splunk_observability_access_token": {
+            "default": "",
+            "description": "Splunk Observability Cloud Access Token.  A number Between 1-64 to denote the variables splunk_observability_access_token_[1-64].  i.e. `export splunk_observability_access_token_1='a1234567-abcd-1234-5678-abcdef123456'`.\n\nKey Requirements:\n  * Required for Splunk Observability Cloud ingestion and API operations\n  * Length: 1 to 512 characters\n  * No whitespace characters\n  * Best Practice: Store in environment variables and rotate regularly",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[\\S]{1,512}$",
+            "title": "splunk_observability_access_token",
+            "type": "string"
+        },
+        "splunk_observability_nexus_password": {
+            "default": "",
+            "description": "The Password for the Nexus Device List.  A number Between 1-64 to denote the variables splunk_observability_nexus_password_[1-64].  i.e. `export splunk_observability_nexus_password_1='cisco123'`.\n\nKey Requirements:\n  * Length: 8 to 127 characters.\n  * No whitespace characters.\n  * Best Practice: Use a mix of uppercase letters, lowercase letters, digits, and special characters.",
+            "maxLength": 127,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,127}$",
+            "title": "splunk_observability_nexus_password",
+            "type": "string"
+        },
+        "splunk_platform_token": {
+            "default": "",
+            "description": "Splunk Platform Token.  A number Between 1-64 to denote the variables splunk_platform_token_[1-64].  i.e. `export splunk_platform_token_1='a1234567-abcd-1234-5678-abcdef123456'`.\n\nKey Requirements:\n  * Required for Splunk Platform HTTP Event Collector (HEC) authentication\n  * Length: 1 to 512 characters\n  * No whitespace characters\n  * Best Practice: Store in environment variables and rotate regularly",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^[\\S]{1,512}$",
+            "title": "splunk_platform_token",
+            "type": "string"
+        },
+        "ssh_public_key": {
+            "default": "",
+            "description": "SSH public key in OpenSSH authorized_keys format.\n\nSupported key types:\n  * `ssh-ed25519` \u2014 256-bit EdDSA (recommended)\n  * `ecdsa-sha2-nistp256` / `ecdsa-sha2-nistp384` / `ecdsa-sha2-nistp521` \u2014 ECDSA\n  * `ssh-rsa` \u2014 RSA (minimum 2048-bit recommended)\n  * `ssh-dss` \u2014 DSA (deprecated, avoid)\n\nFormat: `<key-type> <base64-encoded-key> [optional-comment]`\n\nExamples:\n  * `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... user@host`\n  * `ssh-rsa AAAAB3NzaC1yc2EAAAA... user@host`",
+            "maxLength": 16384,
+            "minLength": 20,
+            "pattern": "^(ssh-ed25519|ssh-rsa|ssh-dss|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521) [A-Za-z0-9+/]+=*( .*)?$",
+            "title": "ssh_public_key",
+            "type": "string"
+        },
+        "switch_control_aes_primary_key": {
+            "default": "",
+            "description": "Switch control AES primary key. Must contain between 16 and 32 alphanumeric characters.  A number Between 1-64 to denote the variables switch_control_aes_primary_key_[1-64].  i.e. `export switch_control_aes_primary_key_1='A1B2C3D4E5F6G7H8'`.",
+            "maxLength": 32,
+            "minLength": 16,
+            "pattern": "^[a-zA-Z0-9]{16,32}$",
+            "title": "switch_control_aes_primary_key",
+            "type": "string"
+        },
+        "vmedia_password": {
+            "default": "",
+            "description": "When configuring Virtual Media (vMedia) in Cisco Intersight for OS installation or firmware updates, passwords for HTTPS and CIFS shares must adhere to specific character restrictions to prevent mounting failures.\nPassword Requirements by Protocol\n  * CIFS (Common Internet File System): Supported characters include standard alphanumeric characters, but the password cannot contain the following special characters: `!`, `@`, `\\`, or ` (backtick).\n  * HTTPS: The password cannot contain the following characters: `/`, `#`, `, or `,`.\n  * General Character Set: Generally, accepted characters for passwords in these fields include `~#$%^&*()_+-={[}]|;:'<>.?/`. \n\nKey Considerations for vMedia Mounts\n  * Username Requirement: A username must be configured on the CIFS/HTTPS server for authentication.\n  * CIFS Authentication: Intersight supports various authentication protocols for CIFS, including Ntlm, Ntlmi, Ntlmssp, Ntlmsspi, Ntlmv2, and Ntlmv2i.\n  * Port Requirements: Ensure port 445 is open for CIFS, and port 443 (HTTPS) or 80 (HTTP) is open for web-based shares.\n  * URL Length: The maximum allowed length for the HTTP/HTTPS URL is 2048 characters. \n\n\nIf you are experiencing mounting issues, it is often due to special characters in the password that are interpreted incorrectly by the file server.",
+            "maxLength": 255,
+            "minLength": 6,
+            "pattern": "^[\\S]{6,255}$",
+            "title": "vmedia_password",
+            "type": "string"
+        },
+        "vmware_esxi_password": {
+            "default": "",
+            "description": "VMware ESXi Password.",
+            "maxLength": 255,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,255}$",
+            "title": "vmware_esxi_password",
+            "type": "string"
+        },
+        "windows_admin_password": {
+            "default": "",
+            "description": "Windows Administrator Password.",
+            "maxLength": 255,
+            "minLength": 8,
+            "pattern": "^[\\S]{8,255}$",
+            "title": "windows_admin_password",
+            "type": "string"
+        }
+    },
+    "description": "Reusable JSON Schema definitions for validating Cisco AI POD sensitive-variable identifiers and secret values, including passwords, tokens, keys, certificates, and community strings. This schema describes expected formats and constraints; it does not contain or store secret values.",
+    "title": "Cisco AI PODs - Sensitive Variables Schema"
+}

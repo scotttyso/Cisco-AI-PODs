@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phase 6 operationalizes OpenShift on Cisco AI Pods for production AI workloads. This phase standardizes operator deployment, scheduling policy, and benchmark validation so B300/H200 training pools and RTX6000/RTX4500 inference pools run predictably under multi-tenant conditions.
+Phase 6 operationalizes OpenShift on Cisco AI PODs for production AI workloads. This phase standardizes operator deployment, scheduling policy, and benchmark validation so B300/H200 training pools and RTX6000/RTX4500 inference pools run predictably under multi-tenant conditions.
 
 ## Table of Contents
 - [1. Installation Strategy: IPI vs UPI](#1-installation-strategy-ipi-vs-upi)
@@ -168,7 +168,7 @@ For RTX6000/RTX4500 pools, measure service behavior under realistic traffic.
 
 ## Summary
 
-Phase 6 is complete when orchestration policy, benchmark validation, and incident runbooks are production-ready. At this point, Cisco AI Pods can safely host mixed training and inference workloads with predictable performance and governance.
+Phase 6 is complete when orchestration policy, benchmark validation, and incident runbooks are production-ready. At this point, Cisco AI PODs can safely host mixed training and inference workloads with predictable performance and governance.
 
 #### [<ins>Back to Table of Contents</ins>](#table-of-contents)
 

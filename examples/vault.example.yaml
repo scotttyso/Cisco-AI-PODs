@@ -1,0 +1,70 @@
+# Copy to vault-ai-pod.yaml, replace every empty value, then encrypt it:
+#   ansible-vault encrypt vault-ai-pod.yaml
+# Keep the separate password file outside the repository.
+
+# Environment variables used by Everpure, storage, and notification tasks.
+everpure:
+  everpure_api_token_1: ""
+  everpure_snmp_community_1: ""
+  everpure_snmp_auth_passphrase_1: ""
+  everpure_snmp_privacy_passphrase_1: ""
+  cert_mgmt_certificate_1: ""
+  cert_mgmt_intermediate_certificate_1: ""
+  cert_mgmt_private_key_1: ""
+  cert_mgmt_passphrase_1: ""
+  binding_parameters_password_1: ""
+  snmp_community_1: ""
+  snmp_auth_passphrase_1: ""
+  snmp_privacy_passphrase_1: ""
+  cisco_webex_token: ""
+  microsoft_teams_webhook: ""
+  slack_token: ""
+
+# Environment variables used by Intersight provisioning and API integrations.
+intersight:
+  intersight_api_key_id: ""
+  intersight_secret_key: ""
+  intersight_fqdn: "intersight.com"
+  cco_password_1: ""
+  cco_user_1: ""
+  fabric_interconnect_password_1: ""
+  drive_security_authentication_password_1: ""
+  drive_security_current_security_key_passphrase_1: ""
+  drive_security_new_security_key_passphrase_1: ""
+  ipmi_encryption_key_1: ""
+  iscsi_boot_password_1: ""
+  ldap_binding_password_1: ""
+  local_user_password_1: ""
+  mac_sec_fallback_key_chain_secret_1: ""
+  mac_sec_primary_key_chain_secret_1: ""
+  persistent_passphrase_1: ""
+  private_key_passphrase_1: ""
+  root_password_1: ""
+  snmp_password_1: ""
+  snmp_community_string_1: ""
+  snmp_trap_community_1: ""
+  snmp_access_community_string_1: ""
+  snmp_user_auth_password_1: ""
+  snmp_user_privacy_password_1: ""
+  switch_control_aes_primary_key_1: ""
+  vmedia_password_1: ""
+  vmware_esxi_password_1: ""
+  windows_admin_password_1: ""
+
+# Environment variables used by OpenShift installation and post-install roles.
+openshift:
+  openshift_api_url: ""
+  openshift_token_id: ""
+  validate_certificates: "false"
+  ssh_public_key_1: ""
+  iso_web_server_password_1: ""
+  proxy_password_1: ""
+  linux_password_1: ""
+
+# Environment variables used by Splunk Observability and its integrations.
+splunk_observability:
+  splunk_observability_access_token_1: ""
+  splunk_observability_token: ""
+  splunk_observability_realm: "us0"
+  splunk_platform_token_1: ""
+  splunk_observability_nexus_password_1: ""

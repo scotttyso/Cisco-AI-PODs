@@ -1,8 +1,8 @@
-# Phase 1: Planning and Design - Cisco AI Pods
+# Phase 1: Planning and Design - Cisco AI PODs
 
 ## Executive Summary
 
-Day-2 planning at Day-0 is the single biggest gap we see in pilots. Successful Cisco AI Pods deployments require comprehensive planning across workload characterization, infrastructure design, networking architecture, storage strategy, and operational readiness. This phase establishes the foundation for predictable, scalable, and maintainable AI infrastructure.
+Day-2 planning at Day-0 is the single biggest gap we see in pilots. Successful Cisco AI PODs deployments require comprehensive planning across workload characterization, infrastructure design, networking architecture, storage strategy, and operational readiness. This phase establishes the foundation for predictable, scalable, and maintainable AI infrastructure.
 
 ## Table of Contents
 - [1. Workload Characterization and Sizing](#1-workload-characterization-and-sizing)
@@ -19,7 +19,7 @@ Day-2 planning at Day-0 is the single biggest gap we see in pilots. Successful C
 
 ### 1.1 Using the UCS AI Sizer Tool
 
-The **UCS AI Sizer Tool** is a critical resource for accurate capacity planning and should be your starting point for any Cisco AI Pods project.
+The **UCS AI Sizer Tool** is a critical resource for accurate capacity planning and should be your starting point for any Cisco AI PODs project.
 
 **Tool Access:**
 - Web Tool: [https://ucsszr.cloudapps.cisco.com/ucsappsizer/](https://ucsszr.cloudapps.cisco.com/ucsappsizer/project/all)
@@ -246,7 +246,7 @@ Examples:
 
 ### 4.2 Recommended Storage Solutions
 
-**Cisco AI Pods Validated Storage Partners:**
+**Cisco AI PODs Validated Storage Partners:**
 
 | Partner | Solution | Best For | Throughput | Notes |
 |---------|----------|----------|-----------|-------|
@@ -422,7 +422,7 @@ Before moving to production, complete these validation steps:
 
 ## Summary and Next Steps
 
-Phase 1 planning establishes the foundation for a successful Cisco AI Pods deployment. Use the UCS AI Sizer tool early and often to validate infrastructure decisions. Engage Cisco sales engineers and your storage partner during design reviews to identify potential bottlenecks. Plan for Day-2 operations simultaneously with infrastructure design to ensure operational maturity from day one.
+Phase 1 planning establishes the foundation for a successful Cisco AI PODs deployment. Use the UCS AI Sizer tool early and often to validate infrastructure decisions. Engage Cisco sales engineers and your storage partner during design reviews to identify potential bottlenecks. Plan for Day-2 operations simultaneously with infrastructure design to ensure operational maturity from day one.
 
 **Key Takeaways:**
 1. **Use UCS AI Sizer** as your primary planning tool

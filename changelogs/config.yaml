@@ -5,5 +5,5 @@ changelog_filename_template: ../CHANGELOG.md
 changelog_filename_version_depth: 2
 notesdir: fragments
 prelude_section_name: release_summary
-title: Cisco AI Pods
+title: Cisco AI PODs
 use_fqcn: true

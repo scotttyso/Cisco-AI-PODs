@@ -1,6 +1,6 @@
 # Everpure Role
 
-Configures Pure Storage FlashArray and FlashBlade settings for Cisco AI Pods.
+Configures Pure Storage FlashArray and FlashBlade settings for Cisco AI PODs.
 
 Main guide: [docs/everpure.md](../../docs/everpure.md)
 
@@ -38,13 +38,16 @@ Based on provided inputs:
 Run only Everpure:
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags everpure
+python3 scripts/deploy_ai_pod.py --role everpure \
+  --vault-password-file ~/.config/cisco-ai-pods/vault-password
 ```
 
 Run with Portworx (OpenShift installation must be complete first):
 
 ```bash
-ansible-playbook playbooks/deploy_ai_pod.yaml --tags everpure,portworx
+python3 scripts/deploy_ai_pod.py --role everpure \
+  --vault-password-file ~/.config/cisco-ai-pods/vault-password
+ansible-playbook playbooks/deploy_storage.yaml --tags portworx
 ```
 
 ## Idempotency

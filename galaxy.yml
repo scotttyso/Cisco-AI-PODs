@@ -26,9 +26,9 @@ tags:
   - storage
   - purestorage
   - portworx
-repository: https://github.com/scotttyso/Cisco-AI-Pods
-documentation: https://github.com/scotttyso/Cisco-AI-Pods/blob/main/README.md
-issues: https://github.com/scotttyso/Cisco-AI-Pods/issues
+repository: https://github.com/scotttyso/Cisco-AI-PODs
+documentation: https://github.com/scotttyso/Cisco-AI-PODs/blob/main/README.md
+issues: https://github.com/scotttyso/Cisco-AI-PODs/issues
 build_ignore:
   - '*.tar.gz'
   - .git

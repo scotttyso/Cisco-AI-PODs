@@ -1,0 +1,2142 @@
+{
+    "$id": "everpure.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "flash_arrays": {
+            "additionalProperties": false,
+            "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+            "properties": {
+                "api_token_id": {
+                    "default": 1,
+                    "description": "The default value is `1`.  API Token for authenticating with the Everpure Array.  A number Between 1-64 to denote the variables everpure_api_token_[1-64].  i.e. `export everpure_api_token_1='a1234567-abcd-1234-5678-abcdef123456'`.",
+                    "examples": [
+                        1
+                    ],
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "Array API Token for Authentication",
+                    "type": "integer"
+                },
+                "array_fqdn": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                    "title": "Array FQDN",
+                    "type": "string"
+                },
+                "array_url": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Hostname/Address for the Everpure Array for API communication.",
+                    "examples": [
+                        "everpure-array1.example.com",
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "Array URL",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "api_token_id",
+                "array_fqdn",
+                "array_url"
+            ],
+            "title": "Everpure - Flash Arrays",
+            "type": "object"
+        },
+        "flash_blades": {
+            "additionalProperties": false,
+            "description": "List of Everpure Flash Blades.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`\n\nOptional fields are:\n  * `nfs_endpoint`",
+            "properties": {
+                "api_token_id": {
+                    "default": 1,
+                    "description": "The default value is `1`.  API Token for authenticating with the Everpure Array.  A number Between 1-64 to denote the variables everpure_api_token_[1-64].  i.e. `export everpure_api_token_1='a1234567-abcd-1234-5678-abcdef123456'`.",
+                    "examples": [
+                        1
+                    ],
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "Array API Token for Authentication",
+                    "type": "integer"
+                },
+                "array_fqdn": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                    "title": "Array FQDN",
+                    "type": "string"
+                },
+                "array_url": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Hostname/Address for the Everpure Array for API communication.",
+                    "examples": [
+                        "everpure-array1.example.com",
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 6,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "Array URL",
+                    "type": "string"
+                },
+                "nfs_endpoint": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Hostname/Address for the Everpure Flash Bade NFS Endpoint.",
+                    "examples": [
+                        "everpure-array1-vlan1.example.com",
+                        "198.18.0.10"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 6,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "Array NFS Endpoint",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "api_token_id",
+                "array_fqdn",
+                "array_url"
+            ],
+            "title": "Everpure - Flash Blades",
+            "type": "object"
+        },
+        "portworx": {
+            "additionalProperties": false,
+            "description": "Portworx configuration for Everpure integration.\n\nRequired fields are:\n  * `array_user`\n  * `cluster_name`\n  * `namespace`\n  * `storage_classes`\n  * `version`\n\nOptional fields are:\n  * `operator_source`",
+            "properties": {
+                "array_user": {
+                    "default": "portworx",
+                    "description": "The default value is `portworx`.  User used by Portworx to access Everpure arrays.",
+                    "maxLength": 127,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9._-]+$",
+                    "title": "Portworx Array User",
+                    "type": "string"
+                },
+                "cluster_name": {
+                    "$ref": "#/definitions/openshift.cluster_name"
+                },
+                "namespace": {
+                    "default": "portworx",
+                    "description": "The default value is `portworx`.  Namespace where Portworx will be installed.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                    "title": "Portworx Namespace",
+                    "type": "string"
+                },
+                "operator_source": {
+                    "default": "certified-operators",
+                    "description": "The default value is `certified-operators`.  Operator catalog source for Portworx installation.",
+                    "enum": [
+                        "certified-operators",
+                        "community-operators",
+                        "redhat-operators"
+                    ],
+                    "title": "Operator Source",
+                    "type": "string"
+                },
+                "storage_classes": {
+                    "description": "List of Portworx storage classes to create.",
+                    "items": {
+                        "$ref": "#/definitions/portworx.storage_classes"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Portworx Storage Classes",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "version": {
+                    "default": "3.5.2.1",
+                    "description": "The default value is `3.5.2.1`.  Portworx operator version.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[0-9]+(\\.[0-9]+){1,3}$",
+                    "title": "Portworx Version",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "array_user",
+                "cluster_name",
+                "namespace",
+                "storage_classes",
+                "version"
+            ],
+            "title": "Everpure - Portworx",
+            "type": "object"
+        },
+        "portworx.storage_classes": {
+            "additionalProperties": false,
+            "description": "Portworx storage class configuration.\n\nRequired fields are:\n  * `name`\n\nOptional fields are:\n  * `default_class`\n  * `default_virtual_class`\n  * `parameters`",
+            "properties": {
+                "default_class": {
+                    "default": false,
+                    "description": "The default value is `false`.  Marks this storage class as the default class.",
+                    "title": "Default Class",
+                    "type": "boolean"
+                },
+                "default_virtual_class": {
+                    "default": false,
+                    "description": "The default value is `false`.  Marks this storage class as the default virtual class.",
+                    "title": "Default Virtual Class",
+                    "type": "boolean"
+                },
+                "name": {
+                    "description": "Name of the Portworx storage class.",
+                    "maxLength": 253,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$",
+                    "title": "Storage Class Name",
+                    "type": "string"
+                },
+                "parameters": {
+                    "$ref": "#/definitions/portworx.storage_classes.parameters"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "title": "Everpure - Portworx Storage Class",
+            "type": "object"
+        },
+        "portworx.storage_classes.parameters": {
+            "additionalProperties": false,
+            "description": "Parameters for a Portworx storage class.\n\nRequired fields are:\n  * `backend`",
+            "properties": {
+                "backend": {
+                    "description": "Storage backend used by the class.",
+                    "enum": [
+                        "pure_block",
+                        "pure_file"
+                    ],
+                    "title": "Backend",
+                    "type": "string"
+                },
+                "io_priority": {
+                    "default": "high",
+                    "description": "The default value is `high`.  I/O priority for the class.",
+                    "enum": [
+                        "high",
+                        "medium",
+                        "low"
+                    ],
+                    "title": "I/O Priority",
+                    "type": "string"
+                },
+                "pure_export_rules": {
+                    "description": "NFS export rules used for pure_file backends.",
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "Everpure Export Rules",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "backend"
+            ],
+            "title": "Everpure - Portworx Storage Class Parameters",
+            "type": "object"
+        },
+        "settings": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the system settings for Everpure.\n\nOptional fields are:\n  * `network`\n  * `security`\n  * `system`",
+            "properties": {
+                "network": {
+                    "$ref": "#/definitions/settings.network"
+                },
+                "security": {
+                    "$ref": "#/definitions/settings.security"
+                },
+                "system": {
+                    "$ref": "#/definitions/settings.system"
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings",
+            "type": "object"
+        },
+        "settings.network": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the network settings for Everpure.\n\nOptional fields are:\n  * `dns`\n  * `link_aggregation_groups`\n  * `subnets_and_interfaces`",
+            "properties": {
+                "connectors": {
+                    "$ref": "#/definitions/settings.network.connectors"
+                },
+                "dns": {
+                    "$ref": "#/definitions/settings.network.dns"
+                },
+                "link_aggregation_groups": {
+                    "description": "List of link aggregation groups.\n\nRequired fields are:\n  * `name`\n  * `ports`",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.link_aggregation_groups"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Network > Link Aggregation Groups",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "subnets_and_interfaces": {
+                    "$ref": "#/definitions/settings.network.subnets_and_interfaces"
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > Network",
+            "type": "object"
+        },
+        "settings.network.connectors": {
+            "additionalProperties": false,
+            "description": "This dictionary is for connector settings for Everpure.\n\nRequired fields are:\n  * `ethernet`",
+            "properties": {
+                "ethernet": {
+                    "description": "List of Ethernet interfaces to configure.\n\nRequired fields are:\n  * `array_fqdn`\n\nOptional fields are:\n  * `address`\n  * `gateway`\n  * `interface_list`\n  * `name`\n  * `prefix`",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.connectors.ethernet"
+                    },
+                    "maxItems": 256,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Network > Connectors > Ethernet Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [
+                "ethernet"
+            ],
+            "title": "Everpure - Settings > Network > Connectors",
+            "type": "object"
+        },
+        "settings.network.connectors.ethernet": {
+            "additionalProperties": false,
+            "description": "List of Ethernet interfaces to configure.\n\nRequired fields are:\n  * `array_fqdn`\n\nOptional fields are:\n  * `address`\n  * `gateway`\n  * `interface_list`\n  * `name`\n  * `prefix`\n  * `enabled`\n  * `mtu`\n  * `services`\n  * `state`",
+            "properties": {
+                "address": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  IP address of the Interface.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                    "title": "IPv4 or IPv6 Address",
+                    "type": "string"
+                },
+                "array_fqdn": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                    "title": "Array FQDN",
+                    "type": "string"
+                },
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Enable ethernet interface.",
+                    "title": "Enable Ethernet Interface",
+                    "type": "boolean"
+                },
+                "gateway": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  Gateway to assign.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                    "title": "Gateway",
+                    "type": "string"
+                },
+                "interface_list": {
+                    "description": "List of Ethernet interfaces to configure for a specific array.",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.connectors.ethernet.interface_list"
+                    },
+                    "maxItems": 256,
+                    "minItems": 1,
+                    "title": "Array Ethernet Interface List",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "mtu": {
+                    "description": "MTU to assign.",
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "MTU",
+                    "type": "integer"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The name of the ethernet interface.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Name of the Ethernet Interface",
+                    "type": "string"
+                },
+                "prefix": {
+                    "description": "Network Prefix to assign.",
+                    "maximum": 128,
+                    "minimum": 1,
+                    "title": "Network Prefix",
+                    "type": "integer"
+                },
+                "services": {
+                    "description": "List of services to assign to the interface.",
+                    "items": {
+                        "default": "data",
+                        "description": "The default value is `data`.  Service to assign to the ethernet interface.",
+                        "enum": [
+                            "replication",
+                            "management",
+                            "ds",
+                            "file",
+                            "iscsi",
+                            "scsi-fc",
+                            "nvme-fc",
+                            "nvme-tcp",
+                            "nvme-roce",
+                            "system"
+                        ],
+                        "title": "Serviceto assign to the Ethernet Interface",
+                        "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "title": "Service(s) to assign to the Ethernet Interface",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "state": {
+                    "default": "present",
+                    "description": "The default value is `present`.  State of the ethernet interface.",
+                    "enum": [
+                        "absent",
+                        "present"
+                    ],
+                    "title": "State of the Ethernet Interface",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "array_fqdn"
+            ],
+            "title": "Ethernet settings for Everpure",
+            "type": "object"
+        },
+        "settings.network.connectors.ethernet.interface_list": {
+            "additionalProperties": false,
+            "description": "Interface list item for Everpure ethernet connector groups.",
+            "properties": {
+                "address": {
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "title": "IPv4 or IPv6 Address",
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "gateway": {
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "title": "Gateway",
+                    "type": "string"
+                },
+                "mtu": {
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "MTU",
+                    "type": "integer"
+                },
+                "name": {
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Name of the Ethernet Interface",
+                    "type": "string"
+                },
+                "prefix": {
+                    "maximum": 128,
+                    "minimum": 1,
+                    "title": "Network Prefix",
+                    "type": "integer"
+                },
+                "services": {
+                    "items": {
+                        "enum": [
+                            "replication",
+                            "management",
+                            "ds",
+                            "file",
+                            "iscsi",
+                            "scsi-fc",
+                            "nvme-fc",
+                            "nvme-tcp",
+                            "nvme-roce",
+                            "system"
+                        ],
+                        "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "state": {
+                    "enum": [
+                        "absent",
+                        "present"
+                    ],
+                    "type": "string"
+                }
+            },
+            "required": [
+                "address",
+                "gateway",
+                "name",
+                "prefix"
+            ],
+            "title": "Ethernet Interface List Item",
+            "type": "object"
+        },
+        "settings.network.dns": {
+            "additionalProperties": false,
+            "description": "This dictionary is for DNS settings for Everpure.\n\nRequired fields are:\n  * `dns_configurations`",
+            "properties": {
+                "dns_configurations": {
+                    "description": "List of DNS configuration groups.\n\nRequired fields are:\n  * `name_servers`\n  * `name`\n\nOptional fields are:\n  * `domain`\n  * `source`",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.dns.dns_configurations"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Network > DNS > DNS Configurations",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [
+                "dns_configurations"
+            ],
+            "title": "Everpure - Settings > Network > DNS",
+            "type": "object"
+        },
+        "settings.network.dns.dns_configurations": {
+            "additionalProperties": false,
+            "description": "List of DNS configuration groups.\n\nRequired fields are:\n  * `name_servers`\n  * `name`\n\nOptional fields are:\n  * `domain`\n  * `source`",
+            "properties": {
+                "domain": {
+                    "default": "example.com",
+                    "description": "The default value is `example.com`.  Domain Name for the Everpure system.",
+                    "examples": [
+                        "example.com",
+                        "purestorage.com"
+                    ],
+                    "maxLength": 200,
+                    "minLength": 5,
+                    "pattern": "^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$",
+                    "title": "Domain Name",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The DNS configuration name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,256})?[a-zA-Z0-9]$",
+                    "title": "The DNS configuration name",
+                    "type": "string"
+                },
+                "name_servers": {
+                    "description": "List of DNS Servers to add to the arrays.  IPv4 or IPv6 addresses are supported.",
+                    "items": {
+                        "default": "208.67.220.220",
+                        "description": "The default value is `208.67.220.220`.  DNS Server.",
+                        "examples": [
+                            "208.67.220.220",
+                            "8.8.8.8"
+                        ],
+                        "maxLength": 39,
+                        "minLength": 6,
+                        "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                        "title": "DNS Server",
+                        "type": "string"
+                    },
+                    "maxItems": 3,
+                    "minItems": 1,
+                    "title": "DNS Servers",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "source": {
+                    "default": "interface1",
+                    "description": "The default value is `interface1`.  The DNS Source Interface.",
+                    "examples": [
+                        "interface1"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 0,
+                    "pattern": "^$|^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The DNS Source Interface",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "name_servers"
+            ],
+            "title": "DNS settings for Everpure",
+            "type": "object"
+        },
+        "settings.network.link_aggregation_groups": {
+            "additionalProperties": false,
+            "description": "This dictionary is for link aggregation group settings for Everpure.\n\nRequired fields are:\n  * `name`\n  * `ports`",
+            "properties": {
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the Link Aggregation Group.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Link Aggregation Group Name",
+                    "type": "string"
+                },
+                "ports": {
+                    "description": "List of ports to add to the Link Aggregation Group.",
+                    "items": {
+                        "default": "CH1.[FM1/2].ETH1",
+                        "description": "The default value is `CH1.[FM1/2].ETH1`.  Port to add to the link aggregation group.",
+                        "examples": [
+                            "CH1.[FM1/2].ETH1"
+                        ],
+                        "maxLength": 20,
+                        "minLength": 1,
+                        "pattern": "^CH[0-9]+\\.ETH[0-9]+$",
+                        "type": "string"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Ports",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [
+                "name",
+                "ports"
+            ],
+            "title": "Everpure - Settings > Network > Link Aggregation Groups",
+            "type": "object"
+        },
+        "settings.network.subnets_and_interfaces": {
+            "additionalProperties": false,
+            "description": "This dictionary is for DNS settings for Everpure.\n\nRequired fields are:\n  * `subnets`",
+            "properties": {
+                "interfaces": {
+                    "description": "List of interfaces to add to the Everpure Array.\n\nRequired fields are:\n  * `address`\n  * `name`\n  * `selected_server`\n  * `services`\n  * `subnet`",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.subnets_and_interfaces.interfaces"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Network > Subnets & Interfaces > Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "subnets": {
+                    "description": "List of subnets to add to the Everpure Array.\n\nRequired fields are:\n  * `lag`\n  * `name`\n  * `network`\n  * `prefix`\n  * `vlan`\n\nOptional fields are:\n  * `gateway`\n  * `mtu`",
+                    "items": {
+                        "$ref": "#/definitions/settings.network.subnets_and_interfaces.subnets"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Network > Subnets & Interfaces > Subnets",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [
+                "subnets"
+            ],
+            "title": "Everpure - Settings > Network > Subnets & Interfaces",
+            "type": "object"
+        },
+        "settings.network.subnets_and_interfaces.interfaces": {
+            "additionalProperties": false,
+            "description": "List of interfaces to add to the Everpure Array.\n\nRequired fields are:\n  * `address`\n  * `array_fqdn`\n  * `name`\n  * `selected_server`\n  * `services`\n  * `subnet`",
+            "properties": {
+                "address": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  IP address of the Interface.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                    "title": "IPv4 or IPv6 Address",
+                    "type": "string"
+                },
+                "array_fqdn": {
+                    "default": "everpure-array1.example.com",
+                    "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                    "title": "Array FQDN",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the Interface.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Name of the Interface",
+                    "type": "string"
+                },
+                "selected_server": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the Selected Server.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_-]{1,63}$",
+                    "title": "The Name of the Selected Server",
+                    "type": "string"
+                },
+                "services": {
+                    "default": "data",
+                    "description": "The default value is `data`.  Service to Assign to the Interface.",
+                    "enum": [
+                        "data",
+                        "replication",
+                        "sts"
+                    ],
+                    "title": "Services",
+                    "type": "string"
+                },
+                "subnet": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the Subnet to Assign.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^$|^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Name of the Subnet to Assign",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "address",
+                "array_fqdn",
+                "name",
+                "selected_server",
+                "services",
+                "subnet"
+            ],
+            "title": "Everpure Array Networking",
+            "type": "object"
+        },
+        "settings.network.subnets_and_interfaces.subnets": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the network settings for zero touch provision of Everpure.\n\nRequired fields are:\n  * `array_fqdns`\n  * `gateway`\n  * `lag`\n  * `name`\n  * `network`\n  * `prefix`\n\nOptional fields are:\n  * `mtu`",
+            "properties": {
+                "array_fqdns": {
+                    "description": "Fully Qualified Domain Name(s) of the storage array(s).",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "items": {
+                        "default": "everpure-array1.example.com",
+                        "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                        "examples": [
+                            "everpure-array1.example.com"
+                        ],
+                        "maxLength": 255,
+                        "minLength": 7,
+                        "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                        "title": "Array Fully Qualified Domain Name",
+                        "type": "string"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Array Fully Qualified Domain Names",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "gateway": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  Network Gateway to assign.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                    "title": "Network Gateway",
+                    "type": "string"
+                },
+                "lag": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Link Aggregation Group to Assign.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Link Aggregation Group to Assign",
+                    "type": "string"
+                },
+                "mtu": {
+                    "description": "MTU to assign.",
+                    "maximum": 9000,
+                    "minimum": 1500,
+                    "title": "MTU",
+                    "type": "integer"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Subnet configuration name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Subnet configuration name",
+                    "type": "string"
+                },
+                "network": {
+                    "default": "198.18.0.0",
+                    "description": "The default value is `198.18.0.0`.  Network to assign.",
+                    "examples": [
+                        "198.18.0.0"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?$))",
+                    "title": "Network",
+                    "type": "string"
+                },
+                "prefix": {
+                    "description": "Network Prefix to assign.",
+                    "maximum": 128,
+                    "minimum": 1,
+                    "title": "Network Prefix",
+                    "type": "integer"
+                },
+                "vlan": {
+                    "description": "VLAN to assign.",
+                    "maximum": 4096,
+                    "minimum": 1,
+                    "title": "VLAN",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "array_fqdns",
+                "lag",
+                "name",
+                "network",
+                "prefix",
+                "vlan"
+            ],
+            "title": "Everpure Array Networking",
+            "type": "object"
+        },
+        "settings.security": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the security settings for Everpure.\n\nOptional fields are:\n  * `directory_service` - LDAP Integration\n  * `users` - Local Users",
+            "properties": {
+                "certificates": {
+                    "$ref": "#/definitions/settings.security.certificates"
+                },
+                "directory_service": {
+                    "$ref": "#/definitions/settings.security.directory_service"
+                },
+                "single_sign_on": {
+                    "$ref": "#/definitions/settings.security.single_sign_on"
+                },
+                "users": {
+                    "description": "Endpoint User or Local User.\n\nRequired fields are:\n  * `name`\n  * `password`\n  * `role`\n\nOptional fields are:\n  * `api_token`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.users"
+                    },
+                    "maxItems": 30,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Security > Users",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > Security",
+            "type": "object"
+        },
+        "settings.security.certificates": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the security settings for Everpure.\n\nOptional fields are:\n  * `directory_service` - LDAP Integration\n  * `users` - Local Users",
+            "properties": {
+                "array_certificates": {
+                    "description": "Imported Array Certificates.\n\nRequired fields are:\n  * `array_fqdns`\n  * `certificate_file`\n  * `name`\n\nOptional fields are:\n  * `intermediate_certificate_file`\n  * `private_key_file`\n  * `key_passphrase`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.certificates.array_certificates"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Security > Certificates > Array Certificates",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "certificate_groups": {
+                    "description": "Array Certificate Groups.\n\nRequired fields are:\n  * `certificates`\n  * `name`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.certificates.certificate_groups"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Security > Certificates > Certificate Groups",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > Security",
+            "type": "object"
+        },
+        "settings.security.certificates.array_certificates": {
+            "additionalProperties": false,
+            "description": "Imported Array Certificates.\n\nRequired fields are:\n  * `array_fqdns`\n  * `certificate_file`\n  * `name`\n\nOptional fields are:\n  * `intermediate_certificate_file`\n  * `private_key_file`\n  * `key_passphrase`",
+            "properties": {
+                "array_fqdns": {
+                    "description": "The Fully Qualified Domain Name(s) of the storage array(s) to assign the certificate to.",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "items": {
+                        "default": "everpure-array1.example.com",
+                        "description": "The default value is `everpure-array1.example.com`.  The Fully Qualified Domain Name of the storage array to apply this certificate to.",
+                        "examples": [
+                            "everpure-array1.example.com"
+                        ],
+                        "maxLength": 255,
+                        "minLength": 7,
+                        "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                        "title": "Array Fully Qualified Domain Name",
+                        "type": "string"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Array Fully Qualified Domain Names",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "certificate_file": {
+                    "default": "/home/blah/downloads/certificate.pem",
+                    "description": "The default value is `/home/blah/downloads/certificate.pem`.  The path to the certificate file to import.",
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "title": "Certificate File",
+                    "type": "string"
+                },
+                "intermediate_certificate_file": {
+                    "default": "/home/blah/downloads/intermediate_certificate.pem",
+                    "description": "The default value is `/home/blah/downloads/intermediate_certificate.pem`.  The path to the intermediate certificate file to import.",
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "title": "Intermediate Certificate File",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Array Certificate name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Array Certificate name",
+                    "type": "string"
+                },
+                "private_key_file": {
+                    "default": "/home/blah/downloads/private_key.pem",
+                    "description": "The default value is `/home/blah/downloads/private_key.pem`.  The path to the private key file to import.",
+                    "$ref": "./shared.json#definitions/file_path",
+                    "title": "Private Key File",
+                    "type": "string"
+                },
+                "private_key_passphrase": {
+                    "default": 1,
+                    "description": "The default value is `1`.  If the private key is encrypted with a passphrase, enter the passphrase.  A number Between 1-64 to denote the variables private_key_passphrase_[1-64].  i.e. `export private_key_passphrase_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Private Key Passphrase",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "array_fqdns",
+                "certificate_file",
+                "name"
+            ],
+            "title": "Everpure - Settings > Security > Certificates > Array Certificates",
+            "type": "object"
+        },
+        "settings.security.certificates.certificate_groups": {
+            "additionalProperties": false,
+            "description": "Array Certificate Groups.\n\nRequired fields are:\n  * `array_fqdns`\n  * `certificates`\n  * `name`",
+            "properties": {
+                "array_fqdns": {
+                    "description": "Fully Qualified Domain Name(s) of the storage array(s).",
+                    "examples": [
+                        "everpure-array1.example.com"
+                    ],
+                    "items": {
+                        "default": "everpure-array1.example.com",
+                        "description": "The default value is `everpure-array1.example.com`.  Fully Qualified Domain Name of the storage array.",
+                        "examples": [
+                            "everpure-array1.example.com"
+                        ],
+                        "maxLength": 255,
+                        "minLength": 7,
+                        "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)",
+                        "title": "Array Fully Qualified Domain Name",
+                        "type": "string"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Array Fully Qualified Domain Names",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "certificates": {
+                    "description": "List of Certificates to assign to the certificate group.",
+                    "items": {
+                        "default": "global",
+                        "description": "The default value is `global`.  Name of the Array Certificate.",
+                        "examples": [
+                            "global"
+                        ],
+                        "maxLength": 63,
+                        "minLength": 1,
+                        "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                        "title": "Certificate",
+                        "type": "string"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Certificates",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Array Certificate Group name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The Array Certificate Group name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "array_fqdns",
+                "certificates",
+                "name"
+            ],
+            "title": "Everpure - Settings > Security > Certificates > Certificate Groups",
+            "type": "object"
+        },
+        "settings.security.directory_service": {
+            "additionalProperties": false,
+            "description": "Directory Service LDAP configurations.\n\nOptional fields are:\n  * `configuration`\n  * `role_mappings`",
+            "properties": {
+                "configuration": {
+                    "description": "Everpure Directory Service configuration settings.\n\nRequired fields are:\n  * `base_dn`\n  * `bind_password`\n  * `bind_user`\n  * `uri_list`\n\nOptional fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`\n  * `type`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.directory_service.configuration"
+                    },
+                    "maxItems": 4,
+                    "minItems": 1,
+                    "title": "Everpure > Settings > Security > Directory Service > Configuration",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "role_mappings": {
+                    "description": "Everpure Directory Service Role Mappings.\n\nRequired fields are:\n  * `end_point_role`\n  * `group_dn`\n\nOptional fields are:\n  * `group`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.directory_service.role_mappings"
+                    },
+                    "maxItems": 4,
+                    "minItems": 4,
+                    "title": "Everpure > Settings > Security > Directory Service > Role Mappings",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "title": "Everpure - Settings > Security > Directory Service",
+            "type": "object"
+        },
+        "settings.security.directory_service.configuration": {
+            "additionalProperties": false,
+            "description": "Everpure Directory Service configuration settings.\n\nRequired fields are:\n  * `base_dn`\n  * `bind_password`\n  * `bind_user`\n  * `uri_list`\n\nOptional fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`\n  * `type`",
+            "properties": {
+                "base_dn": {
+                    "default": "",
+                    "description": "The default value is ``.  Base Distinguished Name (DN). Starting point from where server will search for users and groups.",
+                    "examples": [
+                        "DC=example,DC=com"
+                    ],
+                    "maxLength": 254,
+                    "minLength": 1,
+                    "pattern": "^((CN=([^,]*)),)?((((?:CN|OU)=[^,]+,?)+),)?((DC=[^,]+,?)+)$",
+                    "title": "Base Distinguished Name",
+                    "type": "string"
+                },
+                "bind_password": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The LDAP Binding Password Sensitive Variable Identifier.  A number Between 1-64 to denote the variables ldap_binding_password_[1-64].  i.e. `export ldap_binding_password_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Bind Password",
+                    "type": "integer"
+                },
+                "bind_user": {
+                    "default": "",
+                    "description": "The default value is ``.  Distinguished Name (DN) of the user, that is used to authenticate against LDAP servers.",
+                    "examples": [
+                        "CN=admin,DC=example,DC=com"
+                    ],
+                    "maxLength": 254,
+                    "minLength": 1,
+                    "pattern": "^((CN=([^,]*)),)?((((?:CN|OU)=[^,]+,?)+),)?((DC=[^,]+,?)+)$",
+                    "title": "Bind Username",
+                    "type": "string"
+                },
+                "ca_certificate_file": {
+                    "default": "",
+                    "description": "The default value is ``.  The path of the CA Certificate, For Flash Array's.  This is not yet supported for Flash Blade.",
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "title": "CA Certificate",
+                    "type": "string"
+                },
+                "ca_certificate_group": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the CA Certificate Group, configured under SECURITY > Certificates.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 0,
+                    "pattern": "^$|^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "CA Certificate Group",
+                    "type": "string"
+                },
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Enable Management Directory Service.",
+                    "title": "Enable Directory Service",
+                    "type": "boolean"
+                },
+                "type": {
+                    "default": "management",
+                    "description": "The default value is `management`.  The type of directory service configuration. FlashArray supports `data` and `management`.  FlashBlade supports `management`, `nfs`, and `smb`.",
+                    "enum": [
+                        "data",
+                        "management",
+                        "nfs",
+                        "smb"
+                    ],
+                    "title": "Directory Service Type",
+                    "type": "string"
+                },
+                "uri_list": {
+                    "description": "List of LDAP Uniform Resource Identifiers (URIs) to connect to.",
+                    "items": {
+                        "default": "ldap://server1.example.com:389",
+                        "description": "The default value is `ldap://server1.example.com:389`.  Each URI must include the scheme ldap:// or ldaps:// (for LDAP over SSL), a hostname, and a domain name or IP address. For example, ldap://ad.company.com configures the directory service with the hostname \"ad\" in the domain \"company.com\" while specifying the unencrypted LDAP protocol.\n\nWe highly recommend either configuring StartTLS by enabling a certificate or certificate group, or configuring URIs by using the ldaps:// scheme to use LDAP over SSL, unless there is no need for secure communication in your environment.\n\nIf specifying a domain name, it should be resolvable by the configured DNS servers.\n\nIf specifying an IP address, for IPv4, specify the IP address in the form ddd.ddd.ddd.ddd, where ddd is a number ranging from 0 to 255 representing a group of 8 bits.\n\nFor IPv6, specify the IP address in the form [xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx], where xxxx is a hexadecimal number representing a group of 16 bits. Enclose the entire address in square brackets ( []) . Consecutive fields of zeros can be shortened by replacing the zeros with a double colon ( ::).\n\nIf the base DN is not configured and a URI is provided, the base DN will automatically default to the domain components of the URIs.\n\nOptionally specify a port. Append the port number after the end of the entire address. Default ports are 389 for LDAP, and 636 for LDAPS. Non-standard ports can be specified in the URI if they are in use.",
+                        "examples": [
+                            "ldap://server1.example.com:389",
+                            "ldaps://server2.example.com:636"
+                        ],
+                        "maxLength": 265,
+                        "minLength": 1,
+                        "pattern": "^(?:(ldap|ldaps)://)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}(:(\\d{1,5}))$",
+                        "title": "Uniform Resource Identifier (URI)",
+                        "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "title": "Uniform Resource Identifier (URI) List",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "user_login_attribute": {
+                    "default": "sAMAccountName",
+                    "description": "The default value is `sAMAccountName`.  The value of the User Login Attribute. The User Login Attribute defaults to the sAMAccountName for Active Directory, or UID for other server types.",
+                    "examples": [
+                        "sAMAccountName",
+                        "UID"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": ".+",
+                    "title": "User Login Attribute",
+                    "type": "string"
+                },
+                "user_object_class": {
+                    "default": "User",
+                    "description": "The default value is `User`.  The value of the User Object Class. The User Object Class defaults to User for AD, posixAccount or shadowAccount for OpenLDAP depending on the server's schema, posixAccount for posix-compliant servers, or person for all other server types.",
+                    "examples": [
+                        "User",
+                        "posixAccount",
+                        "shadowAccount",
+                        "person"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": ".+",
+                    "title": "User Object Class",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "base_dn",
+                "bind_password",
+                "bind_user",
+                "uri_list"
+            ],
+            "title": "Everpure - Settings > Security > Directory Service > Configuration",
+            "type": "object"
+        },
+        "settings.security.directory_service.role_mappings": {
+            "additionalProperties": false,
+            "description": "Directory Service Role Mappings.\n\nRequired fields are:\n  * `end_point_role`\n  * `group_dn`\n  * `name`\n\nOptional fields are:\n  * `group`",
+            "properties": {
+                "group": {
+                    "default": "",
+                    "description": "The default value is ``.  In the Group field, enter the common name (CN) of the directory group. The name should be the Common Name of the group without the \"CN=\" specifier. If the configured groups are not in the same OU, also specify the OU. For example, \"Storage Admins\", where Storage Admins is the common name of the directory service group.",
+                    "example": [
+                        "Storage Admins"
+                    ],
+                    "maxLength": 300,
+                    "minLength": 1,
+                    "pattern": "^(?!.*[cC][nN]=)[^,]+$",
+                    "title": "Group Common Name",
+                    "type": "string"
+                },
+                "group_base": {
+                    "default": "",
+                    "description": "The default value is ``.  This is combined to complete the Group DN (group + group_base + base_dn). i.e. CN=Storage Admins,OU=Everpure,DC=example,DC=com.  In the Group Base field, enter the path to the configured groups in the directory tree. The Group Base consists of one or more path components (OUs and CNs) that, when combined with the base DN attribute and the configured group CNs, complete the full distinguished name of each group. The group base should specify \u201cOU=\u201d for each OU and \u201cCN=\u201d for each CN. Multiple path components should be separated by commas. The order of the path components should get larger in scope from left to right. In the following example, SANManagers contains the sub-organizational unit PureGroups: \u201cOU=PureGroups,OU=SANManagers\u201d.",
+                    "examples": [
+                        "OU=PureGroups,OU=SANManagers"
+                    ],
+                    "maxLength": 300,
+                    "minLength": 1,
+                    "pattern": "^((CN=([^,]*)),)?((((?:CN|OU)=[^,]+,?)+),)?(((?:CN|OU|DC)=[^,]+,?)+)?$",
+                    "title": "Group Distinguished Name",
+                    "type": "string"
+                },
+                "role": {
+                    "default": "readonly",
+                    "description": "The default value is `readonly`.  Select a role from the Role list.\n  * `array_admin`\n  * `ops_admin`\n  * `readonly`\n  * `storage_admin`",
+                    "enum": [
+                        "array_admin",
+                        "ops_admin",
+                        "readonly",
+                        "storage_admin"
+                    ],
+                    "examples": [
+                        "array_admin"
+                    ],
+                    "title": "Endpoint Role",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "group",
+                "group_base",
+                "role"
+            ],
+            "title": "Everpure - Settings > Security > Directory Service > Role Mappings",
+            "type": "object"
+        },
+        "settings.security.single_sign_on": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the single Sign-On for Everpure.\n\nOptional fields are:\n  * `oidc_identity_providers`\n  * `saml_identity_providers`",
+            "properties": {
+                "oidc_identity_providers": {
+                    "description": "Everpure Single Sign-On OIDC Identity Providers settings.\n\nRequired fields are:\n  * `name`\n  * `provider_url`\n\nRequires one of the following fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.single_sign_on.oidc_identity_providers"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Security > Single Sign-On > OIDC Identity Providers",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "saml_identity_providers": {
+                    "description": "Everpure Single Sign-On SAML Identity Providers settings.\n\nRequired fields are:\n  * `idp_metadata_url`\n  * `name`\n\nRequires one of the following fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`",
+                    "items": {
+                        "$ref": "#/definitions/settings.security.single_sign_on.saml_identity_providers"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "title": "Everpure - Settings > Security > Single Sign-On > SAML Identity Providers",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > Security",
+            "type": "object"
+        },
+        "settings.security.single_sign_on.oidc_identity_providers": {
+            "additionalProperties": false,
+            "description": "Everpure Single Sign-On OIDC Identity Providers settings.\n\nRequired fields are:\n  * `name`\n  * `provider_url`\n\nRequires one of the following fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`",
+            "properties": {
+                "ca_certificate": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the CA Certificate, configured under SECURITY > Certificates.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "CA Certificate",
+                    "type": "string"
+                },
+                "ca_certificate_group": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The Name of the CA Certificate Group, configured under SECURITY > Certificates.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "CA Certificate Group",
+                    "type": "string"
+                },
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Enable SAML Identity Provider.",
+                    "title": "Enable SAML Identity Provider",
+                    "type": "boolean"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The SAML Identity Provider name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,256})?[a-zA-Z0-9]$",
+                    "title": "The SAML Identity Provider name.",
+                    "type": "string"
+                },
+                "provider_url": {
+                    "default": "https://idp.example.com",
+                    "description": "The default value is `https://idp.example.com`.  Enter the identity provider URL.",
+                    "examples": [
+                        "https://idp.example.com",
+                        "https://idp2.example.com"
+                    ],
+                    "maxLength": 265,
+                    "minLength": 1,
+                    "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+                    "title": "Provider URL",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "provider_url"
+            ],
+            "title": "Everpure - Settings > Security > Single Sign-On > OIDC Identity Providers",
+            "type": "object"
+        },
+        "settings.security.single_sign_on.saml_identity_providers": {
+            "additionalProperties": false,
+            "description": "Everpure Single Sign-On SAML Identity Providers settings.\n\nRequired fields are:\n  * `name`\n  * `provider_url`\n\nOptional fields are:\n  * `ca_certificate`\n  * `ca_certificate_group`\n  * `enabled`",
+            "properties": {
+                "enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Enable SAML Identity Provider.",
+                    "title": "Enable SAML Identity Provider",
+                    "type": "boolean"
+                },
+                "idp_metadata_ca_certificate": {
+                    "default": "default",
+                    "description": "The default value is `default`.  (Optional) In the IdP Metadata CA Certificate field, enter the CA certificate name to validate the authenticity of the IdP metadata file.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "IdP Metadata CA Certificate",
+                    "type": "string"
+                },
+                "idp_metadata_ca_certificate_group": {
+                    "default": "default",
+                    "description": "The default value is `default`.  (Optional) In the IdP Metadata CA Certificate Group field, enter the name of the group of CA of certificates to validate the authenticity of the IdP metadata file.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "IdP Metadata CA Certificate Group",
+                    "type": "string"
+                },
+                "idp_metadata_url": {
+                    "default": "https://idp.example.com",
+                    "description": "The default value is `https://idp.example.com`.  Enter the identity provider URL.",
+                    "examples": [
+                        "https://idp.example.com",
+                        "https://idp2.example.com"
+                    ],
+                    "maxLength": 265,
+                    "minLength": 1,
+                    "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+                    "title": "IdP Metadata URL",
+                    "type": "string"
+                },
+                "idp_verification_certificate": {
+                    "default": "default",
+                    "description": "The default value is `default`.  In the IdP Verification Certificate field, enter the name of the certificate used by the SP to verify the signed SAML response from the IdP. This is required if the IdP metadata URL is not provided.\n\nUsed by service provider (SP) to verify the signed SAML response from IdP.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "IdP Verification Certificate",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The SAML Identity Provider name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,256})?[a-zA-Z0-9]$",
+                    "title": "The SAML Identity Provider name.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "idp_metadata_url",
+                "name"
+            ],
+            "title": "Everpure - Settings > Security > Single Sign-On > SAML Identity Providers",
+            "type": "object"
+        },
+        "settings.security.users": {
+            "additionalProperties": false,
+            "description": "Endpoint User or Local User.\n\nRequired fields are:\n  * `name`\n  * `password`\n  * `role`\n\nOptional fields are:\n  * `api_token`",
+            "properties": {
+                "api_token": {
+                    "default": false,
+                    "description": "The default value is `false`.  Add API Token for User.",
+                    "title": "API Token",
+                    "type": "boolean"
+                },
+                "name": {
+                    "default": "portworx",
+                    "description": "The default value is `portworx`.  The user name.  The user pureuser is not allowed, due to the script deleting and re-adding the user.",
+                    "examples": [
+                        "portworx"
+                    ],
+                    "maxLength": 127,
+                    "minLength": 1,
+                    "pattern": "^(?!pureuser$)([^+\\-][a-zA-Z0-9=!#$%()*+,-.:;@ _{|}~?&]*)$",
+                    "title": "Username",
+                    "type": "string"
+                },
+                "password": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The local user password Sensitive Variable Identifier.  A number Between 1-64 to denote the variables local_user_password_[1-64].  i.e. `export local_user_password_1='cisco123'`.  If value is `0`, script will generate random password.",
+                    "maximum": 64,
+                    "minimum": 0,
+                    "title": "User Password",
+                    "type": "integer"
+                },
+                "role": {
+                    "default": "readonly",
+                    "description": "The default value is `readonly`.  Select a role from the Role list.\n  * `array_admin`\n  * `ops_admin`\n  * `readonly`\n  * `storage_admin`",
+                    "enum": [
+                        "array_admin",
+                        "ops_admin",
+                        "readonly",
+                        "storage_admin"
+                    ],
+                    "examples": [
+                        "array_admin"
+                    ],
+                    "title": "Endpoint Role",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "password",
+                "name",
+                "role"
+            ],
+            "title": "Everpure - Settings > Security > Users",
+            "type": "object"
+        },
+        "settings.system": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the system settings for Everpure.\n\nOptional fields are:\n  * alerts_and_notifications\n  * array_details\n  * monitoring\n  * ntp_servers\n  * support",
+            "properties": {
+                "alerts_and_notifications": {
+                    "$ref": "#/definitions/settings.system.alerts_and_notifications"
+                },
+                "array_details": {
+                    "$ref": "#/definitions/settings.system.array_details"
+                },
+                "monitoring": {
+                    "$ref": "#/definitions/settings.system.monitoring"
+                },
+                "ntp_servers": {
+                    "description": "List of NTP Servers to add to the arrays.",
+                    "items": {
+                        "default": "0.pool.ntp.org",
+                        "description": "The default value is `0.pool.ntp.org`.  DNS Server.",
+                        "examples": [
+                            "0.pool.ntp.org",
+                            "1.pool.ntp.org"
+                        ],
+                        "maxLength": 255,
+                        "minLength": 3,
+                        "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                        "title": "NTP Server",
+                        "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 1,
+                    "title": "NTP Servers",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "support": {
+                    "$ref": "#/definitions/settings.system.support"
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > System",
+            "type": "object"
+        },
+        "settings.system.alerts_and_notifications": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the alert and notification settings for Everpure.\n\nOptional fields are:\n  * `alert_routing`\n  * `alert_watchers`\n  * `file_system_user_group_quota_notifications`",
+            "properties": {
+                "alert_routing": {
+                    "$ref": "#/definitions/settings.system.alerts_and_notifications.alert_routing"
+                },
+                "alert_watchers": {
+                    "description": "List of Email addresses to add to Alert Watchers list.\n\nRequired fields are:\n  * `email`\n\nOptional fields are\n  * `notification_severity`.",
+                    "items": {
+                        "$ref": "#/definitions/settings.system.alerts_and_notifications.alert_watchers"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Alert Watchers",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - Alerts and Notifications",
+            "type": "object"
+        },
+        "settings.system.alerts_and_notifications.alert_routing": {
+            "additionalProperties": false,
+            "description": "The alert routing settings configure the SMTP relay hosts for the Everpure arrays.\n\nRequired fields are:\n  * `relay_host`\n  * `sender_domain`\n\nOptional fields are:\n  * `encryption_mode`.",
+            "properties": {
+                "encryption_mode": {
+                    "default": "None",
+                    "description": "The default value is `None`.  Default is 'None'.  Relay Encryption Mode.",
+                    "enum": [
+                        "None",
+                        "starttls"
+                    ],
+                    "title": "Relay Encryption Mode",
+                    "type": "string"
+                },
+                "relay_host": {
+                    "default": "relay.example.com",
+                    "description": "The default value is `relay.example.com`.  SMTP relay host to add to the arrays.",
+                    "examples": [
+                        "relay.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 3,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "SMTP Relay Server",
+                    "type": "string"
+                },
+                "sender_domain": {
+                    "default": "example.com",
+                    "description": "The default value is `example.com`.  SMTP sender domain name.",
+                    "examples": [
+                        "example.com",
+                        "purestorage.com"
+                    ],
+                    "maxLength": 200,
+                    "minLength": 5,
+                    "pattern": "^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}$",
+                    "title": "SMTP Sender Domain Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "relay_host",
+                "sender_domain"
+            ],
+            "title": "Alert Routing (AKA SMTP) settings for the Everpure arrays",
+            "type": "object"
+        },
+        "settings.system.alerts_and_notifications.alert_watchers": {
+            "additionalProperties": false,
+            "description": "The alert watchers settings configure the recipients for alert notifications for the Everpure arrays.\n\nRequired fields are:\n  * `alert_emails`\n\nOptional fields are\n  * `notification_severity`.",
+            "properties": {
+                "email": {
+                    "default": "admin@example.com",
+                    "description": "The default value is `admin@example.com`.  Email address to send alerts to.",
+                    "examples": [
+                        "admin@example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 5,
+                    "pattern": "^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|'(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*')@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$",
+                    "title": "Mail Alert Recipient",
+                    "type": "string"
+                },
+                "enabled": {
+                    "default": false,
+                    "description": "The default value is `false`.  Enable alert notification email.",
+                    "title": "Enable alert notification email",
+                    "type": "boolean"
+                },
+                "notification_severity": {
+                    "default": "info",
+                    "description": "The default value is `info`.  Default is 'info'.  Notification Severity to Send to the Email Address.  Only applicable to FlashBlade.",
+                    "enum": [
+                        "critical",
+                        "info",
+                        "warning"
+                    ],
+                    "title": "Notification Severity to Send to the Email Address",
+                    "type": "string"
+                },
+                "state": {
+                    "default": "present",
+                    "description": "The default value is `present`.  Default is 'present'.  Create or delete alert email.",
+                    "enum": [
+                        "absent",
+                        "present"
+                    ],
+                    "title": "Email State",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "email"
+            ],
+            "title": "Alert Watchers settings for the Everpure arrays",
+            "type": "object"
+        },
+        "settings.system.array_details": {
+            "additionalProperties": false,
+            "description": "The alert watchers settings configure the recipients for alert notifications for the Everpure arrays.\n\nRequired fields are\n  * `idle_timeout`\n  * `login_banner`\n  * `timezone`",
+            "properties": {
+                "idle_timeout": {
+                    "description": "Idle Timeout in Minutes.",
+                    "maximum": 180,
+                    "minimum": 0,
+                    "title": "Idle Timeout in Minutes",
+                    "type": "integer"
+                },
+                "login_banner": {
+                    "description": "Login Banner Text.  Can be a maximum of 1380 characters.  Use '\n' for new lines.",
+                    "maxLength": 1380,
+                    "minLength": 1,
+                    "title": "Login Banner",
+                    "type": "string"
+                },
+                "timezone": {
+                    "$ref": "./shared.json#/definitions/timezone"
+                }
+            },
+            "required": [
+                "idle_timeout",
+                "login_banner",
+                "timezone"
+            ],
+            "title": "Array Details",
+            "type": "object"
+        },
+        "settings.system.monitoring": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the monitoring settings for Everpure.\n\nOptional fields are:\n  * snmp\n  * syslog_server_connections",
+            "properties": {
+                "snmp": {
+                    "$ref": "#/definitions/settings.system.monitoring.snmp"
+                },
+                "syslog_server_connections": {
+                    "description": "List of Syslog Server connections.\n\nRequired fields are:\n  * `name`\n  * `uri`\n  * `services`",
+                    "items": {
+                        "$ref": "#/definitions/settings.system.monitoring.syslog_server_connections"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Syslog Server Connections",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > System > Monitoring",
+            "type": "object"
+        },
+        "settings.system.monitoring.snmp": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the SNMP settings for Everpure.\n\nOptional fields are:\n  * `add_snmp_manager`\n  * `edit_snmp_agent`",
+            "properties": {
+                "add_snmp_manager": {
+                    "$ref": "#/definitions/settings.system.monitoring.snmp.add_snmp_manager"
+                },
+                "edit_snmp_agent": {
+                    "$ref": "#/definitions/settings.system.monitoring.snmp.edit_snmp_agent"
+                }
+            },
+            "required": [],
+            "title": "Everpure - Settings > Monitoring > SNMP",
+            "type": "object"
+        },
+        "settings.system.monitoring.snmp.add_snmp_manager": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the SNMP Manager settings for Everpure.\n\nOptional fields are:\n  * `v2c`\n  * `v3`",
+            "properties": {
+                "v2c": {
+                    "description": "List of SNMP Manager connections.\n\nRequired fields are:\n * `community`\n  * `name`\n  * `host`\n\nOptional fields are:\n  * `port`\n  * `snmp_notification`",
+                    "items": {
+                        "$ref": "#/definitions/settings.system.monitoring.snmp.add_snmp_manager.v2c"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Version 2c SNMP Managers",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "v3": {
+                    "description": "List of SNMP Manager connections.\n\nRequired fields are:\n  * `name`\n  * `host`\n * `user`\n\nOptional fields are:\n  * `auth_protocol`\n  * `auth_passphrase`\n  * `port`\n  * `privacy_protocol`\n  * `privacy_passphrase`\n  * `snmp_notification`\n  * `user`",
+                    "items": {
+                        "$ref": "#/definitions/settings.system.monitoring.snmp.add_snmp_manager.v3"
+                    },
+                    "maxItems": 12,
+                    "minItems": 1,
+                    "title": "Version 3 SNMP Managers",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Everpure - SNMP Manager",
+            "type": "object"
+        },
+        "settings.system.monitoring.snmp.add_snmp_manager.v2c": {
+            "additionalProperties": false,
+            "description": "List of SNMP Manager connections.\n\nRequired fields are:\n * `community`\n  * `name`\n  * `host`\n\nOptional fields are:\n  * `port`\n  * `snmp_notification`",
+            "properties": {
+                "community": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote the variables everpure_snmp_community_[1-64].  i.e. `export everpure_snmp_community_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Community String Number",
+                    "type": "integer"
+                },
+                "host": {
+                    "default": "server.example.com",
+                    "description": "The default value is `server.example.com`.  Hostname/Address to which the SNMP trap information is sent.",
+                    "examples": [
+                        "server.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "host",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The SNMP manager's name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The SNMP manager's name.",
+                    "type": "string"
+                },
+                "port": {
+                    "default": 162,
+                    "description": "The default value is `162`.  Port used by the server to communicate with the trap destination. Enter a value between 1-65535. Reserved ports not allowed (22, 23, 80, 123, 389, 443, 623, 636, 2068, 3268, 3269).",
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "title": "SNMP Port",
+                    "type": "integer"
+                },
+                "snmp_notification": {
+                    "default": "trap",
+                    "description": "The default value is `trap`.  Type of trap which decides whether to receive a notification when a trap is received at the destination.\n  * `inform` - Receive notifications when trap is sent to the destination. This option is valid only for V2 users.\n  * `trap` - Do not receive notifications when trap is sent to the destination.",
+                    "enum": [
+                        "inform",
+                        "trap"
+                    ],
+                    "title": "Snmp Notification",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "community",
+                "name",
+                "host"
+            ],
+            "title": "Everpure - Version 2c SNMP Managers",
+            "type": "object"
+        },
+        "settings.system.monitoring.snmp.add_snmp_manager.v3": {
+            "additionalProperties": false,
+            "description": "List of SNMP Manager connections.\n\nRequired fields are:\n  * `name`\n  * `host`\n * `user`\n\nOptional fields are:\n  * `auth_protocol`\n  * `auth_passphrase`\n  * `port`\n  * `privacy_protocol`\n  * `privacy_passphrase`\n  * `snmp_notification`\n  * `user`",
+            "properties": {
+                "auth_passphrase": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote to use one of the variables everpure_snmp_auth_passphrase_[1-64].  i.e. `export everpure_snmp_auth_passphrase_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Authentication Passphrase number",
+                    "type": "integer"
+                },
+                "auth_protocol": {
+                    "default": "SHA",
+                    "description": "The default value is `SHA`.  Hash algorithm for the user.\n  * `None` - Hash algorithm is not applicable.\n  * `MD5` - MD5 protocol is used to authenticate SNMP user.\n  * `SHA` - SHA protocol is used to authenticate SNMP user.",
+                    "enum": [
+                        "MD5",
+                        "None",
+                        "SHA"
+                    ],
+                    "title": "Auth Protocol / Hash Algorithm",
+                    "type": "string"
+                },
+                "host": {
+                    "default": "server.example.com",
+                    "description": "The default value is `server.example.com`.  Address to which the SNMP trap information is sent.",
+                    "examples": [
+                        "server.example.com"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 7,
+                    "pattern": "^((([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$|^(([a-fA-F]|[a-fA-F][a-fA-F0-9\\-]*[a-fA-F0-9])\\.)*([A-Fa-f]|[A-Fa-f][A-Fa-f0-9\\-]*[A-Fa-f0-9])$|^(?:(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){6})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:::(?:(?:(?:[0-9a-fA-F]{1,4})):){5})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){4})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,1}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){3})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,2}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:(?:[0-9a-fA-F]{1,4})):){2})(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,3}(?:(?:[0-9a-fA-F]{1,4})))?::(?:(?:[0-9a-fA-F]{1,4})):)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,4}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9]))\\.){3}(?:(?:25[0-5]|(?:[1-9]|1[0-9]|2[0-4])?[0-9])))))))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,5}(?:(?:[0-9a-fA-F]{1,4})))?::)(?:(?:[0-9a-fA-F]{1,4})))|(?:(?:(?:(?:(?:(?:[0-9a-fA-F]{1,4})):){0,6}(?:(?:[0-9a-fA-F]{1,4})))?::)))))$",
+                    "title": "host",
+                    "type": "string"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The SNMP manager's name.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The SNMP manager's name.",
+                    "type": "string"
+                },
+                "port": {
+                    "default": 162,
+                    "description": "The default value is `162`.  Port used by the server to communicate with the trap destination. Enter a value between 1-65535. Reserved ports not allowed (22, 23, 80, 123, 389, 443, 623, 636, 2068, 3268, 3269).",
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "title": "SNMP Port",
+                    "type": "integer"
+                },
+                "privacy_passphrase": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote the variables everpure_snmp_privacy_passphrase_[1-64].  i.e. `export everpure_snmp_privacy_passphrase_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Privacy Passphrase number",
+                    "type": "integer"
+                },
+                "privacy_protocol": {
+                    "default": "SHA",
+                    "description": "The default value is `SHA`.  Encryption protocol for authenticating the user.\n  * `None` - Encryption protocol is not applicable.\n  * `DES` - DES privacy protocol is used for SNMP user.\n  * `AES` - AES privacy protocol is used for SNMP user.",
+                    "enum": [
+                        "AES",
+                        "DES",
+                        "None"
+                    ],
+                    "title": "Privacy Protocol",
+                    "type": "string"
+                },
+                "snmp_notification": {
+                    "default": "trap",
+                    "description": "The default value is `trap`.  Type of trap which decides whether to receive a notification when a trap is received at the destination.\n  * `inform` - Receive notifications when trap is sent to the destination. This option is valid only for V2 users.\n  * `trap` - Do not receive notifications when trap is sent to the destination.",
+                    "enum": [
+                        "inform",
+                        "trap"
+                    ],
+                    "title": "Snmp Notification",
+                    "type": "string"
+                },
+                "user": {
+                    "default": "default",
+                    "description": "The default value is `default`.  The SNMP manager's user.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "The SNMP manager's user.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "host",
+                "user"
+            ],
+            "title": "Everpure - Version 3 SNMP Managers",
+            "type": "object"
+        },
+        "settings.system.monitoring.snmp.edit_snmp_agent": {
+            "additionalProperties": false,
+            "description": "Local SNMP Agent settings for Everpure.\n\nOptional fields are:\n  * `auth_passphrase`\n  * `auth_protocol`\n  * `privacy_passphrase`\n  * `privacy_protocol`\n  * `user`",
+            "properties": {
+                "auth_passphrase": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote the variables everpure_snmp_auth_passphrase_[1-64].  i.e. `export everpure_snmp_auth_passphrase_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Authentication Passphrase number",
+                    "type": "integer"
+                },
+                "auth_protocol": {
+                    "default": "SHA",
+                    "description": "The default value is `SHA`.  Hash algorithm for the user.\n  * `None` - Hash algorithm is not applicable.\n  * `MD5` - MD5 protocol is used to authenticate SNMP user.\n  * `SHA` - SHA protocol is used to authenticate SNMP user.",
+                    "enum": [
+                        "MD5",
+                        "None",
+                        "SHA"
+                    ],
+                    "title": "Auth Protocol / Hash Algorithm",
+                    "type": "string"
+                },
+                "community": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote the variables everpure_snmp_community_[1-64].  i.e. `export everpure_snmp_community_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Community String Number",
+                    "type": "integer"
+                },
+                "privacy_passphrase": {
+                    "default": 1,
+                    "description": "The default value is `1`.  A number Between 1-64 to denote the variables everpure_snmp_privacy_passphrase_[1-64].  i.e. `export everpure_snmp_privacy_passphrase_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Privacy Passphrase number",
+                    "type": "integer"
+                },
+                "privacy_protocol": {
+                    "default": "SHA",
+                    "description": "The default value is `SHA`.  Encryption protocol for authenticating the user.\n  * `None` - Encryption protocol is not applicable.\n  * `DES` - DES privacy protocol is used for SNMP user.\n  * `AES` - AES privacy protocol is used for SNMP user.",
+                    "enum": [
+                        "AES",
+                        "DES",
+                        "None"
+                    ],
+                    "title": "Privacy Protocol",
+                    "type": "string"
+                },
+                "snmp_version": {
+                    "default": "3",
+                    "description": "The default value is `3`.  SNMP version to use for the connection.",
+                    "enum": [
+                        "2c",
+                        "3"
+                    ],
+                    "title": "SNMP Version",
+                    "type": "string"
+                },
+                "user": {
+                    "default": "snmpadmin",
+                    "description": "The default value is `snmpadmin`.  SNMP username. Must have a minimum of 1 and a maximum of 31 characters.  Cannot be `admin`.",
+                    "examples": [
+                        "snmpadmin"
+                    ],
+                    "maxLength": 31,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\. :-]+$",
+                    "title": "SNMP Username",
+                    "type": "string"
+                }
+            },
+            "required": [],
+            "title": "Everpure - Local SNMP Agent",
+            "type": "object"
+        },
+        "settings.system.monitoring.syslog_server_connections": {
+            "additionalProperties": false,
+            "description": "Syslog Server Connection settings for Everpure.\n\nRequired fields are:\n  * `name`\n  * `services`\n  * `uri`",
+            "properties": {
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  Name of the Syslog Server Connection.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9_-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Name of the Syslog Server Connection",
+                    "type": "string"
+                },
+                "services": {
+                    "description": "Services to send to the syslog server connection.",
+                    "items": {
+                        "default": "management",
+                        "description": "The default value is `management`.  Syslog service type(s).",
+                        "enum": [
+                            "data-audit",
+                            "management"
+                        ],
+                        "type": "string"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Services",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "uri": {
+                    "default": "udp://syslog.example.com:514",
+                    "description": "The default value is `udp://syslog.example.com:514`.  Enter the URI of the remote syslog server.\nSpecify the URI in the format PROTOCOL://HOSTNAME:PORT, where\nPROTOCOL is TCP, TLS, or UDP.\nNote that when establishing TLS communication, the syslog server must be configured with either a CA certificate or CA certificate group (for multiple remote syslog servers). See Selecting CA Certificates for Syslog Server Connections. Additionally, your firewall must be set to allow in-bound and out-bound traffic.\n\nHOSTNAME is the syslog server's hostname or IP address. If specifying an IP address, for IPv4, specify the IP address in the form ddd.ddd.ddd.ddd, where ddd is a number ranging from 0 to 255 representing a group of 8 bits.\nFor IPv6, specify the IP address in the form [xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx], where xxxx is a hexadecimal number representing a group of 16 bits. Enclose the entire address in square brackets ([]). Consecutive fields of zeros can be shortened by replacing the zeros with a double colon (::).\n\nPORT is the port at which the server is listening. Append the port number after the end of the entire address. This is optional if the standard port number 514 for UDP or TCP, or the standard port number 6514 for TLS, is used.\n",
+                    "examples": [
+                        "udp://syslog.example.com:514",
+                        "tcp://syslog.example.com:514"
+                    ],
+                    "maxLength": 265,
+                    "minLength": 1,
+                    "pattern": "^(?:(udp|tcp|tls)://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))(:(\\d{1,5}))$",
+                    "title": "URI",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "services",
+                "uri"
+            ],
+            "title": "Syslog Server Connections",
+            "type": "object"
+        },
+        "settings.system.support": {
+            "additionalProperties": false,
+            "description": "The support settings for the Everpure arrays.\n\nRequired fields are:\n  * `phone_home_enabled`\n\nOptional fields are:\n  * `proxy_server`\n  * `remote_assist_connected`",
+            "properties": {
+                "phone_home_enabled": {
+                    "default": true,
+                    "description": "The default value is `true`.  Flag to tell the script to enable Phone Home support.",
+                    "title": "Phone Home Enabled",
+                    "type": "boolean"
+                },
+                "proxy_server": {
+                    "default": "http://proxy.example.com:8080",
+                    "description": "The default value is `http://proxy.example.com:8080`.  The Proxy Server to use for the arrays.\n\nThis is optional, but if you have a proxy server, you can set it here.",
+                    "examples": [
+                        "http://proxy.example.com:8080",
+                        "http://user:pass@proxy.example.com:80",
+                        "https://proxy.example.com:8443"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "pattern": "^(?:https?://)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}(:(\\d{1,5}))$",
+                    "title": "Proxy Server",
+                    "type": "string"
+                },
+                "remote_assist_connected": {
+                    "default": 24,
+                    "description": "The default value is `24`.  Length of time to enable the Remote Assistance.",
+                    "maximum": 36,
+                    "minimum": 1,
+                    "title": "Remote Assist Enabled",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "phone_home_enabled"
+            ],
+            "title": "Support settings for the Everpure arrays",
+            "type": "object"
+        }
+    },
+    "description": "JSON Schema for validating Everpure storage configuration in Cisco AI PODs, including array and blade connections, Portworx integration, networking, DNS, certificates, directory services, users, monitoring, alerts, and system settings.",
+    "title": "Cisco AI PODs - Everpure Schema"
+}

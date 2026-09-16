@@ -1,0 +1,1397 @@
+{
+    "$id": "pools.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "abstract_attributes": {
+            "description": "",
+            "properties": {
+                "assignment_order": {
+                    "default": "sequential",
+                    "description": "The default value is `sequential`.  Assignment order decides the order in which the next identifier is allocated.  * `default` - The next identifier is allocated based on the default order defined by the system.  * `sequential` - The next identifier is allocated in a sequential order.",
+                    "enum": [
+                        "default",
+                        "sequential"
+                    ],
+                    "title": "assignment_order",
+                    "type": "string",
+                    "x-intersight-api": "AssignmentOrder"
+                },
+                "description": {
+                    "default": "",
+                    "description": "The default value is ``.  Description of the Pool.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9]+[\\x00-\\xFF]*$",
+                    "title": "description",
+                    "type": "string",
+                    "x-intersight-api": "Description"
+                },
+                "name": {
+                    "default": "default",
+                    "description": "The default value is `default`.  Name of the Pool.",
+                    "examples": [
+                        "default"
+                    ],
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\.:-]{0,64}$",
+                    "title": "name",
+                    "type": "string",
+                    "x-intersight-api": "Name"
+                },
+                "tags": {
+                    "description": "An arbitrary key and value pair that can be used to tag Cisco Intersight managed objects and REST resources.",
+                    "items": {
+                        "$ref": "./tags.json#/definitions/mo"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Intersight Tags",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "title": "abstract_attributes - pool.AbstractPool",
+            "type": "object",
+            "x-intersight-object-type": "pool.AbstractPool"
+        },
+        "ip": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "description": "Pool represents a collection of IPv4 and/or IPv6 addresses that can be allocated to other configuration entities like server profiles.",
+                    "properties": {
+                        "ipv4_blocks": {
+                            "description": "A block of IPv4 addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`\n\nOptional Attributes:\n  * `id_mapping_policy`\n\nTo configure block level IP settings include:\n  * `gateway` - Optional\n  * `prefix`\n  * `primary_dns` - Optional\n  * `secondary_dns` - Optional",
+                            "items": {
+                                "$ref": "#/definitions/ip.ipv4_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "ipv4_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "ipv4_configuration": {
+                            "$ref": "#/definitions/ip.ipv4_configuration"
+                        },
+                        "ipv6_blocks": {
+                            "description": "A block of IPv6 addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`\n\nOptional Attributes:\n  * `id_mapping_policy`\n\nTo configure block level IP settings include:\n  * `gateway` - Optional\n  * `prefix`\n  * `primary_dns` - Optional\n  * `secondary_dns` - Optional",
+                            "items": {
+                                "$ref": "#/definitions/ip.ipv6_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "ipv6_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "ipv6_configuration": {
+                            "$ref": "#/definitions/ip.ipv6_configuration"
+                        }
+                    },
+                    "required": [],
+                    "title": "ip",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of IPv4 and/or IPv6 addresses that can be allocated to other configuration entities like server profiles.",
+            "title": "ip - IP Pools - Intersight Uri: ippool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "ippool.Pool",
+            "x-intersight-target-platforms": [
+                "chassis",
+                "FIAttached"
+            ],
+            "x-intersight-uri": "ippool/Pools"
+        },
+        "ip.ipv4_blocks": {
+            "additionalProperties": false,
+            "description": "",
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "198.18.0.10",
+                    "description": "The default value is `198.18.0.10`.  First IPv4 address of the block.  Example `198.18.0.10`.",
+                    "examples": [
+                        "198.18.0.10"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "gateway": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  Gateway to assign to the pool.  Example `198.18.0.1`.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^0.0.0.0|(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "gateway",
+                    "type": "string",
+                    "x-intersight-api": "Gateway"
+                },
+                "id_mapping_policy": {
+                    "default": "",
+                    "description": "The default value is ``.  The Name of the ID Mapping Policy to Assign to the IP Block. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                    "examples": [
+                        "default",
+                        "org1/default"
+                    ],
+                    "maxLength": 129,
+                    "minLength": 1,
+                    "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                    "title": "id_mapping_policy",
+                    "type": "string",
+                    "x-intersight-api": "IdMappingPolicyMoid"
+                },
+                "netmask": {
+                    "default": "255.255.255.0",
+                    "description": "The default value is `255.255.255.0`.  A subnet mask is a 32-bit number that masks an IP address and divides the IP address into network address and host address.  Example `255.255.255.0`.",
+                    "examples": [
+                        "255.255.255.0"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "netmask",
+                    "type": "string",
+                    "x-intersight-api": "Netmask"
+                },
+                "primary_dns": {
+                    "default": "208.67.220.220",
+                    "description": "The default value is `208.67.220.220`.  IP Address of the primary Domain Name System (DNS) server.  Example `208.67.220.220`.",
+                    "examples": [
+                        "208.67.220.220"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "primary_dns",
+                    "type": "string",
+                    "x-intersight-api": "PrimaryDns"
+                },
+                "secondary_dns": {
+                    "default": "208.67.222.222",
+                    "description": "The default value is `208.67.222.222`.  IP Address of the secondary Domain Name System (DNS) server.  Example `208.67.222.222`.",
+                    "examples": [
+                        "208.67.222.222"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 0,
+                    "optional": true,
+                    "pattern": "^$|^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "secondary_dns",
+                    "type": "string",
+                    "x-intersight-api": "SecondaryDns"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "198.18.0.250",
+                    "description": "The default value is `198.18.0.250`.  Last IPv4 address of the block. Example `198.18.0.250`.",
+                    "examples": [
+                        "198.18.0.250"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "ipv4_blocks - Ipv4 Block of Addresses",
+            "type": "object",
+            "x-intersight-api": "IpV4Blocks",
+            "x-intersight-object-type": "ippool.IpV4Block"
+        },
+        "ip.ipv4_configuration": {
+            "additionalProperties": false,
+            "description": "Network interface configuration data for IPv4 interfaces. Netmask, Gateway and DNS settings.\n\nRequired Attributes:\n  * `gateway`\n  * `netmask`\n  * `primary_dns`\n\nOptional Attributes:\n  * `secondary_dns`",
+            "properties": {
+                "gateway": {
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  Gateway to assign to the pool.  Example `198.18.0.1`.",
+                    "examples": [
+                        "198.18.0.1"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^0.0.0.0|(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "gateway",
+                    "type": "string",
+                    "x-intersight-api": "Gateway"
+                },
+                "netmask": {
+                    "default": "255.255.255.0",
+                    "description": "The default value is `255.255.255.0`.  A subnet mask is a 32-bit number that masks an IP address and divides the IP address into network address and host address.  Example `255.255.255.0`.",
+                    "examples": [
+                        "255.255.255.0"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "netmask",
+                    "type": "string",
+                    "x-intersight-api": "Netmask"
+                },
+                "primary_dns": {
+                    "default": "208.67.220.220",
+                    "description": "The default value is `208.67.220.220`.  IP Address of the primary Domain Name System (DNS) server.  Example `208.67.220.220`.",
+                    "examples": [
+                        "208.67.220.220"
+                    ],
+                    "maxLength": 15,
+                    "minLength": 7,
+                    "pattern": "^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "primary_dns",
+                    "type": "string",
+                    "x-intersight-api": "PrimaryDns"
+                },
+                "secondary_dns": {
+                    "default": "",
+                    "description": "The default value is ``.  IP Address of the secondary Domain Name System (DNS) server.  Example `208.67.222.222`.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 15,
+                    "minLength": 0,
+                    "optional": true,
+                    "pattern": "^$|^(([1-9]|[1-9][0-9]{1}|1[0-9]{2}|2[0-1][0-9]|22[0-3])\\.)(([01]?[0-9]?[0-9]|2([0-4][0-9]|5[0-5]))\\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$",
+                    "title": "secondary_dns",
+                    "type": "string",
+                    "x-intersight-api": "SecondaryDns"
+                }
+            },
+            "required": [
+                "gateway",
+                "netmask"
+            ],
+            "title": "ipv4_configuration - IPv4 Configuration Settings",
+            "type": "object",
+            "x-intersight-api": "IpV4Config",
+            "x-intersight-object-type": "ippool.IpV4Config"
+        },
+        "ip.ipv6_blocks": {
+            "additionalProperties": false,
+            "description": "",
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "2001:db8::10",
+                    "description": "The default value is `2001:db8::10`.  First IPv6 address of the block.  Example `2001:db8::10`.",
+                    "examples": [
+                        "2001:db8::10"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "gateway": {
+                    "default": "2001:db8::1",
+                    "description": "The default value is `2001:db8::1`.  Gateway to assign to the pool.  Example `2001:db8::1`.",
+                    "examples": [
+                        "2001:db8::1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 2,
+                    "pattern": "^::$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "gateway",
+                    "type": "string",
+                    "x-intersight-api": "Gateway"
+                },
+                "id_mapping_policy": {
+                    "default": "",
+                    "description": "The default value is ``.  The Name of the ID Mapping Policy to Assign to the IP Block. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                    "examples": [
+                        "default",
+                        "org1/default"
+                    ],
+                    "maxLength": 129,
+                    "minLength": 1,
+                    "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                    "title": "id_mapping_policy",
+                    "type": "string",
+                    "x-intersight-api": "IdMappingPolicyMoid"
+                },
+                "prefix": {
+                    "default": 64,
+                    "description": "The default value is `64`.  Prefix to assign to the pool.  Example `64`.",
+                    "maximum": 128,
+                    "minimum": 1,
+                    "title": "prefix",
+                    "type": "integer",
+                    "x-intersight-api": "Prefix"
+                },
+                "primary_dns": {
+                    "default": "2620:119:53::53",
+                    "description": "The default value is `2620:119:53::53`.  IP Address of the primary Domain Name System (DNS) server.  Example `2620:119:53::53`.",
+                    "examples": [
+                        "2620:119:53::53"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "^$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "primary_dns",
+                    "type": "string",
+                    "x-intersight-api": "PrimaryDns"
+                },
+                "secondary_dns": {
+                    "default": "2620:119:35::35",
+                    "description": "The default value is `2620:119:35::35`.  IP Address of the secondary Domain Name System (DNS) server.  Example `2620:119:35::35`.",
+                    "examples": [
+                        "2620:119:35::35"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 0,
+                    "optional": true,
+                    "pattern": "^$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "secondary_dns",
+                    "type": "string",
+                    "x-intersight-api": "SecondaryDns"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "2001:db8::250",
+                    "description": "The default value is `2001:db8::250`.  Last IPv6 address of the block.  Example `2001:db8::250`.",
+                    "examples": [
+                        "2001:db8::250"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "^$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "ipv6_blocks - Ipv6 Block of Addresses",
+            "type": "object",
+            "x-intersight-api": "IpV6Blocks",
+            "x-intersight-object-type": "ippool.IpV6Block"
+        },
+        "ip.ipv6_configuration": {
+            "additionalProperties": false,
+            "description": "Network interface configuration data for IPv6 interfaces. Prefix, Gateway and DNS settings.\n\nRequired Attributes:\n  * `gateway`\n  * `prefix`\n  * `primary_dns`\n\nOptional Attributes:\n  * `secondary_dns`",
+            "properties": {
+                "gateway": {
+                    "default": "2001:db8::1",
+                    "description": "The default value is `2001:db8::1`.  Gateway to assign to the pool.  Example `2001:db8::1`.",
+                    "examples": [
+                        "2001:db8::1"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 2,
+                    "pattern": "^::$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "gateway",
+                    "type": "string",
+                    "x-intersight-api": "Gateway"
+                },
+                "prefix": {
+                    "default": 64,
+                    "description": "The default value is `64`.  Prefix to assign to the pool.  Example `64`.",
+                    "maximum": 128,
+                    "minimum": 1,
+                    "title": "prefix",
+                    "type": "integer",
+                    "x-intersight-api": "Prefix"
+                },
+                "primary_dns": {
+                    "default": "2620:119:53::53",
+                    "description": "The default value is `2620:119:53::53`.  IP Address of the primary Domain Name System (DNS) server.  Example `2620:119:53::53`.",
+                    "examples": [
+                        "2620:119:53::53"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 6,
+                    "pattern": "^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "primary_dns",
+                    "type": "string",
+                    "x-intersight-api": "PrimaryDns"
+                },
+                "secondary_dns": {
+                    "default": "2620:119:35::35",
+                    "description": "The default value is `2620:119:35::35`.  IP Address of the secondary Domain Name System (DNS) server.  Example `2620:119:35::35`.",
+                    "examples": [
+                        "2620:119:35::35"
+                    ],
+                    "maxLength": 39,
+                    "minLength": 0,
+                    "optional": true,
+                    "pattern": "^$|^(([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:([0-9A-Fa-f]{1,4}:[0-9A-Fa-f]{0,4}|:[0-9A-Fa-f]{1,4})?|(:[0-9A-Fa-f]{1,4}){0,2})|(:[0-9A-Fa-f]{1,4}){0,3})|(:[0-9A-Fa-f]{1,4}){0,4})|:(:[0-9A-Fa-f]{1,4}){0,5})((:[0-9A-Fa-f]{1,4}){2}|:(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\\.(25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])){3})|(([0-9A-Fa-f]{1,4}:){1,6}|:):[0-9A-Fa-f]{0,4}|([0-9A-Fa-f]{1,4}:){7}:)$",
+                    "title": "secondary_dns",
+                    "type": "string",
+                    "x-intersight-api": "SecondaryDns"
+                }
+            },
+            "required": [
+                "gateway",
+                "prefix"
+            ],
+            "title": "ipv6_configuration - IPv6 Configuration Settings",
+            "type": "object",
+            "x-intersight-api": "IpV6Config",
+            "x-intersight-object-type": "ippool.IpV6Config"
+        },
+        "ip.leases": {
+            "description": "IP Pool Leases Attributes.",
+            "title": "ip - IP Pool Leases - Intersight Uri: ippool/IpLeases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "ippool.IpLease",
+            "x-intersight-uri": "ippool/IpLeases"
+        },
+        "ip.reservations": {
+            "description": "IP Pool Reservations Attributes.",
+            "title": "ip - IP Pool Reservations - Intersight Uri: ippool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "ippool.Reservation",
+            "x-intersight-uri": "ippool/Reservations"
+        },
+        "iqn": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "iqn_blocks": {
+                            "description": "A block of IQN addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`\n  * `suffix`",
+                            "items": {
+                                "$ref": "#/definitions/iqn.iqn_suffix_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "iqn_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "prefix": {
+                            "default": "iqn.1984-12.com.cisco",
+                            "description": "The default value is `iqn.1984-12.com.cisco`.  The prefix for any IQN blocks created for this pool. IQN Prefix must have the following format `iqn.yyyy-mm.naming-authority`, where naming-authority is usually the reverse syntax of the Internet domain name of the naming authority.  The default is `iqn.1984-12.com.cisco`.",
+                            "examples": [
+                                "iqn.1984-12.com.cisco"
+                            ],
+                            "maxLength": 64,
+                            "minLength": 7,
+                            "pattern": "^iqn\\.(\\d{4}-\\d{2})\\.([^:]+)$",
+                            "title": "prefix",
+                            "type": "string",
+                            "x-intersight-api": "Prefix"
+                        }
+                    },
+                    "required": [
+                        "iqn_blocks"
+                    ],
+                    "title": "iqn",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of iSCSI Qualified Names (IQNs) for use as initiator identifiers by iSCSI vNICs.",
+            "title": "iqn - IQN Pools - Intersight Uri: iqnpool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "iqnpool.Pool",
+            "x-intersight-target-platforms": [
+                "FIAttached"
+            ],
+            "x-intersight-uri": "iqnpool/Pools"
+        },
+        "iqn.iqn_suffix_blocks": {
+            "additionalProperties": false,
+            "description": "The suffix block of iSCSI Qualified Names (IQNs).",
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": 0,
+                    "description": "The default value is `0`.  Starting IQN Address.  An Example is `0`.",
+                    "maximum": 60000000000,
+                    "minimum": 0,
+                    "title": "from",
+                    "type": "integer",
+                    "x-intersight-api": "From"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "suffix": {
+                    "default": "ucs-host",
+                    "description": "The default value is `ucs-host`.  Suffix to assign to the IQN Pool.  An Exmaple is `ucs-host`.",
+                    "examples": [
+                        "ucs-host"
+                    ],
+                    "maxLength": 32,
+                    "minLength": 3,
+                    "pattern": "([^,:\\s']+)",
+                    "title": "suffix",
+                    "type": "string",
+                    "x-intersight-api": "Suffix"
+                },
+                "to": {
+                    "default": 1024,
+                    "description": "The default value is `1024`.  Ending IQN Address.  An Exmaple is `1024`.",
+                    "maximum": 60000000000,
+                    "minimum": 0,
+                    "title": "to",
+                    "type": "integer",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from",
+                "suffix"
+            ],
+            "title": "Block",
+            "type": "object",
+            "x-intersight-api": "IqnSuffixBlocks",
+            "x-intersight-object-type": "iqnpool.IqnSuffixBlock"
+        },
+        "iqn.leases": {
+            "description": "IQN Pool Leases Attributes.",
+            "title": "iqn - IQN Pool Leases - Intersight Uri: iqnpool/Leases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "iqnpool.Lease",
+            "x-intersight-uri": "iqnpool/Leases"
+        },
+        "iqn.reservations": {
+            "description": "IQN Pool Reservations Attributes.",
+            "title": "iqn - IQN Pool Reservations - Intersight Uri: iqnpool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "iqnpool.Reservation",
+            "x-intersight-uri": "iqnpool/Reservations"
+        },
+        "mac": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "mac_blocks": {
+                            "description": "A block of MAC addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`",
+                            "items": {
+                                "$ref": "#/definitions/mac.mac_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "mac_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "mac_blocks"
+                    ],
+                    "title": "mac",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of MAC addresses that can be allocated to VNICs of a server profile.",
+            "title": "mac - MAC Pools - Intersight Uri: macpool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "macpool.Pool",
+            "x-intersight-target-platforms": [
+                "FIAttached",
+                "Standalone"
+            ],
+            "x-intersight-uri": "macpool/Pools"
+        },
+        "mac.leases": {
+            "description": "MAC Pool Leases Attributes.",
+            "title": "mac - MAC Pool Leases - Intersight Uri: macpool/Leases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "macpool.Lease",
+            "x-intersight-uri": "macpool/Leases"
+        },
+        "mac.mac_blocks": {
+            "additionalProperties": false,
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "00:25:B5:0A:00:00",
+                    "description": "The default value is `00:25:B5:0A:00:00`.  Staring MAC Address.  An Example is `00:25:B5:0A:00:00`",
+                    "examples": [
+                        "00:25:B5:0A:00:00"
+                    ],
+                    "maxLength": 17,
+                    "minLength": 17,
+                    "pattern": "^([\\da-fA-F]{2}:){5}[\\da-fA-F]{2}$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "00:25:B5:0A:04:00",
+                    "description": "The default value is `00:25:B5:0A:04:00`.  Ending MAC Address.  An Example is `00:25:B5:0A:04:00`",
+                    "examples": [
+                        "00:25:B5:0A:04:00"
+                    ],
+                    "maxLength": 17,
+                    "minLength": 17,
+                    "pattern": "^([\\da-fA-F]{2}:){5}[\\da-fA-F]{2}$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "MAC Blocks",
+            "type": "object",
+            "x-intersight-api": "MacBlocks",
+            "x-intersight-object-type": "macpool.Block"
+        },
+        "mac.reservations": {
+            "description": "MAC Pool Reservations Attributes.",
+            "title": "mac - MAC Pool Reservations - Intersight Uri: macpool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "macpool.Reservation",
+            "x-intersight-uri": "macpool/Reservations"
+        },
+        "name_prefix": {
+            "additionalProperties": false,
+            "description": "A list of prefixes to add to the pool names.  If `default` is defined that will be assigned to any pools that don't have a more specific prefix defined.\n Options are:\n\n  * `default`\n  * `ip`\n  * `iqn`\n  * `mac`\n  * `resource`\n  * `uuid`\n  * `wwnn`\n  * `wwpn`",
+            "properties": {
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default prefix value to add to the all the pool names.  An individual pool prefix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "id_mapping": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IP Mapping policy names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "id_mapping",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "ip": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IP pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "ip",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "iqn": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IQN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "iqn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "mac": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to MAC pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "mac",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "resource": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to Resource pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "resource",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "uuid": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to UUID pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "uuid",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "wwnn": {
+                    "default": "",
+                    "description": "The default value is ``.  A Prefix / Suffix to add to WWNN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "wwnn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "wwpn": {
+                    "default": "",
+                    "description": "The default value is ``.  A Prefix / Suffix to add to WWPN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "wwpn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                }
+            },
+            "title": "Pool Name Prefix",
+            "type": "object"
+        },
+        "name_suffix": {
+            "additionalProperties": false,
+            "description": "A list of prefixes/suffixes to add to the pool names.  If `default` is defined that will be assigned to any pools that don't have a more specific prefix/suffix defined.\n Options are:\n\n  * `default`\n  * `ip`\n  * `iqn`\n  * `mac`\n  * `resource`\n  * `uuid`\n  * `wwnn`\n  * `wwpn`",
+            "properties": {
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default prefix/suffix value to add to the all the pool names.  An individual pool prefix/suffix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "id_mapping": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IP Mapping policy names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "id_mapping",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "ip": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IP pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "ip",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "iqn": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to IQN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "iqn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "mac": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to MAC pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "mac",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "resource": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to Resource pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "resource",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "uuid": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to UUID pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "uuid",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "wwnn": {
+                    "default": "",
+                    "description": "The default value is ``.  A Prefix / Suffix to add to WWNN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "wwnn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                },
+                "wwpn": {
+                    "default": "",
+                    "description": "The default value is ``.  A Prefix / Suffix to add to WWPN pool names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "wwpn",
+                    "type": "string",
+                    "x-intersight-api": ""
+                }
+            },
+            "title": "Pool Name Suffix",
+            "type": "object"
+        },
+        "resource": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "server_pool_qualification_policies": {
+                            "description": "A list of Server Pool Qualification Policies to assign to the pool.  These must be for the same type of server, cannot be a mix of policies for blades and some rackmounts. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                            "items": {
+                                "default": "example",
+                                "description": "The default value is `example`.  Server Pool Qualification Policy Name. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",
+                                "examples": [
+                                    "example"
+                                ],
+                                "maxLength": 129,
+                                "minLength": 1,
+                                "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                                "title": "server_pool_qualification_policy",
+                                "type": "string",
+                                "x-intersight-api": "server_pool_qualification_policy"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "server_pool_qualification_policies",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "server_pool_qualification_policies"
+                        },
+                        "static_resource_selection": {
+                            "description": "A list of compute Serial Numbers to assign to the pool.  They must be the same type of server, cannot be some blades and some rackmounts.",
+                            "items": {
+                                "default": "FOX25415555",
+                                "description": "The default value is `FOX25415555`.  Server Serial Number.",
+                                "examples": [
+                                    "FOX25415555"
+                                ],
+                                "maxLength": 11,
+                                "minLength": 11,
+                                "pattern": "^[A-Z]{3}[1-3][\\d]([0][1-9]|[1-4][0-9]|[5][0-3])[\\dA-Z]{4}$",
+                                "title": "serial_number",
+                                "type": "string",
+                                "x-intersight-api": "static_resource_selection"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "static_resource_selection",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "static_resource_selection"
+                        },
+                        "target_platform": {
+                            "default": "FIAttached",
+                            "description": "The default value is `FIAttached`.  The platform for which the resource pool is applicable. It can either be a server that is operating in standalone mode or which is attached to a Fabric Interconnect managed by Intersight.\n  * `Standalone` - Servers which are operating in standalone mode i.e. not connected to a Fabric Interconnected.\n  * `FIAttached` - Servers which are connected to a Fabric Interconnect that is managed by Intersight.",
+                            "enum": [
+                                "FIAttached",
+                                "Standalone",
+                                "UnifiedEdgeServer"
+                            ],
+                            "title": "target_platform",
+                            "type": "string",
+                            "x-intersight-api": "TargetPlatform"
+                        }
+                    },
+                    "required": [
+                        "target_platform"
+                    ],
+                    "title": "Resource",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of resource. The resource can be any MO which has PoolResource meta enabled. The resource in the pool can be reserved or unreserved by using Lease API, reserved/unreserved resources can be used in the entities like server profiles.",
+            "title": "resource - Resource Pools - Intersight Uri: resourcepool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "resourcepool.Pool",
+            "x-intersight-target-platforms": [
+                "FIAttached",
+                "Standalone"
+            ],
+            "x-intersight-uri": "resourcepool/Pools",
+            "x-intersight-uri_serial": "compute/PhysicalSummaries"
+        },
+        "uuid": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "prefix": {
+                            "default": "000025B5-0000-0000",
+                            "description": "The default value is `000025B5-0000-0000`.  Prefix to assign to the UUID Pool.  The default is `000025B5-0000-0000`",
+                            "examples": [
+                                "000025B5-0000-0000"
+                            ],
+                            "maxLength": 18,
+                            "minLength": 18,
+                            "pattern": "^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}$",
+                            "title": "prefix",
+                            "type": "string",
+                            "x-intersight-api": "Prefix"
+                        },
+                        "uuid_blocks": {
+                            "description": "A block of UUID addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`",
+                            "items": {
+                                "$ref": "#/definitions/uuid.uuid_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "uuid_blocks"
+                    ],
+                    "title": "UUID",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of UUID items that can be allocated to server profiles.",
+            "title": "uuid - UUID Pools - Intersight Uri: uuidpool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "uuidpool.Pool",
+            "x-intersight-target-platforms": [
+                "FIAttached"
+            ],
+            "x-intersight-uri": "uuidpool/Pools"
+        },
+        "uuid.leases": {
+            "description": "UUID Pool Leases Attributes.",
+            "title": "uuid - UUID Pool Leases - Intersight Uri: uuidpool/UuidLeases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "uuidpool.UuidLease",
+            "x-intersight-uri": "uuidpool/UuidLeases"
+        },
+        "uuid.reservations": {
+            "description": "UUID Pool Reservations Attributes.",
+            "title": "uuid - UUID Pool Reservations - Intersight Uri: uuidpool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "uuidpool.Reservation",
+            "x-intersight-uri": "uuidpool/Reservations"
+        },
+        "uuid.uuid_blocks": {
+            "additionalProperties": false,
+            "description": "",
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "0000-000000000000",
+                    "description": "The default value is `0000-000000000000`.  Starting UUID Address.  An Example is `0000-000000000000`",
+                    "examples": [
+                        "0000-000000000000"
+                    ],
+                    "maxLength": 17,
+                    "minLength": 17,
+                    "pattern": "^[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "0000-000000000400",
+                    "description": "The default value is `0000-000000000400`.  Ending UUID Address.  An Example is `0000-000000000400`",
+                    "examples": [
+                        "0000-000000000400"
+                    ],
+                    "maxLength": 17,
+                    "minLength": 17,
+                    "pattern": "^[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "UUID Blocks",
+            "type": "object",
+            "x-intersight-api": "UuidSuffixBlocks",
+            "x-intersight-object-type": "uuidpool.UuidBlock"
+        },
+        "wwnn": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "id_blocks": {
+                            "description": "A block of WWNN addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`",
+                            "items": {
+                                "$ref": "#/definitions/wwnn.id_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "id_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "id_blocks"
+                    ],
+                    "title": "wwnn",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of WWNN addresses that can be allocated to vHBAs of a server profile.",
+            "title": "wwnn - WWNN Pools - Intersight Uri: fcpool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Pool",
+            "x-intersight-target-platforms": [
+                "Standalone"
+            ],
+            "x-intersight-uri": "fcpool/Pools"
+        },
+        "wwnn.id_blocks": {
+            "additionalProperties": false,
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "20:00:00:25:B5:00:00:00",
+                    "description": "The default value is `20:00:00:25:B5:00:00:00`.  Staring WWxN Address.  An Example is `20:00:00:25:B5:00:00:00`",
+                    "examples": [
+                        "20:00:00:25:B5:00:00:00"
+                    ],
+                    "maxLength": 23,
+                    "minLength": 23,
+                    "pattern": "^([\\da-fA-F]{2}:){7}[\\da-fA-F]{2}$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "20:00:00:25:B5:00:04:00",
+                    "description": "The default value is `20:00:00:25:B5:00:04:00`.  Ending WWxN Address.  An Example is `20:00:00:25:B5:00:04:00`",
+                    "examples": [
+                        "20:00:00:25:B5:00:04:00"
+                    ],
+                    "maxLength": 23,
+                    "minLength": 23,
+                    "pattern": "^([\\da-fA-F]{2}:){7}[\\da-fA-F]{2}$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "id_blocks",
+            "type": "object",
+            "x-intersight-api": "IdBlocks",
+            "x-intersight-object-type": "fcpool.Block"
+        },
+        "wwnn.leases": {
+            "description": "WWNN Pool Leases Attributes.",
+            "title": "wwnn - WWNN Pool Leases - Intersight Uri: fcpool/Leases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Lease",
+            "x-intersight-uri": "fcpool/Leases"
+        },
+        "wwnn.reservations": {
+            "description": "WWNN Pool Reservations Attributes.",
+            "title": "wwnn - WWNN Pool Reservations - Intersight Uri: fcpool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Reservation",
+            "x-intersight-uri": "fcpool/Reservations"
+        },
+        "wwpn": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "id_blocks": {
+                            "description": "A block of WWPN addresses.\n\nNote: Only assign either size or to, not both.\n\nRequired Attributes:\n  * `from`\n  * `size` or `to`",
+                            "items": {
+                                "$ref": "#/definitions/wwpn.id_blocks"
+                            },
+                            "maxItems": 255,
+                            "minItems": 1,
+                            "title": "id_blocks",
+                            "type": "array",
+                            "uniqueItems": true
+                        }
+                    },
+                    "required": [
+                        "id_blocks"
+                    ],
+                    "title": "wwpn",
+                    "type": "object"
+                }
+            ],
+            "description": "Pool represents a collection of WWPN addresses that can be allocated to vHBAs of a server profile.",
+            "title": "wwpn - WWPN Pools - Intersight Uri: fcpool/Pools",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Pool",
+            "x-intersight-target-platforms": [
+                "FIAttached",
+                "Standalone"
+            ],
+            "x-intersight-uri": "fcpool/Pools"
+        },
+        "wwpn.id_blocks": {
+            "additionalProperties": false,
+            "not": {
+                "required": [
+                    "size",
+                    "to"
+                ]
+            },
+            "properties": {
+                "from": {
+                    "default": "20:00:00:25:B5:00:00:00",
+                    "description": "The default value is `20:00:00:25:B5:00:00:00`.  Staring WWxN Address.  An Example is `20:00:00:25:B5:00:00:00`",
+                    "examples": [
+                        "20:00:00:25:B5:00:00:00"
+                    ],
+                    "maxLength": 23,
+                    "minLength": 23,
+                    "pattern": "^([\\da-fA-F]{2}:){7}[\\da-fA-F]{2}$",
+                    "title": "from",
+                    "type": "string",
+                    "x-intersight-api": "From"
+                },
+                "size": {
+                    "default": 255,
+                    "description": "The default value is `255`.  Size of the Pool.  Allowed range is `1-1024`.",
+                    "maximum": 1024,
+                    "minimum": 1,
+                    "title": "size",
+                    "type": "integer",
+                    "x-intersight-api": "Size"
+                },
+                "to": {
+                    "default": "20:00:00:25:B5:00:04:00",
+                    "description": "The default value is `20:00:00:25:B5:00:04:00`.  Ending WWxN Address.  An Example is `20:00:00:25:B5:00:04:00`",
+                    "examples": [
+                        "20:00:00:25:B5:00:04:00"
+                    ],
+                    "maxLength": 23,
+                    "minLength": 23,
+                    "pattern": "^([\\da-fA-F]{2}:){7}[\\da-fA-F]{2}$",
+                    "title": "to",
+                    "type": "string",
+                    "x-intersight-api": "To"
+                }
+            },
+            "required": [
+                "from"
+            ],
+            "title": "id_blocks",
+            "type": "object",
+            "x-intersight-api": "IdBlocks",
+            "x-intersight-object-type": "fcpool.Block"
+        },
+        "wwpn.leases": {
+            "description": "WWPN Pool Leases Attributes.",
+            "title": "wwpn - WWPN Pool Leases - Intersight Uri: fcpool/Leases",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Lease",
+            "x-intersight-uri": "fcpool/Leases"
+        },
+        "wwpn.reservations": {
+            "description": "WWPN Pool Reservations Attributes.",
+            "title": "wwpn - WWPN Pool Reservations - Intersight Uri: fcpool/Reservations",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "fcpool.Reservation",
+            "x-intersight-uri": "fcpool/Reservations"
+        }
+    },
+    "description": "JSON Schema for validating Cisco Intersight resource pools used by Cisco AI PODs, including IP, IQN, MAC, UUID, resource, WWNN, and WWPN pools and their address or identifier blocks.",
+    "title": "Cisco AI PODs - Intersight - Pools Schema"
+}

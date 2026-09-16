@@ -25,8 +25,8 @@ sudo apt update && sudo apt install -y git
 **Step 2: Clone the Repository**
 
 ```bash
-git clone https://github.com/scotttyso/Cisco-AI-Pods
-cd Cisco-AI-Pods
+git clone https://github.com/scotttyso/Cisco-AI-PODs
+cd Cisco-AI-PODs
 ```
 
 **Step 3: Run the Complete Setup Script**
@@ -158,14 +158,14 @@ To create local environments in VS Code using virtual environments, you can foll
 Add the Following to `YAML: Schemas` in Visual Studio Code: Settings > Search for `YAML: Schema`: Click edit in `settings.json`.  In the `yaml.schemas` section:
 
 ```json
-"https://raw.githubusercontent.com/scotttyso/Cisco-AI-Pods/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
+"https://raw.githubusercontent.com/scotttyso/Cisco-AI-PODs/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
 ```
 
 ### Example
 
 ```json
     "yaml.schemas": {
-        "https://raw.githubusercontent.com/scotttyso/Cisco-AI-Pods/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
+        "https://raw.githubusercontent.com/scotttyso/Cisco-AI-PODs/main/schema/cisco-ai-pods.json": "*.ezai.yaml"
     },
 ```
 

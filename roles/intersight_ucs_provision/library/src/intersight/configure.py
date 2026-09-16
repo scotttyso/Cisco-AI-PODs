@@ -111,7 +111,7 @@ class configure:
                 names=names,
                 org=org,
                 method='get',
-                uri=kwargs.ezdata[f"intersight.{self.category}.{otype}"].intersight_uri)
+                uri=kwargs.ezdata[f"intersight.{self.category}.{otype}"]['x-intersight-uri'])
             kwargs = api(category=self.category, type=otype).calls(kwargs)
             if not empty and kwargs.results == []:
                 empty_results(org, names, kwargs)
@@ -260,7 +260,7 @@ class configure:
         parent_moid = api_body['Parent']['Moid']
         parent_type = self.type.split('.')[0]
         parent_name = kwargs.intersight_api[org][self.category][parent_type][parent_moid]
-        kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+        kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
         policy_title = notifications.mod_pol_description(
             ((self.type.replace('_', ' ').replace('.', ' : '))).capitalize())
         if 'Description' in akeys and api_body['Description'] == '':
@@ -362,7 +362,7 @@ class configure:
                         api_body,
                         kwargs)
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}"]['x-intersight-uri']
             kwargs = configure(
                 category=self.category,
                 type=f'{self.type}.{child_type}').create_bulk_request(kwargs)
@@ -571,7 +571,7 @@ class configure:
     # =========================================================================
     def compare_resources_to_api(self, api_body, ptitle, kwargs):
         category = self.category.replace('_', ' ').title()
-        kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+        kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
         check_flag = getattr(kwargs.args, 'check', False)
         akeys = list(api_body.keys())
         if 'Description' in akeys and api_body['Description'] == '':
@@ -735,7 +735,7 @@ class configure:
         # POST Bulk Request if List > 0
         # =====================================================================
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}"]['x-intersight-uri']
             kwargs = self.create_bulk_request(kwargs)
         # =====================================================================
         # Loop Thru Sub-Items
@@ -1704,7 +1704,7 @@ class configure:
                                     pitem, policy, handler_type, x)
                             kwargs = create_and_commit_api(pitem, e, kwargs)
             if len(kwargs.bulk_list) > 0:
-                kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.port.{e}"].intersight_uri
+                kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.port.{e}"]['x-intersight-uri']
                 kwargs = configure(
                     category=self.category,
                     type=f'port.{e}').create_bulk_request(kwargs)
@@ -1884,7 +1884,7 @@ class configure:
                             api_body,
                             kwargs)
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}.domain"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}.domain"]['x-intersight-uri']
             kwargs = configure(
                 category=self.category,
                 type=f'{self.type}.{child_type}').create_bulk_request(kwargs)
@@ -2033,9 +2033,9 @@ class configure:
                             kwargs = vnic_loop(
                                 deepcopy(original_items), x, kwargs)
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}"]['x-intersight-uri']
             if isinstance(kwargs.uri, DotMap):
-                kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}.domain"].intersight_uri
+                kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.{self.type}.{child_type}.domain"]['x-intersight-uri']
             kwargs = configure(
                 category=self.category,
                 type=f'{self.type}.{child_type}').create_bulk_request(kwargs)
@@ -2192,7 +2192,7 @@ class configure:
             kwargs = kwargs | DotMap(
                 method='get',
                 names=serial_numbers,
-                uri=ezdata.intersight_uri_serial)
+                uri=ezdata['x-intersight-uri-serial'])
             kwargs = api(category='system', type='serial_number').calls(kwargs)
         # =====================================================================
         # Assign Server Profile Identity Reservations - If Defined
@@ -2241,7 +2241,7 @@ class configure:
                 if 'reservations' in ikeys:
                     api_body = {
                         'Name': name,
-                        'ObjectType': ezdata.object_type,
+                        'ObjectType': ezdata['x-intersight-object-type'],
                         'ServerFamily': item.get('server_family', 'All'),
                         'TargetPlatform': item.get('target_platform', 'FIAttached')}
                     api_body = assign_uuid_type(api_body, item, kwargs)
@@ -2260,19 +2260,19 @@ class configure:
                 if self.type == 'server':
                     api_body = {
                         'Name': name,
-                        'ObjectType': ezdata.object_type,
+                        'ObjectType': ezdata['x-intersight-object-type'],
                         'ServerFamily': item.get('server_family', 'All'),
                         'TargetPlatform': item.get('target_platform', 'FIAttached')}
                     api_body = assign_uuid_type(api_body, item, kwargs)
                 else:
-                    api_body = {'Name': name, 'ObjectType': ezdata.object_type}
+                    api_body = {'Name': name, 'ObjectType': ezdata['x-intersight-object-type']}
                 api_body = self.profiles_org_map(api_body, kwargs.org_moids[kwargs.org].moid)
                 kwargs.bulk_list.append(api_body)
         # =================================================================
         # POST bulk/Requests if Bulk List > 0 - Initial Profile
         # =================================================================
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = ezdata.intersight_uri
+            kwargs.uri = ezdata['x-intersight-uri']
             kwargs = self.create_bulk_request(kwargs)
         # =====================================================================
         # Attach Templates either through Bulk Merger or Merging Dicts
@@ -2309,7 +2309,7 @@ class configure:
             kwargs = self.compare_resources_to_api(api_body, ptitle, kwargs)
         # POST Bulk Request if List > 0
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = ezdata.intersight_uri
+            kwargs.uri = ezdata['x-intersight-uri']
             kwargs = self.create_bulk_request(kwargs)
         # =====================================================================
         # PATCH Profiles if has attach_template True and has a Description
@@ -2320,7 +2320,7 @@ class configure:
             if item.get('attach_template') is False and any(
                     template_regex.match(k) for k in ikeys):
                 name = f'{np}{item.name}{ns}'
-                api_body = dict(Description='', Name=name, ObjectType=ezdata.object_type,
+                api_body = dict(Description='', Name=name, ObjectType=ezdata['x-intersight-object-type'],
                                 pmoid=kwargs.intersight_api[kwargs.org].profiles[self.type][name])
                 if 'description' in ikeys:
                     api_body['Description'] = item.description
@@ -2331,7 +2331,7 @@ class configure:
             pcolor.Cyan('')
             pcolor.Cyan(
                 f'{" " * 3}Updating {self.type.capitalize()} Profile Descriptions.')
-            kwargs.uri = ezdata.intersight_uri
+            kwargs.uri = ezdata['x-intersight-uri']
             kwargs = self.create_bulk_request(kwargs)
         # =====================================================================
         # If Action is Deploy; Deploy the Profile
@@ -2354,7 +2354,7 @@ class configure:
             'Analyzing|Assigned|Failed|Inconsistent|Validating')
         pending_changes = False
         kwargs.profile_update = DotMap()
-        kwargs.uri = kwargs.ezdata[f"intersight.profiles.{self.type}"].intersight_uri
+        kwargs.uri = kwargs.ezdata[f"intersight.profiles.{self.type}"]['x-intersight-uri']
         for e in profiles:
             if 'action' in e and 'serial_number' in e and re.search(
                     serial_regex, e.serial_number):
@@ -2493,7 +2493,7 @@ class configure:
         if len(kwargs.names) > 0:
             kwargs = kwargs | DotMap(method='get',
                                      parent='SwitchClusterProfile',
-                                     uri=kwargs.ezdata[self.type].switch_intersight_uri)
+                                     uri=kwargs.ezdata[f"intersight.profiles.{self.type}"]['x-intersight-uri-switch'])
             kwargs = api('parent_moids').calls(kwargs)
             for e in kwargs.results:
                 if len(
@@ -2525,7 +2525,7 @@ class configure:
         for k in list(kwargs.cluster_update.keys()):
             if kwargs.cluster_update[k].pending_changes:
                 kwargs = kwargs | DotMap(
-                    method='get_by_moid', uri=kwargs.ezdata[self.type].switch_intersight_uri)
+                    method='get_by_moid', uri=kwargs.ezdata[f"intersight.profiles.{self.type}"]['x-intersight-uri-switch'])
                 for e in kwargs.cluster_update[k].names:
                     kwargs.pmoid = kwargs.intersight_api[kwargs.org].profiles['switch'][e].moid
                     deploy_complete = False
@@ -2787,7 +2787,7 @@ class configure:
         for k, v in bulk_list.items():
             if v:
                 kwargs.bulk_list = v
-                kwargs.uri = kwargs.ezdata[f'intersight.pools.{k}.reservations'].intersight_uri
+                kwargs.uri = kwargs.ezdata[f'intersight.pools.{k}.reservations']['x-intersight-uri']
                 kwargs = configure(
                     category='pools',
                     type=self.type).create_bulk_request(kwargs)
@@ -2908,14 +2908,14 @@ class configure:
             policies_cfg = api(category='policies', type='moid_filter')
             for k, v in kwargs.intersight_policies.items():
                 if v:
-                    uri = kwargs.ezdata[f'intersight.policies.{k}'].intersight_uri
+                    uri = kwargs.ezdata[f'intersight.policies.{k}']['x-intersight-uri']
                     kwargs = kwargs | DotMap(method='get', names=v, uri=uri)
                     kwargs = policies_cfg.calls(kwargs)
                     for e in kwargs.results:
                         kwargs.policies[k][e.Moid] = DotMap(
                             name=e.Name, organization=kwargs.org_names[e.Organization.Moid])
             if kwargs.intersight_pools.get('uuid'):
-                uri = kwargs.ezdata['intersight.pools.uuid'].intersight_uri
+                uri = kwargs.ezdata['intersight.pools.uuid']['x-intersight-uri']
                 kwargs = kwargs | DotMap(
                     method='get', names=kwargs.pools['uuid'], uri=uri)
                 kwargs = api(
@@ -3211,7 +3211,7 @@ class configure:
                 api_body, ptitle, kwargs)
         # POST Bulk Request if List > 0
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.domain"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.domain"]['x-intersight-uri']
             kwargs = domain_cfg.create_bulk_request(kwargs)
         # =====================================================================
         # Domain/Unified Edge Switch Profile API Body Creation and Comparison Loop.
@@ -3248,7 +3248,7 @@ class configure:
                 kwargs = switch_cfg.children_compare_api_body(api_body, kwargs)
         # POST Bulk Request if List > 0
         if len(kwargs.bulk_list) > 0:
-            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.domain.switch"].intersight_uri
+            kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.domain.switch"]['x-intersight-uri']
             kwargs = switch_cfg.create_bulk_request(kwargs)
         return kwargs
 

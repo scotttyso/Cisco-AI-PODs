@@ -1,0 +1,1431 @@
+{
+    "$id": "openshift.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "base_dns_domain": {
+            "$ref": "./shared.json#/definitions/domain_name",
+            "description": "The Base DNS Domain for the OpenShift cluster (e.g. `example.com`).  All cluster API and ingress endpoints will be subdomains of this domain.",
+            "examples": [
+                "example.com",
+                "lab.example.com"
+            ],
+            "title": "OpenShift Base DNS Domain"
+        },
+        "certificates": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the OpenShift Certificates configuration.\n\nRequired fields are:\n  * `api_cert_chain_file`\n  * `api_server_hostname`\n  * `api_key_file`\n  * `ingress_cert_chain_file`\n  * `ingress_key_file`\n  * `user_ca_bundle_file`",
+            "properties": {
+                "api_cert_chain_file": {
+                    "description": "Absolute path to the API certificate chain file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/api_cert_chain_file.cer"
+                    ],
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "title": "API Certificate Chain File",
+                    "type": "string"
+                },
+                "api_server_hostname": {
+                    "default": "api.my-cluster.example.com",
+                    "description": "The default value is `api.my-cluster.example.com`.  The Hostname for the OpenShift API.",
+                    "examples": [
+                        "api.my-cluster.example.com"
+                    ],
+                    "$ref": "./shared.json#/definitions/hostname",
+                    "title": "OpenShift API Hostname",
+                    "type": "string"
+                },
+                "api_key_file": {
+                    "description": "Absolute path to the API key file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/api_key_file.key"
+                    ],
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "title": "API Key File",
+                    "type": "string"
+                },
+                "ingress_cert_chain_file": {
+                    "description": "Absolute path to the ingress certificate chain file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/ingress_cert_chain_file.cer"
+                    ],
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "pattern": "^(?:(?:/(?:[^\\0/]+/)*[^\\0/]+)|(?:[A-Za-z]:[\\\\/](?:[^<>:\"|?*\\r\\n]+[\\\\/])*[^<>:\"|?*\\r\\n]+)|(?:\\.{1,2}[\\\\/])?(?:[^<>:\"|?*\\r\\n\\\\/]+[\\\\/])*[^<>:\"|?*\\r\\n\\\\/]+)$",
+                    "title": "Ingress Certificate Chain File",
+                    "type": "string"
+                },
+                "ingress_key_file": {
+                    "description": "Absolute path to the ingress key file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/ingress_key_file.key"
+                    ],
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "pattern": "^(?:(?:/(?:[^\\0/]+/)*[^\\0/]+)|(?:[A-Za-z]:[\\\\/](?:[^<>:\"|?*\\r\\n]+[\\\\/])*[^<>:\"|?*\\r\\n]+)|(?:\\.{1,2}[\\\\/])?(?:[^<>:\"|?*\\r\\n\\\\/]+[\\\\/])*[^<>:\"|?*\\r\\n\\\\/]+)$",
+                    "title": "Ingress Key File",
+                    "type": "string"
+                },
+                "user_ca_bundle_file": {
+                    "description": "Absolute path to the user CA bundle file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/user_ca_bundle_file.cer"
+                    ],
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "pattern": "^(?:(?:/(?:[^\\0/]+/)*[^\\0/]+)|(?:[A-Za-z]:[\\\\/](?:[^<>:\"|?*\\r\\n]+[\\\\/])*[^<>:\"|?*\\r\\n]+)|(?:\\.{1,2}[\\\\/])?(?:[^<>:\"|?*\\r\\n\\\\/]+[\\\\/])*[^<>:\"|?*\\r\\n\\\\/]+)$",
+                    "title": "User CA Bundle File",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "api_cert_chain_file",
+                "api_key_file",
+                "api_server_hostname",
+                "ingress_cert_chain_file",
+                "ingress_key_file",
+                "user_ca_bundle_file"
+            ],
+            "title": "OpenShift Certificates Configuration",
+            "type": "object"
+        },
+        "cluster_name": {
+            "$ref": "./shared.json#/definitions/dns_1123_label",
+            "default": "default",
+            "description": "The default value is `default`.  OpenShift Cluster Name.  Keep cluster names under 24 characters to prevent issues with generated subdomain names and API object limits.\n\nThe cluster name must be unique within the cluster domain and can consist of lowercase letters, numbers, and hyphens. It must start with a letter and end with a letter or number.",
+            "examples": [
+                "cluster-1",
+                "ocp-1"
+            ],
+            "title": "OpenShift Cluster Name",
+            "type": "string"
+        },
+        "install": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the OpenShift Container Platform (OCP) install options.\n\nRequired fields are:\n  * `bare_metal`",
+            "properties": {
+                "bare_metal": {
+                    "$ref": "#/definitions/install.bare_metal"
+                }
+            },
+            "required": [
+                "bare_metal"
+            ],
+            "title": "OpenShift Container Platform (OCP) install options",
+            "type": "object"
+        },
+        "install.bare_metal": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "base_dns_domain": {
+                            "$ref": "./shared.json#/definitions/domain_name"
+                        },
+                        "cluster_name": {
+                            "$ref": "#/definitions/cluster_name"
+                        },
+                        "cluster_networking": {
+                            "$ref": "#/definitions/install.cluster_networking"
+                        },
+                        "cluster_version": {
+                            "$ref": "#/definitions/install.cluster_version"
+                        },
+                        "cpu_architecture": {
+                            "$ref": "#/definitions/install.cpu_architecture"
+                        },
+                        "fabric_interconnects": {
+                            "description": "This array provides the Fabric Interconnect connection settings.\n\nRequired fields are:\n  * `ip`\n  * `password`\n  * `username`",
+                            "items": {
+                                "$ref": "#/definitions/install.bare_metal.fabric_interconnects"
+                            },
+                            "maxItems": 10,
+                            "minItems": 1,
+                            "title": "OpenShift Container Platform (OCP) - BareMetal - Fabric Interconnects",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "iso": {
+                            "default": "full",
+                            "description": "The default value is `full`. Defines the ISO image type for the deployment.\n\nOptions are:\n  * `full`\n  * `minimal`",
+                            "enum": [
+                                "full",
+                                "minimal"
+                            ],
+                            "title": "ISO Image Type",
+                            "type": "string"
+                        },
+                        "iso_web_server": {
+                            "$ref": "#/definitions/install.iso_web_server"
+                        },
+                        "ntp_servers": {
+                            "$ref": "./shared.json#/definitions/ntp_servers"
+                        },
+                        "proxy_servers": {
+                            "$ref": "./shared.json#/definitions/proxy_servers"
+                        },
+                        "servers": {
+                            "additionalProperties": false,
+                            "description": "This object provides the individual host configuration.\n\nRequired fields are:\n  * `hostname`\n  * `interfaces`\n  * `role`\n\nOne of the following is also required:\n  * `redfish`\n  * `fabric_interconnect`\n\nOptional fields are:\n  * `rendezvous`",
+                            "items": {
+                                "$ref": "#/definitions/install.bare_metal.servers"
+                            },
+                            "maxItems": 16,
+                            "minItems": 1,
+                            "title": "OpenShift Container Platform (OCP) - BareMetal - Servers",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "ssh_public_key": {
+                            "$ref": "./shared.json#/definitions/ssh_public_key"
+                        }
+                    },
+                    "required": [
+                        "base_dns_domain",
+                        "cluster_name",
+                        "cluster_networking",
+                        "cluster_version",
+                        "iso_web_server",
+                        "servers",
+                        "ssh_public_key"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs - Red Hat Openshift cluster deployment.\n\nRequired fields are:`cluster_name`\n  * `cluster_domain`\n  * `cluster_networking`\n  * `cluster_version`\n  * `iso_web_server`\n  * `ssh_public_key`\n\nOptional fields are:`cpu_architecture`\n  * `fabric_interconnects`\n  * `iso`\n  * `ntp_servers`\n  * `proxy_servers`",
+            "title": "OpenShift Container Platform (OCP) - Bare Metal Provisioning",
+            "unevaluatedProperties": false
+        },
+        "install.bare_metal.fabric_interconnects": {
+            "additionalProperties": false,
+            "description": "This object provides the connection settings for a Fabric Interconnect.\n\nRequired fields are:\n  * `ip`\n  * `password`\n  * `username`",
+            "properties": {
+                "ip": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_or_ipv6_address",
+                    "default": "198.18.0.1",
+                    "description": "The default value is `198.18.0.1`.  Fabric Interconnect management IP address.",
+                    "title": "Fabric Interconnect IP Address",
+                    "type": "string"
+                },
+                "password": {
+                    "default": 1,
+                    "description": "The default value is `1`.  The Fabric Interconnect password Sensitive Variable Identifier.  A number Between 1-64 to denote the variables fabric_interconnect_password_[1-64].  i.e. `export fabric_interconnect_password_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Fabric Interconnect Password",
+                    "type": "integer"
+                },
+                "username": {
+                    "default": "admin",
+                    "description": "The default value is `admin`.  Fabric Interconnect username.",
+                    "examples": [
+                        "admin"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "pattern": "^[\\S]+$",
+                    "title": "Fabric Interconnect Username",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ip",
+                "password",
+                "username"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Fabric Interconnects",
+            "type": "object"
+        },
+        "install.bare_metal.servers": {
+            "additionalProperties": false,
+            "description": "This object provides the individual host configuration.\n\nRequired fields are:\n  * `hostname`\n  * `interfaces`\n  * `role`\n\nOne of the following is also required:\n  * `redfish`\n  * `fabric_interconnect`\n\nOptional fields are:\n  * `rendezvous`",
+            "oneOf": [
+                {
+                    "required": [
+                        "redfish"
+                    ]
+                },
+                {
+                    "required": [
+                        "fabric_interconnect"
+                    ]
+                }
+            ],
+            "properties": {
+                "fabric_interconnect": {
+                    "$ref": "#/definitions/install.bare_metal.servers.fabric_interconnect"
+                },
+                "hostname": {
+                    "$ref": "./shared.json#/definitions/dns_1123_subdomain"
+                },
+                "interfaces": {
+                    "$ref": "#/definitions/install.bare_metal.servers.interfaces"
+                },
+                "redfish": {
+                    "$ref": "#/definitions/install.bare_metal.servers.redfish"
+                },
+                "rendezvous": {
+                    "description": "Enable rendezvous IP configuration for this host.",
+                    "title": "Rendezvous",
+                    "type": "boolean"
+                },
+                "role": {
+                    "description": "The OpenShift role assigned to the host.\n\nOptions are:\n  * `master`\n  * `worker`",
+                    "enum": [
+                        "master",
+                        "worker"
+                    ],
+                    "title": "Host Role",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "hostname",
+                "interfaces",
+                "role"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Server",
+            "type": "object"
+        },
+        "install.bare_metal.servers.fabric_interconnect": {
+            "additionalProperties": false,
+            "description": "This object maps a server to a Fabric Interconnect and inventory identifier.",
+            "properties": {
+                "id": {
+                    "anyOf": [
+                        {
+                            "minimum": 1,
+                            "title": "Fabric Interconnect ID",
+                            "type": "integer"
+                        },
+                        {
+                            "$ref": "./shared.json#/definitions/ip/properties/ipv4_or_ipv6_address",
+                            "title": "Fabric Interconnect IP Address"
+                        }
+                    ]
+                },
+                "inventory_id": {
+                    "$ref": "./shared.json#/definitions/dns_1123_subdomain",
+                    "title": "Inventory Identifier"
+                }
+            },
+            "required": [
+                "id",
+                "inventory_id"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Fabric Interconnect Mapping",
+            "type": "object"
+        },
+        "install.bare_metal.servers.interfaces": {
+            "additionalProperties": false,
+            "description": "This object provides the host network interface definitions.",
+            "oneOf": [
+                {
+                    "required": [
+                        "bond"
+                    ]
+                },
+                {
+                    "required": [
+                        "ethernet"
+                    ]
+                }
+            ],
+            "properties": {
+                "bond": {
+                    "description": "Bonded interfaces for the host.",
+                    "items": {
+                        "$ref": "#/definitions/install.bare_metal.servers.interfaces.bond"
+                    },
+                    "minItems": 1,
+                    "title": "Bond Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "ethernet": {
+                    "description": "Ethernet interfaces for the host.",
+                    "items": {
+                        "$ref": "#/definitions/install.bare_metal.servers.interfaces.ethernet"
+                    },
+                    "minItems": 1,
+                    "title": "Ethernet Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Host Interfaces",
+            "type": "object"
+        },
+        "install.bare_metal.servers.interfaces.bond": {
+            "additionalProperties": false,
+            "description": "This object provides a bonded interface definition.",
+            "properties": {
+                "interfaces": {
+                    "description": "Member interfaces for the bond.",
+                    "items": {
+                        "$ref": "#/definitions/install.bare_metal.servers.interfaces.bond.member"
+                    },
+                    "minItems": 1,
+                    "title": "Bond Member Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "ipv4": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_network",
+                    "title": "IPv4 Address/Prefix"
+                },
+                "lldp_enabled": {
+                    "description": "Enable LLDP on the bonded interface.",
+                    "title": "LLDP Enabled",
+                    "type": "boolean"
+                },
+                "mtu": {
+                    "description": "MTU to assign.",
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "MTU",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "The name of the bond interface.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Interface Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "interfaces",
+                "ipv4",
+                "lldp_enabled",
+                "name"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Bond Interface",
+            "type": "object"
+        },
+        "install.bare_metal.servers.interfaces.bond.member": {
+            "additionalProperties": false,
+            "description": "This object provides a bond member interface.",
+            "properties": {
+                "mac": {
+                    "$ref": "./shared.json#/definitions/mac_address",
+                    "description": "The MAC address must be in hexadecimal format xx:xx:xx:xx:xx:xx.",
+                    "title": "MAC Address",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "The name of the member interface.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Interface Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "mac",
+                "name"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Bond Member Interface",
+            "type": "object"
+        },
+        "install.bare_metal.servers.interfaces.ethernet": {
+            "additionalProperties": false,
+            "description": "This object provides an ethernet interface definition.",
+            "properties": {
+                "ipv4": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_network",
+                    "title": "IPv4 Address/Prefix"
+                },
+                "lldp_enabled": {
+                    "description": "Enable LLDP on the ethernet interface.",
+                    "title": "LLDP Enabled",
+                    "type": "boolean"
+                },
+                "mac": {
+                    "$ref": "./shared.json#/definitions/mac_address",
+                    "description": "The MAC address must be in hexadecimal format xx:xx:xx:xx:xx:xx.",
+                    "title": "MAC Address",
+                    "type": "string"
+                },
+                "mtu": {
+                    "description": "MTU to assign.",
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "MTU",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "The name of the ethernet interface.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Interface Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ipv4",
+                "lldp_enabled",
+                "mac",
+                "name"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Ethernet Interface",
+            "type": "object"
+        },
+        "install.bare_metal.servers.redfish": {
+            "additionalProperties": false,
+            "description": "This object provides the Redfish connection settings for a host.",
+            "properties": {
+                "ip": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_or_ipv6_address",
+                    "title": "Redfish IP Address"
+                },
+                "password": {
+                    "description": "The Redfish password Sensitive Variable Identifier.  A number Between 1-64 to denote the variables redfish_password_[1-64].  i.e. `export redfish_password_1='cisco123'`.",
+                    "maximum": 64,
+                    "minimum": 1,
+                    "title": "Redfish Password",
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "The Redfish endpoint type.\n\nOptions are:\n  * `bmc`\n  * `cimc`",
+                    "enum": [
+                        "bmc",
+                        "cimc"
+                    ],
+                    "title": "Redfish Type",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Redfish username.",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "pattern": "^[\\S]+$",
+                    "title": "Redfish Username",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ip",
+                "password",
+                "type",
+                "username"
+            ],
+            "title": "OpenShift Container Platform (OCP) - BareMetal - Redfish",
+            "type": "object"
+        },
+        "install.cluster_networking": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "api": {
+                            "$ref": "#/definitions/install.cluster_networking.api"
+                        },
+                        "cluster_network": {
+                            "$ref": "#/definitions/install.cluster_networking.cluster_network"
+                        },
+                        "container_network_interface": {
+                            "default": "OVNKubernetes",
+                            "description": "The default value is `OVNKubernetes`. Defines the Container Network Interface (CNI) for the deployment.",
+                            "enum": [
+                                "Cilium",
+                                "OVNKubernetes"
+                            ],
+                            "title": "Container Network Interface (CNI)",
+                            "type": "string"
+                        },
+                        "container_network_version": {
+                            "default": "1.17.9",
+                            "description": "The default value is `1.17.9`.  OpenShift Container Networking Intersight (CNI) Version.",
+                            "examples": [
+                                "1.17.6",
+                                "1.17.9"
+                            ],
+                            "maxLength": 7,
+                            "minLength": 5,
+                            "pattern": "^[1-9]\\.[0-9]{1,2}\\.[0-9]{1,2}$",
+                            "title": "OpenShift Container Networking Intersight (CNI) Version",
+                            "type": "string"
+                        },
+                        "dns_search_domains": {
+                            "$ref": "./shared.json#/definitions/dns_search_domains"
+                        },
+                        "dns_servers": {
+                            "$ref": "./shared.json#/definitions/dns_servers",
+                            "description": "This array provides the DNS server configuration for the cluster.  The cluster svc will add the internal resolver and there is a limit of three DNS servers for each pod, this should not be more than two DNS servers.",
+                            "maxItems": 2
+                        },
+                        "ingress": {
+                            "$ref": "#/definitions/install.cluster_networking.ingress"
+                        },
+                        "machine_network_gateway": {
+                            "$ref": "#/definitions/install.cluster_networking.machine_network_gateway"
+                        },
+                        "routes": {
+                            "additionalProperties": false,
+                            "description": "This dictionary provides the host routing configuration.  This is defined at the cluster level and will be assigned to the individual nodes.\n\nRequired fields are:\n  * `destination`\n  * `gateway`",
+                            "items": {
+                                "$ref": "#/definitions/install.cluster_networking.routes"
+                            },
+                            "maxItems": 16,
+                            "minItems": 1,
+                            "title": "OpenShift Container Platform (OCP) - Networking - Routes",
+                            "type": "array",
+                            "uniqueItems": true
+                        },
+                        "service_network": {
+                            "$ref": "#/definitions/install.cluster_networking.service_network"
+                        }
+                    },
+                    "required": [
+                        "api",
+                        "cluster_network",
+                        "ingress",
+                        "machine_network_gateway",
+                        "routes",
+                        "service_network"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster network configuration.\n\nRequired fields are:\n  * `api`\n  * `ingress`\n  * `machine_network_gateway`\n  * `routes`\n\nOptional fields are:\n  * `container_network_interface`\n  * `container_network_version`\n  * `dns_search_domains`\n  * `dns_servers`\n  * `service_network`",
+            "title": "OpenShift Container Platform (OCP) - Networking",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.api": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "v4": {
+                            "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                            "default": "198.18.0.9",
+                            "description": "OpenShift Cluster API - IPv4 address.",
+                            "title": "OpenShift Cluster API - IPv4 address"
+                        },
+                        "v6": {
+                            "$ref": "./shared.json#/definitions/ip/properties/ipv6_address",
+                            "default": "2001:db8::9",
+                            "description": "OpenShift Cluster API - IPv6 address.",
+                            "title": "OpenShift Cluster API - IPv6 address"
+                        }
+                    },
+                    "required": [],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster API addressing.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
+            "title": "OpenShift Container Platform (OCP) - Networking - API",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.cluster_network": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "v4_cidr": {
+                            "default": "10.128.0.0/14",
+                            "description": "The default value is `10.128.0.0/14`.  OpenShift Cluster Network - IPv4 CIDR address.  Refers to the Pod Network CIDR, which is the IP address range from which individual Pods within the cluster are allocated IP addresses.",
+                            "examples": [
+                                "10.128.0.0/14"
+                            ],
+                            "maxLength": 18,
+                            "minLength": 9,
+                            "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}(?:\\/(?:3[0-2]|[0-2]?\\d))$",
+                            "title": "OpenShift Cluster Network - IPv4 CIDR address",
+                            "type": "string"
+                        },
+                        "v4_host_prefix": {
+                            "default": 23,
+                            "description": "The default value is `23`.  OpenShift Cluster Network - IPv4 Host Prefix.  It defines the subnet prefix length assigned to each individual node within the cluster's overall network CIDR.",
+                            "examples": [
+                                23
+                            ],
+                            "maximum": 32,
+                            "minimum": 1,
+                            "title": "OpenShift Cluster Network - IPv4 Host Prefix",
+                            "type": "integer"
+                        },
+                        "v6_cidr": {
+                            "default": "2001:db8:128::/48",
+                            "description": "The default value is `2001:db8:128::/48`.  OpenShift Cluster Network - IPv6 CIDR address.  Refers to the Pod Network CIDR, which is the IP address range from which individual Pods within the cluster are allocated IP addresses.",
+                            "examples": [
+                                "2001:db8:128::/48"
+                            ],
+                            "maxLength": 43,
+                            "minLength": 8,
+                            "pattern": "^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))(?:\\/(?:12[0-8]|1[0-1][0-9]|\\d{1,2}))$",
+                            "title": "OpenShift Cluster Network - IPv6 CIDR address",
+                            "type": "string"
+                        },
+                        "v6_host_prefix": {
+                            "default": 48,
+                            "description": "The default value is `48`.  OpenShift Cluster Network - IPv6 Host Prefix.  It defines the subnet prefix length assigned to each individual node within the cluster's overall network CIDR.",
+                            "examples": [
+                                48
+                            ],
+                            "maximum": 128,
+                            "minimum": 1,
+                            "title": "OpenShift Cluster Network - IPv6 Host Prefix",
+                            "type": "integer"
+                        }
+                    },
+                    "required": [],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster network addressing.  The cluster network refers to the interconnected system of logical and physical links that enable communication within a Kubernetes cluster, adhering to the Kubernetes networking model.\n\nOptional fields are:\n  * `v4_cidr`\n  * `v4_host_prefix`\n  * `v6_cidr`\n  * `v6_host_prefix`",
+            "title": "OpenShift Container Platform (OCP) - Cluster Network",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.ingress": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "v4": {
+                            "default": "198.18.0.10",
+                            "description": "The default value is `198.18.0.10`.  OpenShift Cluster Ingress - IPv4 address.",
+                            "examples": [
+                                "198.18.0.10"
+                            ],
+                            "maxLength": 15,
+                            "minLength": 7,
+                            "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$",
+                            "title": "OpenShift Cluster Ingress - IPv4 address",
+                            "type": "string"
+                        },
+                        "v6": {
+                            "default": "2001:db8::10",
+                            "description": "The default value is `2001:db8::10`.  OpenShift Cluster Ingress - IPv6 address.",
+                            "examples": [
+                                "2001:db8::10"
+                            ],
+                            "maxLength": 39,
+                            "minLength": 6,
+                            "pattern": "^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))$",
+                            "title": "OpenShift Cluster Ingress - IPv6 address",
+                            "type": "string"
+                        }
+                    },
+                    "required": [],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster ingress addressing.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
+            "title": "OpenShift Container Platform (OCP) - Networking - Ingress",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.machine_network_gateway": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "v4": {
+                            "default": "198.18.0.1/24",
+                            "description": "The default value is `198.18.0.1/24`.  OpenShift Machine Network Gateway - IPv4 Gateway/Prefix.  This is the frontend network for the cluster.  So we will define the gateway so that it isn't a requirement to also define the default route for the nodes.",
+                            "examples": [
+                                "198.18.0.1/24"
+                            ],
+                            "maxLength": 18,
+                            "minLength": 9,
+                            "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}(?:\\/(?:3[0-2]|[0-2]?\\d))$",
+                            "title": "OpenShift Service Network - IPv4 Gateway address",
+                            "type": "string"
+                        },
+                        "v6": {
+                            "default": "2001:db8::1/64",
+                            "description": "The default value is `2001:db8::1/64`.  OpenShift Machine Network - IPv6 Gateway/Prefix.  This is the frontend network for the cluster.  So we will define the gateway so that it isn't a requirement to also define the default route for the nodes.",
+                            "examples": [
+                                "2001:db8::1/64"
+                            ],
+                            "maxLength": 43,
+                            "minLength": 8,
+                            "pattern": "^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))(?:\\/(?:12[0-8]|1[0-1][0-9]|\\d{1,2}))$",
+                            "title": "OpenShift Machine Network - IPv6 Gateway address",
+                            "type": "string"
+                        }
+                    },
+                    "required": [],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift machine network gateway addressing.  A \"k8s machine network\" refers to the networking infrastructure within a Kubernetes cluster that allows all its components\u2014including containers, pods, and nodes\u2014to communicate with each other and with external services.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
+            "title": "OpenShift Container Platform (OCP) - Machine Network Gateway",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.routes": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "destination": {
+                            "$ref": "./shared.json#/definitions/ip/properties/ipv4_or_ipv6_network",
+                            "default": "198.18.0.0/24",
+                            "description": "The default value is `198.18.0.0/24`.  IPv4/IPv6 Destination/Prefix.",
+                            "title": "IPv4/IPv6 Destination/Prefix",
+                            "type": "string"
+                        },
+                        "gateway": {
+                            "allOf": [
+                                {
+                                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_or_ipv6_address"
+                                }
+                            ],
+                            "default": "198.18.0.1",
+                            "description": "The default value is `198.18.0.1`.  IPv4/IPv6 gateway/next-hop-address for the destination.",
+                            "title": "IPv4/IPv6 Gateway",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "destination",
+                        "gateway"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "See description for array",
+            "title": "OpenShift Container Platform (OCP) - Machine Network Gateway",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_networking.service_network": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "v4_cidr": {
+                            "default": "172.30.0.0/16",
+                            "description": "The default value is `172.30.0.0/16`.  OpenShift Service Network - IPv4 CIDR address.  The Kubernetes Service Network CIDR refers to a specific range of IP addresses, defined using Classless Inter-Domain Routing (CIDR) notation, that is reserved for the internal IP addresses of Kubernetes Services within a cluster.",
+                            "examples": [
+                                "172.30.0.0/16"
+                            ],
+                            "maxLength": 18,
+                            "minLength": 9,
+                            "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}(?:\\/(?:3[0-2]|[0-2]?\\d))$",
+                            "title": "OpenShift Service Network - IPv4 CIDR address",
+                            "type": "string"
+                        },
+                        "v6_cidr": {
+                            "default": "2001:db8:30::/64",
+                            "description": "The default value is `2001:db8:30::/64`.  OpenShift Service Network - IPv6 CIDR address.  The Kubernetes Service Network CIDR refers to a specific range of IP addresses, defined using Classless Inter-Domain Routing (CIDR) notation, that is reserved for the internal IP addresses of Kubernetes Services within a cluster.",
+                            "examples": [
+                                "2001:db8:30::/64"
+                            ],
+                            "maxLength": 43,
+                            "minLength": 8,
+                            "pattern": "^((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))(?:\\/(?:12[0-8]|1[0-1][0-9]|\\d{1,2}))$",
+                            "title": "OpenShift Service Network - IPv6 CIDR address",
+                            "type": "string"
+                        }
+                    },
+                    "required": [],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift service network addressing.   The \"service network\" refers to the system that enables communication between different parts of your application and exposes services both within and outside the cluster. It provides a stable and reliable way to access your applications, abstracting away the dynamic nature of individual Pods.\n\nOptional fields are:\n  * `v4_cidr`\n  * `v6_cidr`",
+            "title": "OpenShift Container Platform (OCP) - Service Network",
+            "unevaluatedProperties": false
+        },
+        "install.cluster_version": {
+            "default": "4.20.16",
+            "description": "The default value is `4.20.16`.  OpenShift Cluster Version.",
+            "examples": [
+                "4.20.16",
+                "4.19.23"
+            ],
+            "maxLength": 7,
+            "minLength": 5,
+            "pattern": "^4\\.[0-9]{1,2}\\.[0-9]{1,2}$",
+            "title": "OpenShift Cluster Version",
+            "type": "string"
+        },
+        "install.cpu_architecture": {
+            "default": "x86_64",
+            "description": "The default value is `x86_64`. Defines the CPU Architecture for the physical servers.",
+            "enum": [
+                "ppc64le",
+                "s390x",
+                "x86_64"
+            ],
+            "title": "OpenShift CPU Architecture",
+            "type": "string"
+        },
+        "install.iso_web_server": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "image_base_url": {
+                            "default": "http://your-machine-ip:8080",
+                            "description": "The default value is `http://your-machine-ip:8080`.  Web Server Base URL.",
+                            "examples": [
+                                "http://your-machine-ip:8080",
+                                "http://your-machine-ip:8080/isos"
+                            ],
+                            "maxLength": 512,
+                            "minLength": 5,
+                            "pattern": "^[\\w\\d\\-\\/:\\.]+$",
+                            "title": "Web Server Base URL",
+                            "type": "string"
+                        },
+                        "image_upload_directory": {
+                            "default": "/var/www/html/isos",
+                            "description": "The default value is `/var/www/html/isos`. Local file path for ISO upload directory.",
+                            "examples": [
+                                "/var/www/html/",
+                                "/var/www/html/isos"
+                            ],
+                            "maxLength": 512,
+                            "minLength": 5,
+                            "pattern": "^[\\w\\d\\-\\/:\\.]+$",
+                            "title": "Local File Path for ISO Upload Directory",
+                            "type": "string"
+                        },
+                        "password": {
+                            "description": "The ISO Web Server password Sensitive Variable Identifier for password based authentication when not usign the `locahost` option.  A number Between 1-64 to denote the variables iso_web_server_password_[1-64].  i.e. `export iso_web_server_password_1='password123'`.",
+                            "maximum": 64,
+                            "minimum": 1,
+                            "title": "ISO Web Server Password",
+                            "type": "integer"
+                        },
+                        "server_address": {
+                            "default": "localhost",
+                            "description": "The default value is `localhost`.  Server address of the hosting web server for login.",
+                            "examples": [
+                                "localhost",
+                                "198.18.0.1",
+                                "2001:db8::1"
+                            ],
+                            "maxLength": 255,
+                            "minLength": 4,
+                            "pattern": "^localhost|(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))|((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6})$",
+                            "title": "Server Address",
+                            "type": "string"
+                        },
+                        "ssh_public_key": {
+                            "description": "The SSH Public Key Sensitive Variable Identifier for SSH based authentication when not using the `localhost` option.  A number Between 1-64 to denote the variables ssh_public_key_[1-64].  i.e. `export ssh_public_key_1='ssh-rsa AAAA...'`.",
+                            "maximum": 64,
+                            "minimum": 1,
+                            "title": "SSH Public Key",
+                            "type": "integer"
+                        },
+                        "username": {
+                            "description": "ISO Web Server username for login, if not using the `localhost` option.",
+                            "examples": [
+                                "admin",
+                                "root"
+                            ],
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "pattern": "^[\\S]+$",
+                            "title": "ISO Web Server Username",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "image_base_url",
+                        "image_upload_directory",
+                        "server_address"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the required configuration settings for the web server that will host the installation ISO.\n\nRequired fields are:\n  * `image_base_url`\n  * `image_upload_directory`\n  * `server_address`\n\nOptional fields are:\n  * `password`\n  * `ssh_public_key`\n  * `username`",
+            "title": "ISO Web Server Configuration",
+            "unevaluatedProperties": false
+        },
+        "ldap": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the LDAP Identity Provider settings for OpenShift.\n\nRequired fields are:\n  * `base_dn`\n  * `bind_dn`\n  * `secure_ldap`\n  * `url`\n\nOptional fields are:\n  * `base_dn_groups`\n  * `base_dn_users`",
+            "properties": {
+                "base_dn": {
+                    "description": "The LDAP Base Distinguished Name used as the search base for authentication to the cluster (e.g. `DC=example,DC=com`).",
+                    "examples": [
+                        "DC=example,DC=com"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "LDAP Base Distinguished Name",
+                    "type": "string"
+                },
+                "base_dn_groups": {
+                    "description": "The LDAP Base Distinguished Name used as the search base for group entries, if unique from `base_dn`.  (e.g. `OU=Groups,DC=example,DC=com`).",
+                    "examples": [
+                        "OU=Groups,DC=example,DC=com"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "LDAP Base Distinguished Name for Groups",
+                    "type": "string"
+                },
+                "base_dn_users": {
+                    "description": "The LDAP Base Distinguished Name used as the search base for user entries, if unique from `base_dn`.  (e.g. `OU=Users,DC=example,DC=com`).",
+                    "examples": [
+                        "OU=Users,DC=example,DC=com"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "LDAP Base Distinguished Name for Users",
+                    "type": "string"
+                },
+                "bind_dn": {
+                    "description": "The Distinguished Name of the service account used to bind to the LDAP directory (e.g. `CN=Service Account,OU=Service Accounts,DC=example,DC=com`).",
+                    "examples": [
+                        "CN=Service Account,OU=Service Accounts,DC=example,DC=com"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "LDAP Bind Distinguished Name",
+                    "type": "string"
+                },
+                "certificate_file_path": {
+                    "description": "Path to the CA certificate file used to verify the LDAP server's TLS certificate (e.g. `ca.crt`).",
+                    "examples": [
+                        "ca.crt",
+                        "/etc/ssl/certs/ldap-ca.crt"
+                    ],
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "title": "LDAP CA Certificate File Path",
+                    "type": "string"
+                },
+                "cluster_admins": {
+                    "description": "List of LDAP group names to grant OpenShift cluster-admin privileges.",
+                    "items": {
+                        "description": "LDAP group name to grant cluster-admin access.",
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "title": "Cluster Admin Group",
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "title": "Cluster Admin Groups",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "group_uid_mappings": {
+                    "additionalProperties": {
+                        "description": "OpenShift group name to map this LDAP group DN to.",
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "description": "Mapping of LDAP group Distinguished Names to OpenShift group names.  Keys are LDAP group DNs, values are the corresponding OpenShift group names.",
+                    "examples": [
+                        {
+                            "CN=Lab Admin,OU=Cisco Employees,DC=example,DC=com": "lab-admins"
+                        }
+                    ],
+                    "title": "LDAP Group UID Mappings",
+                    "type": "object"
+                },
+                "secure_ldap": {
+                    "default": true,
+                    "description": "The default value is `true`.  Whether to use LDAPS (secure LDAP over TLS) for the connection.",
+                    "title": "Secure LDAP",
+                    "type": "boolean"
+                },
+                "url": {
+                    "description": "The LDAP URL used for group synchronization and authentication (e.g. `ldaps://ad.example.com:636`).",
+                    "examples": [
+                        "ldaps://ad.example.com:636",
+                        "ldap://ad.example.com:389"
+                    ],
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "pattern": "^ldaps?://",
+                    "title": "LDAP Sync URL",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "base_dn",
+                "bind_dn",
+                "cluster_admins",
+                "group_uid_mappings",
+                "secure_ldap",
+                "url"
+            ],
+            "title": "OpenShift LDAP Identity Provider",
+            "type": "object"
+        },
+        "operators": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
+            "dependentRequired": {
+                "operators_to_install": [
+                    "openshift_gitops"
+                ]
+            },
+            "properties": {
+                "cilium": {
+                    "$ref": "#/definitions/operators.cilium"
+                },
+                "gitea": {
+                    "$ref": "#/definitions/operators.gitea"
+                },
+                "nvidia_gpu_operator": {
+                    "$ref": "#/definitions/operators.nvidia_gpu_operator"
+                },
+                "nvidia_network_operator": {
+                    "$ref": "#/definitions/operators.nvidia_network_operator"
+                },
+                "openshift_gitops": {
+                    "$ref": "#/definitions/operators.openshift_gitops"
+                },
+                "operators_to_install": {
+                    "description": "List of operators to install on the OpenShift cluster.  Supported operators include:\n  * `aap` - Ansible Automation Platform\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift\n  * `cisco-intersight` - Cisco Intersight Operator\n  * `external-secrets-operator` - External Secrets Operator for Red Hat OpenShift\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator\n  * `nvidia-network-operator` - NVIDIA Network Operator\n  * `openshift-cnv` - OpenShift Virtualization\n  * `openshift-nmstate` - Kubernetes NMState Operator\n  * `openshift-nfd` - Node Feature Discovery Operator\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator\n  * `redhat-ods-operator` - Red Hat OpenShift AI\n\nNotes:\n\nThe following will automatically be installed:\n\n  * `lldpd` - The LLDPD DaemonSet for Network Discovery\n\nThe `openshift_gitops` operator is automatically installed if `operators_to_install` includes any operators.\n\nThe `openshift-ods-operator` (AKA Red Hat OpenShift AI) will also install the following operators:\n\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift - If not already selected.\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator.  If not already selected.\n  * `nvidia-network-operator` - NVIDIA Network Operator.  If not already selected.\n  * `openshift-cluster-observability-operator` - Cluster Observability Operator.\n  * `openshift-connectivity-link` - Red Hat Connectivity Link.  The Authorino, DNS, and Limitador Operators are automatically installed as dependencies of the Red Hat Connectivity Link Operator.\n  * `openshift-jobset-operator` - Job Set Operator.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-keda` - Custom Metrics Autoscaler\n  * `openshift-kmm` - Kernel Module Management\n  * `openshift-kueue-operator` - Red Hat build of Kueue.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-lws-operator` - Red Hat build of Leader Worker Set\n  * `openshift-nfd` - Node Feature Discovery Operator.  If not already selected.\n  * `openshift-opentelemetry-operator` - Red Hat build of OpenTelemetry\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator.  If not already selected.\n  * `openshift-tempo-operator` - Tempo Operator",
+                    "items": {
+                        "description": "Operator name to install.",
+                        "enum": [
+                            "aap",
+                            "cert-manager-operator",
+                            "cisco-intersight",
+                            "external-secrets-operator",
+                            "nvidia-gpu-operator",
+                            "nvidia-network-operator",
+                            "openshift-nfd",
+                            "openshift-nmstate",
+                            "openshift-cnv",
+                            "openshift-sriov-network-operator",
+                            "redhat-ods-operator"
+                        ],
+                        "title": "Operator's to Install - Based on the Operator Namespace",
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "title": "Operators to Install - Based on the Operator Namespace",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "portworx": {
+                    "$ref": "#/definitions/operators.portworx"
+                },
+                "redhat_ods_operator": {
+                    "$ref": "#/definitions/operators.redhat_ods_operator"
+                }
+            },
+            "required": [
+            ],
+            "title": "OpenShift Operators",
+            "type": "object"
+        },
+        "operators.cilium": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Cilium CNI operator configuration.\n\nRequired fields are:\n  * `download_url`",
+            "properties": {
+                "cluster_network": {
+                    "$ref": "#/definitions/operators.cilium.cluster_network"
+                },
+                "download_url": {
+                    "description": "Download URL for the Cilium operator bundle.  Obtain the latest link from https://docs.isovalent.com.",
+                    "examples": [
+                        "https://docs.isovalent.com/v25.11/public/clife/clife-v1.18.8.tar.gz"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^https?://",
+                    "title": "Cilium Download URL",
+                    "type": "string"
+                },
+                "enable_hubble_metrics": {
+                    "default": true,
+                    "description": "The default value is `true`.  Whether to enable Hubble metrics for observability.",
+                    "title": "Enable Hubble Metrics",
+                    "type": "boolean"
+                },
+                "enable_kube_proxy_replacement": {
+                    "default": true,
+                    "description": "The default value is `true`.  Whether to enable Cilium kube-proxy replacement mode.",
+                    "title": "Enable Kube-Proxy Replacement",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "cluster_network",
+                "download_url"
+            ],
+            "title": "Cilium CNI Operator Configuration",
+            "type": "object"
+        },
+        "operators.cilium.cluster_network": {
+            "additionalProperties": false,
+            "description": "This object defines the Cilium cluster network CIDR settings.",
+            "properties": {
+                "v4_cidr": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_network",
+                    "title": "IPv4 Cluster Network CIDR"
+                },
+                "v4_host_prefix": {
+                    "description": "The prefix length allocated to each node for pod IP addresses (e.g. `23` gives each node a /23 block).",
+                    "examples": [
+                        23
+                    ],
+                    "maximum": 32,
+                    "minimum": 0,
+                    "title": "IPv4 Host Prefix",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "v4_cidr",
+                "v4_host_prefix"
+            ],
+            "title": "Cilium Cluster Network",
+            "type": "object"
+        },
+        "operators.gitea": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Gitea operator configuration.\n\nRequired fields are:\n  * `enable`",
+            "properties": {
+                "enable": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether to enable the Gitea operator.",
+                    "title": "Enable Gitea Operator",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enable"
+            ],
+            "title": "Gitea Operator Configuration",
+            "type": "object"
+        },
+        "operators.nvidia_gpu_operator": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the NVIDIA GPU Operator configuration.\n\nRequired fields are:\n  * `enable_rdma`",
+            "properties": {
+                "enable_rdma": {
+                    "default": true,
+                    "description": "Default value is `true`.  Flag to enable RDMA for the NVIDIA GPU Operator.",
+                    "title": "Enable RDMA for NVIDIA GPU Operator",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enable_rdma"
+            ],
+            "title": "NVIDIA GPU Operator Configuration",
+            "type": "object"
+        },
+        "operators.nvidia_network_operator": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the NVIDIA Network Operator configuration.\n\nRequired fields are:\n  * `mac_vlan`\n  * `network_operator_version`\n  * `persistent_net_rules`",
+            "properties": {
+                "mac_vlan": {
+                    "description": "List of MacVLAN network configurations for the NVIDIA Network Operator.",
+                    "items": {
+                        "$ref": "#/definitions/operators.nvidia_network_operator.mac_vlan"
+                    },
+                    "minItems": 1,
+                    "title": "MacVLAN Configurations",
+                    "type": "array"
+                },
+                "network_operator_version": {
+                    "default": "v26.4.0",
+                    "description": "The version of the NVIDIA Network Operator.",
+                    "examples": [
+                        "v25.10.0",
+                        "v26.1.0",
+                        "v26.4.0",
+                        "v26.7.0"
+                    ],
+                    "maxLength": 25,
+                    "minLength": 1,
+                    "pattern": "^v\\d{2,3}\\.\\d{1,2}\\.\\d{1,2}$",
+                    "title": "Network Operator Version",
+                    "type": "string"
+                },
+                "persistent_net_rules": {
+                    "description": "List of persistent network interface name rules per host.",
+                    "items": {
+                        "$ref": "#/definitions/operators.nvidia_network_operator.persistent_net_rules"
+                    },
+                    "minItems": 1,
+                    "title": "Persistent Network Rules",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "mac_vlan",
+                "network_operator_version",
+                "persistent_net_rules"
+            ],
+            "title": "NVIDIA Network Operator Configuration",
+            "type": "object"
+        },
+        "operators.nvidia_network_operator.mac_vlan": {
+            "additionalProperties": false,
+            "description": "This object defines a MacVLAN network configuration entry.",
+            "properties": {
+                "exclude_ips": {
+                    "description": "List of IP addresses or CIDR ranges to exclude from the MacVLAN pool.",
+                    "items": {
+                        "$ref": "./shared.json#/definitions/ip/properties/ipv4_network",
+                        "title": "Excluded IP/CIDR"
+                    },
+                    "minItems": 1,
+                    "title": "Exclude IPs",
+                    "type": "array"
+                },
+                "ip_range": {
+                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_network",
+                    "title": "MacVLAN IP Range"
+                },
+                "master_interface": {
+                    "description": "The name of the master (parent) network interface for the MacVLAN.",
+                    "examples": [
+                        "ens201f0np0",
+                        "eth0"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Master Interface",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "exclude_ips",
+                "ip_range",
+                "master_interface"
+            ],
+            "title": "MacVLAN Configuration",
+            "type": "object"
+        },
+        "operators.nvidia_network_operator.persistent_net_rules": {
+            "additionalProperties": false,
+            "description": "This object defines persistent network interface name rules for a specific host.",
+            "properties": {
+                "hostname": {
+                    "$ref": "./shared.json#/definitions/dns_1123_subdomain",
+                    "title": "Hostname"
+                },
+                "interfaces": {
+                    "description": "List of interface name-to-MAC address bindings for this host.",
+                    "items": {
+                        "$ref": "#/definitions/operators.nvidia_network_operator.persistent_net_rules.interfaces"
+                    },
+                    "minItems": 1,
+                    "title": "Interfaces",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "hostname",
+                "interfaces"
+            ],
+            "title": "Persistent Network Rules",
+            "type": "object"
+        },
+        "operators.nvidia_network_operator.persistent_net_rules.interfaces": {
+            "additionalProperties": false,
+            "description": "This object maps a persistent interface name to its MAC address.",
+            "properties": {
+                "mac": {
+                    "$ref": "./shared.json#/definitions/mac_address",
+                    "description": "MAC address of the interface.",
+                    "title": "MAC Address",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "The desired persistent interface name.",
+                    "examples": [
+                        "ens201f0np0"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^([a-zA-Z0-9][a-zA-Z0-9\\._-]{0,61})?[a-zA-Z0-9]$",
+                    "title": "Interface Name",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "mac",
+                "name"
+            ],
+            "title": "Persistent Interface Mapping",
+            "type": "object"
+        },
+        "operators.openshift_gitops": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the OpenShift GitOps (ArgoCD) operator configuration.\n\nRequired fields are:\n  * `enable`\n  * `gitops_repo_url`\n\nOptional fields are:\n  * `prune`\n  * `self_heal`",
+            "properties": {
+                "enable": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether to enable the OpenShift GitOps (Argo CD) Operator.",
+                    "title": "Enable OpenShift GitOps Operator",
+                    "type": "boolean"
+                },
+                "gitops_repo_url": {
+                    "description": "URL of the Git repository used by OpenShift GitOps (ArgoCD) for application deployment.",
+                    "examples": [
+                        "https://github.com/example/openshift-gitops-repo.git"
+                    ],
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "pattern": "^https?://",
+                    "title": "GitOps Repository URL",
+                    "type": "string"
+                },
+                "prune": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether ArgoCD should automatically delete resources that are no longer defined in the Git repository.",
+                    "title": "Prune Resources",
+                    "type": "boolean"
+                },
+                "self_heal": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether ArgoCD should automatically correct drift by re-applying the desired state from the Git repository.",
+                    "title": "Self Heal",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enable",
+                "gitops_repo_url"
+            ],
+            "title": "OpenShift GitOps Configuration",
+            "type": "object"
+        },
+        "operators.portworx": {
+            "additionalProperties": false,
+            "description": "This dictionary defines Portworx operator settings.",
+            "properties": {
+                "enabled": {
+                    "default": false,
+                    "description": "The default value is `false`.  Whether to enable Portworx deployment.",
+                    "title": "Enable Portworx",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enabled"
+            ],
+            "title": "Portworx Operator Configuration",
+            "type": "object"
+        },
+        "operators.redhat_ods_operator": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the Red Hat OpenShift Data Science (ODS) Operator configuration.\n\nRequired fields are:\n  * `enable_distributed_workloads`",
+            "properties": {
+                "enable_distributed_workloads": {
+                    "default": true,
+                    "description": "Default value is `true`.  Flag to enable distributed workloads for the Red Hat OpenShift Data Science (ODS) Operator.",
+                    "title": "Enable Distributed Workloads for Red Hat ODS Operator",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "enable_distributed_workloads"
+            ],
+            "title": "Red Hat ODS Operator Configuration",
+            "type": "object"
+        }
+    },
+    "description": "JSON Schema for validating Cisco AI POD OpenShift settings, including operators, GitOps configuration, and other OpenShift-related configurations.",
+    "title": "Cisco AI PODs - OpenShift Schema"
+}
