@@ -1,5 +1,0 @@
----
-intersight_api_key_id: "{{ lookup('ansible.builtin.env', 'intersight_api_key_id') }}"
-intersight_api_private_key: "{{ lookup('ansible.builtin.env', 'intersight_api_private_key') | default(omit, true) }}"
-intersight_api_uri: "https://intersight.com"
-intersight_validate_certs: true
