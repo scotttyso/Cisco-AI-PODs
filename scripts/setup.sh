@@ -57,6 +57,17 @@ die() {
     exit 1
 }
 
+create_virtual_environment() {
+    if python3 -m venv "$VENV_DIR"; then
+        return 0
+    fi
+
+    warn "python3 venv support is unavailable; installing the virtualenv fallback"
+    rm -rf "$VENV_DIR"
+    python3 -m pip install --user virtualenv || python3 -m pip install virtualenv
+    python3 -m virtualenv "$VENV_DIR"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --git-name)
@@ -111,10 +122,10 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
             sudo apt install -y git python3 python3-pip python3-venv
         elif command -v dnf >/dev/null 2>&1; then
             log "Installing Git and Python system packages with dnf"
-            sudo dnf install -y git python3 python3-pip python3-venv
+            sudo dnf install -y git python3 python3-pip
         elif command -v yum >/dev/null 2>&1; then
             log "Installing Git and Python system packages with yum"
-            sudo yum install -y git python3 python3-pip python3-venv
+            sudo yum install -y git python3 python3-pip
         else
             warn "No supported package manager found (apt, dnf, or yum); skipping OS package install"
         fi
@@ -191,7 +202,7 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
     fi
 
     log "Creating virtual environment at ${VENV_DIR}"
-    python3 -m venv "$VENV_DIR"
+    create_virtual_environment
 
     # shellcheck disable=SC1090
     source "${VENV_DIR}/bin/activate"

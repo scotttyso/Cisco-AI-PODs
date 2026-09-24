@@ -406,13 +406,7 @@ class configure:
                         value.get(
                             'objectType',
                             ''))).strip().lower()
-                moid = str(
-                    value.get(
-                        'Moid',
-                        value.get(
-                            'moid',
-                            ''))).strip().lower()
-                return (0, 0, object_type, moid)
+                return (0, 0, object_type)
             if self.type == 'system_qos' and path == 'Classes' and isinstance(
                     value, dict):
                 class_name = value.get('Name', value.get('name'))
