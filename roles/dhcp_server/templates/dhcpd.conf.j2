@@ -1,0 +1,106 @@
+{{ ansible_managed | comment }}
+# Managed by the dhcp_server Ansible role - local changes will be overwritten.
+
+# RFC 5859 / Cisco NX-OS POAP uses option 150 for the TFTP server address list.
+option tftp-server-address code 150 = array of ip-address;
+
+ddns-update-style none;
+{% if dhcp.authoritative | default(true) %}
+authoritative;
+{% endif %}
+default-lease-time {{ dhcp.default_lease_time | default(3600) }};
+max-lease-time {{ dhcp.max_lease_time | default(86400) }};
+log-facility local7;
+{% if dhcp.domain_name is defined %}
+option domain-name "{{ dhcp.domain_name }}";
+{% endif %}
+{% if dhcp.domain_name_servers is defined %}
+option domain-name-servers {{ dhcp.domain_name_servers | join(', ') }};
+{% endif %}
+{% if dhcp.ntp_servers is defined %}
+option ntp-servers {{ dhcp.ntp_servers | join(', ') }};
+{% endif %}
+{% for opt in dhcp.global_options | default([]) %}
+option {{ opt.name }} {{ opt.value }};
+{% endfor %}
+
+{% for subnet in dhcp.subnets %}
+# --- {{ subnet.name }} ---
+subnet {{ subnet.network }} netmask {{ subnet.netmask }} {
+{% if subnet.routers is defined %}
+  option routers {{ (subnet.routers if subnet.routers is sequence and subnet.routers is not string else [subnet.routers]) | join(', ') }};
+{% endif %}
+  option subnet-mask {{ subnet.netmask }};
+{% if subnet.domain_name is defined %}
+  option domain-name "{{ subnet.domain_name }}";
+{% endif %}
+{% if subnet.domain_name_servers is defined %}
+  option domain-name-servers {{ subnet.domain_name_servers | join(', ') }};
+{% endif %}
+{% if subnet.ntp_servers is defined %}
+  option ntp-servers {{ subnet.ntp_servers | join(', ') }};
+{% endif %}
+{% if subnet.broadcast_address is defined %}
+  option broadcast-address {{ subnet.broadcast_address }};
+{% endif %}
+{% if subnet.mtu is defined %}
+  option interface-mtu {{ subnet.mtu }};
+{% endif %}
+{% if subnet.default_lease_time is defined %}
+  default-lease-time {{ subnet.default_lease_time }};
+{% endif %}
+{% if subnet.max_lease_time is defined %}
+  max-lease-time {{ subnet.max_lease_time }};
+{% endif %}
+{% if subnet.tftp_server is defined %}
+  # Nexus Dashboard data interface IP serving POAP / boot artifacts.
+  next-server {{ subnet.tftp_server }};
+  option tftp-server-name "{{ subnet.tftp_server }}";
+  option tftp-server-address {{ subnet.tftp_server }};
+{% endif %}
+{% if subnet.bootfile is defined %}
+  option bootfile-name "{{ subnet.bootfile }}";
+{% endif %}
+{% for opt in subnet.options | default([]) %}
+  option {{ opt.name }} {{ opt.value }};
+{% endfor %}
+{% for pool in subnet.ranges | default([]) %}
+  range {{ pool.start }} {{ pool.end }};
+{% endfor %}
+{% if subnet.deny_unknown_clients | default(false) %}
+  deny unknown-clients;
+{% endif %}
+}
+
+{% endfor %}
+{% for host in dhcp.reservations | default([]) %}
+{% set subnet = (dhcp.subnets | selectattr('name', 'equalto', host.subnet | default('')) | list | first) | default({}) %}
+{% set host_name = host.hostname | default(host.mac | replace(':', '')) %}
+host {{ host_name }} {
+  hardware ethernet {{ host.mac | lower }};
+  fixed-address {{ host.ip }};
+{% if host.hostname is defined %}
+  option host-name "{{ host_name }}";
+{% endif %}
+{% if host.domain_name_servers is defined %}
+  option domain-name-servers {{ host.domain_name_servers | join(', ') }};
+{% endif %}
+{% if host.routers is defined %}
+  option routers {{ host.routers }};
+{% endif %}
+{% set tftp = host.tftp_server | default(subnet.tftp_server | default(None)) %}
+{% if tftp %}
+  next-server {{ tftp }};
+  option tftp-server-name "{{ tftp }}";
+  option tftp-server-address {{ tftp }};
+{% endif %}
+{% set boot = host.bootfile | default(subnet.bootfile | default(None)) %}
+{% if boot %}
+  option bootfile-name "{{ boot }}";
+{% endif %}
+{% for opt in host.options | default([]) %}
+  option {{ opt.name }} {{ opt.value }};
+{% endfor %}
+}
+
+{% endfor %}

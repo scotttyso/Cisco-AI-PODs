@@ -381,8 +381,10 @@ def load_configurations(kwargs):
         }
         schema_path = Path(
             os.path.join(
-                kwargs.schema_path,
-                'cisco-ai-pods.json'))
+                os.path.dirname(kwargs.schema_path),
+                'schemas',
+                'sensitive',
+                'variables.json'))
         success, missing_vars, error_messages, sensitive_vars = validator.validate_all_sensitive_variables(
             model, schema_path)
         if not success:

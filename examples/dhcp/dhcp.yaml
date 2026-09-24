@@ -1,0 +1,66 @@
+---
+# Example data model consumed by the dhcp_server role.
+dhcp:
+  # Interfaces dhcpd should listen on (maps to DHCPDARGS in /etc/sysconfig/dhcpd).
+  interfaces:
+    - eth0
+  authoritative: true
+  domain_name: aipod.example.com
+  domain_name_servers:
+    - 10.10.10.10
+    - 10.10.10.11
+  ntp_servers:
+    - 10.10.10.20
+  default_lease_time: 3600
+  max_lease_time: 86400
+
+  subnets:
+    # CIMC / out-of-band management network for UCS servers.
+    - name: cimc
+      network: 10.10.20.0
+      netmask: 255.255.255.0
+      routers: 10.10.20.1
+      broadcast_address: 10.10.20.255
+      ranges:
+        - start: 10.10.20.100
+          end: 10.10.20.199
+
+    # In-band management network for OpenShift nodes.
+    - name: management
+      network: 10.10.30.0
+      netmask: 255.255.255.0
+      routers: 10.10.30.1
+      ranges:
+        - start: 10.10.30.100
+          end: 10.10.30.199
+
+    # Nexus switch management network - POAP via Nexus Dashboard data interface.
+    - name: nexus-mgmt
+      network: 10.10.40.0
+      netmask: 255.255.255.0
+      routers: 10.10.40.1
+      # Nexus Dashboard data IP acting as the TFTP/POAP server (options 66/67/150).
+      tftp_server: 10.10.40.50
+      bootfile: poap.py
+      ranges:
+        - start: 10.10.40.100
+          end: 10.10.40.150
+
+  reservations:
+    - hostname: ucs-mgmt-01-cimc
+      subnet: cimc
+      mac: "aa:bb:cc:00:00:01"
+      ip: 10.10.20.11
+    - hostname: ucs-gpu-01-cimc
+      subnet: cimc
+      mac: "aa:bb:cc:00:00:02"
+      ip: 10.10.20.21
+    - hostname: leaf-01
+      subnet: nexus-mgmt
+      mac: "aa:bb:cc:00:00:11"
+      ip: 10.10.40.11
+      bootfile: poap.py
+    - hostname: leaf-02
+      subnet: nexus-mgmt
+      mac: "aa:bb:cc:00:00:12"
+      ip: 10.10.40.12

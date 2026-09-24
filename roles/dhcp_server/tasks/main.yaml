@@ -1,0 +1,99 @@
+---
+- name: Load DHCP Variables From File
+  when: dhcp_vars_file | length > 0
+  block:
+    - name: Verify DHCP Variable File Exists
+      ansible.builtin.stat:
+        path: "{{ dhcp_vars_file }}"
+      register: dhcp_vars_stat
+      delegate_to: localhost
+      become: false
+
+    - name: Fail When DHCP Variable File Is Missing
+      ansible.builtin.fail:
+        msg: "dhcp_vars_file '{{ dhcp_vars_file }}' was not found."
+      when: not dhcp_vars_stat.stat.exists
+
+    - name: Set DHCP Object From Variable File
+      ansible.builtin.set_fact:
+        dhcp: "{{ (lookup('ansible.builtin.file', dhcp_vars_file) | from_yaml).dhcp }}"
+
+- name: Validate Required DHCP Data
+  ansible.builtin.assert:
+    that:
+      - dhcp is mapping
+      - dhcp.subnets is defined
+      - dhcp.subnets | length > 0
+    fail_msg: "The 'dhcp' object must define at least one entry under 'subnets'."
+
+- name: Validate Static Reservations Reference a Known Subnet
+  ansible.builtin.assert:
+    that:
+      - item.mac is defined
+      - item.ip is defined
+      - item.subnet is not defined or item.subnet in (dhcp.subnets | map(attribute='name') | list)
+    fail_msg: "Reservation '{{ item.hostname | default(item.mac | default('unnamed')) }}' is invalid."
+  loop: "{{ dhcp.reservations | default([]) }}"
+  loop_control:
+    label: "{{ item.hostname | default(item.mac | default('unnamed')) }}"
+
+- name: Install DHCP Server Packages
+  ansible.builtin.dnf:
+    name: "{{ dhcp_packages }}"
+    state: present
+  vars:
+    dhcp_packages:
+      - dhcp-server
+
+- name: Configure Listening Interfaces
+  ansible.builtin.lineinfile:
+    path: "{{ dhcp_sysconfig_path }}"
+    regexp: '^DHCPDARGS='
+    line: 'DHCPDARGS="{{ dhcp.interfaces | join(" ") }}"'
+    create: true
+    owner: root
+    group: root
+    mode: '0644'
+  when: dhcp.interfaces | default([]) | length > 0
+  notify: Restart DHCP Service
+
+- name: Render dhcpd.conf
+  ansible.builtin.template:
+    src: dhcpd.conf.j2
+    dest: "{{ dhcp_config_path }}"
+    owner: root
+    group: root
+    mode: '0640'
+    backup: true
+    validate: '/usr/sbin/dhcpd -t -cf %s'
+  notify: Restart DHCP Service
+
+- name: Enable and Start DHCP Service
+  ansible.builtin.systemd:
+    name: "{{ dhcp_service_name }}"
+    enabled: "{{ dhcp_service_enabled }}"
+    state: "{{ dhcp_service_state }}"
+    daemon_reload: true
+
+- name: Configure Host Firewall
+  when: dhcp_manage_firewall | bool
+  block:
+    - name: Ensure firewalld Is Installed
+      ansible.builtin.dnf:
+        name: firewalld
+        state: present
+
+    - name: Ensure firewalld Is Running
+      ansible.builtin.systemd:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Open Firewall Services for DHCP
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        zone: "{{ dhcp_firewall_zone | default(omit, true) }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: "{{ dhcp_firewall_services }}"

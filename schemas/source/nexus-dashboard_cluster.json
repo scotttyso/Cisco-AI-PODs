@@ -1,0 +1,394 @@
+{
+    "$id": "nexus-dashboard.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+        "nd.cluster": {
+            "type": "object",
+            "description": "Settings applied to the ND cluster as a whole.",
+            "additionalProperties": false,
+            "required": [
+                "name",
+                "iso",
+                "network",
+                "dns",
+                "ntp",
+                "proxy",
+                "persistent_ips"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+                    "description": "Cluster name (Table 1: <cluster_name>). Letters, digits, hyphens; must start with a letter."
+                },
+                "implementation_type": {
+                    "type": "string",
+                    "enum": [
+                        "LAN",
+                        "Fabric"
+                    ],
+                    "default": "LAN",
+                    "description": "ND implementation type. AI POD CVDs use LAN."
+                },
+                "timezone": {
+                    "$ref": "./shared.json#/definitions/timezone"
+                },
+                "iso": {
+                    "type": "object",
+                    "description": "ND ISO image hosted on a server reachable from each node's CIMC.",
+                    "additionalProperties": false,
+                    "required": [
+                        "url",
+                        "sha512"
+                    ],
+                    "properties": {
+                        "url": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/url_http",
+                            "description": "ISO URL (Table 1: <iso_url>). HTTP/HTTPS reachable from each CIMC vMedia."
+                        },
+                        "sha512": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/sha512_hex",
+                            "description": "Vendor-published SHA-512 of the ISO. Pre-flight verifies the served file matches."
+                        }
+                    }
+                },
+                "network": {
+                    "type": "object",
+                    "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array.",
+                    "additionalProperties": false,
+                    "required": [
+                        "mgmt_subnet",
+                        "mgmt_gateway",
+                        "data_subnet",
+                        "data_gateway"
+                    ],
+                    "properties": {
+                        "mgmt_subnet": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+                            "description": "ND management subnet (Table 1: <mgmt_prefix> applied)."
+                        },
+                        "mgmt_gateway": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                            "description": "Default gateway on ND-MGMT (Table 1: <mgmt_gateway>)."
+                        },
+                        "data_subnet": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+                            "description": "ND data subnet. L2 mode requires persistent IPs in this subnet."
+                        },
+                        "data_gateway": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                            "description": "Default gateway on ND-DATA (Table 1: <data_gateway>)."
+                        }
+                    }
+                },
+                "dns": {
+                    "type": "object",
+                    "description": "DNS resolvers used by the cluster (Table 1: <dns_server_*>, <dns_search_domain>).",
+                    "additionalProperties": false,
+                    "required": [
+                        "servers"
+                    ],
+                    "properties": {
+                        "servers": {
+                            "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4"
+                            }
+                        },
+                        "search_domains": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/fqdn"
+                            }
+                        }
+                    }
+                },
+                "ntp": {
+                    "type": "object",
+                    "description": "NTP servers used by the cluster (Table 1: <ntp_server_*>). Two or more required by the MOP prereqs.",
+                    "additionalProperties": false,
+                    "required": [
+                        "servers"
+                    ],
+                    "properties": {
+                        "servers": {
+                            "type": "array",
+                            "minItems": 2,
+                            "uniqueItems": false,
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                    "host"
+                                ],
+                                "properties": {
+                                    "host": {
+                                        "$ref": "_shared/network-primitives.schema.json#/$defs/hostname_or_ipv4",
+                                        "description": "NTP server (IP literal preferred; troubleshooting log notes verifyremoteservices fails when DNS can't resolve hostnames)."
+                                    },
+                                    "preferred": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Marks the preferred peer. Exactly one server is typically marked preferred."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "proxy": {
+                    "type": "object",
+                    "description": "Outbound HTTP(S) proxy. Set skip:true to disable; otherwise url is required.",
+                    "additionalProperties": false,
+                    "required": [
+                        "skip"
+                    ],
+                    "properties": {
+                        "skip": {
+                            "type": "boolean"
+                        },
+                        "url": {
+                            "$ref": "_shared/network-primitives.schema.json#/$defs/url_http"
+                        },
+                        "ignore_hosts": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "type": "string",
+                                "minLength": 1
+                            }
+                        }
+                    },
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "skip": {
+                                    "const": true
+                                }
+                            },
+                            "not": {
+                                "required": [
+                                    "url"
+                                ]
+                            }
+                        },
+                        {
+                            "properties": {
+                                "skip": {
+                                    "const": false
+                                }
+                            },
+                            "required": [
+                                "url"
+                            ]
+                        }
+                    ]
+                },
+                "persistent_ips": {
+                    "type": "array",
+                    "description": "Persistent IP pool for service endpoints (Table 1: <persistent_ip_start>-<persistent_ip_end>). MOP prereqs require >=5; we set the floor here.",
+                    "minItems": 5,
+                    "uniqueItems": true,
+                    "items": {
+                        "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4"
+                    }
+                }
+            }
+        },
+        "runtime": {
+            "type": "object",
+            "description": "Operator-side defaults consumed by Phase 1 Python automation (scripts/main.py). Phase 2 mirrors these as Ansible role defaults.",
+            "additionalProperties": false,
+            "properties": {
+                "state_dir": {
+                    "type": "string",
+                    "minLength": 1,
+                    "default": "state/"
+                },
+                "ca_bundle": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Path to a PEM CA bundle for TLS verification. null falls back to system trust."
+                },
+                "verify_tls": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Set false only in labs with self-signed certs and no CA bundle. Logs a warning."
+                },
+                "cluster_bringup_timeout_s": {
+                    "type": "integer",
+                    "minimum": 600,
+                    "maximum": 14400,
+                    "default": 3600,
+                    "description": "Total budget for cluster bringup poll. CVD says ~30 min; default 60 min."
+                }
+            }
+        },
+        "admin_pass_ref": {
+            "$ref": "_shared/credentials.schema.json#/$defs/secret_ref",
+            "description": "Reference to the ND cluster admin password (Credentials table: ND cluster admin). Used at first-boot of nd-1 and for all subsequent ND API auth. Must be distinct from CIMC passwords in production."
+        },
+        "nodes": {
+            "type": "array",
+            "description": "Exactly 3 ND nodes. Subsystem 01 currently scopes a 3-node primary cluster; standby/secondary scaling is out of scope until ND adds it to AI POD.",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "hostname",
+                    "type",
+                    "role",
+                    "cimc",
+                    "mgmt",
+                    "data"
+                ],
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 63,
+                        "pattern": "^[a-z][a-z0-9-]*$",
+                        "description": "Node hostname (Table 2: <ndN_hostname>). Lowercase letters, digits, hyphens; must start with a letter. Convention is nd-1, nd-2, nd-3."
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "Primary"
+                        ],
+                        "description": "ND node type. AI POD always uses Primary for all 3 nodes."
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "bootstrap",
+                            "secondary"
+                        ],
+                        "description": "Phase 1 automation role. Exactly one node has role=bootstrap (nd-1, runs Redfish + SOL install path); the other two are role=secondary (ND drives their install via cluster bringup API)."
+                    },
+                    "cimc": {
+                        "type": "object",
+                        "description": "Out-of-band CIMC management for this chassis (Credentials table: CIMC admin).",
+                        "additionalProperties": false,
+                        "required": [
+                            "ip",
+                            "user",
+                            "pass_ref"
+                        ],
+                        "properties": {
+                            "ip": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                                "description": "CIMC IP (Table 2: <ndN_cimc_ip>)."
+                            },
+                            "user": {
+                                "$ref": "_shared/credentials.schema.json#/$defs/username",
+                                "description": "CIMC user (Table 1: <cimc_user>, typically admin)."
+                            },
+                            "pass_ref": {
+                                "$ref": "_shared/credentials.schema.json#/$defs/secret_ref",
+                                "description": "Reference to CIMC password. Use a distinct ref per chassis in production (NDx_CIMC_PASSWORD pattern)."
+                            }
+                        }
+                    },
+                    "mgmt": {
+                        "type": "object",
+                        "description": "ND-MGMT (out-of-band cluster mgmt) interface for this node.",
+                        "additionalProperties": false,
+                        "required": [
+                            "ip",
+                            "mask",
+                            "gateway"
+                        ],
+                        "properties": {
+                            "ip": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                                "description": "Management IP (Table 2: <ndN_mgmt_ip>)."
+                            },
+                            "mask": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_prefix_length",
+                                "description": "Prefix length for the mgmt subnet (matches cluster.network.mgmt_subnet)."
+                            },
+                            "gateway": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                                "description": "Mgmt gateway (typically the same as cluster.network.mgmt_gateway)."
+                            },
+                            "vlan": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "_shared/network-primitives.schema.json#/$defs/vlan_id"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ],
+                                "default": null,
+                                "description": "VLAN ID if the mgmt link is trunked. null for access mode (typical)."
+                            }
+                        }
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "ND-DATA (cluster data plane) interface for this node.",
+                        "additionalProperties": false,
+                        "required": [
+                            "ip",
+                            "mask",
+                            "gateway"
+                        ],
+                        "properties": {
+                            "ip": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                                "description": "Data IP (Table 2: <ndN_data_ip>)."
+                            },
+                            "mask": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_prefix_length",
+                                "description": "Prefix length for the data subnet (matches cluster.network.data_subnet)."
+                            },
+                            "gateway": {
+                                "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                                "description": "Data gateway (typically the same as cluster.network.data_gateway)."
+                            },
+                            "vlan": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "_shared/network-primitives.schema.json#/$defs/vlan_id"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ],
+                                "default": null,
+                                "description": "VLAN ID if the data link is trunked. null for access mode."
+                            }
+                        }
+                    }
+                }
+            },
+            "allOf": [
+                {
+                    "description": "Exactly one node must be role=bootstrap.",
+                    "contains": {
+                        "properties": {
+                            "role": {
+                                "const": "bootstrap"
+                            }
+                        }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                }
+            ]
+        }
+    },
+    "description": "Composite schema for the Nexus Dashboard 4.x management-plane cluster (subsystem 01). Validates the full nd-cluster shape: cluster-wide config + runtime defaults + per-node config + admin credential reference. Maps to Tables 1-3 in 01-nd-cluster/docs/MOP-ND4-install.md.\n\nVersioning: /nd-cluster/v1. Breaking changes will publish /nd-cluster/v2 alongside; partners migrate at their own pace. Additive changes (new optional fields, new vendor variants) stay within v1.",
+    "title": "AI POD subsystem 01 - Nexus Dashboard cluster"
+}

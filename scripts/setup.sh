@@ -140,7 +140,9 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
     fi
 
     if [[ -d "$PWD/.git" && -f "$PWD/requirements.txt" && -f "$PWD/requirements.yaml" ]]; then
-        WORKDIR="$PWD"
+        # Canonicalize: console script shebangs are baked in literally, so a
+        # symlinked or wrong-case cwd produces a venv that cannot be executed.
+        WORKDIR="$(realpath "$PWD")"
     else
         die "Run this script from the Cisco-AI-PODs repository root (where requirements.txt and requirements.yaml exist)"
     fi
@@ -162,6 +164,32 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
 
     TOOLING_CONSTRAINTS_FILE="${WORKDIR}/constraints/python-tooling.txt"
 
+    # Detect a pre-existing venv whose console scripts point at a path that no
+    # longer resolves (renamed/moved/case-changed repo directory). Re-running
+    # `python3 -m venv` does not rewrite shebangs of installed scripts, so the
+    # only reliable repair is a full rebuild.
+    if [[ -d "$VENV_DIR" ]]; then
+        venv_stale=0
+        if [[ ! -x "${VENV_DIR}/bin/python3" ]] || ! "${VENV_DIR}/bin/python3" -c 'pass' >/dev/null 2>&1; then
+            venv_stale=1
+        else
+            for script in "${VENV_DIR}"/bin/*; do
+                [[ -f "$script" ]] || continue
+                interp="$(sed -n '1s|^#!\([^ ]*\).*|\1|p' "$script" 2>/dev/null)"
+                if [[ -n "$interp" && "$interp" == /* && ! -e "$interp" ]]; then
+                    warn "Script ${script##*/} references a stale interpreter: ${interp}"
+                    venv_stale=1
+                    break
+                fi
+            done
+        fi
+
+        if [[ "$venv_stale" == "1" ]]; then
+            warn "Existing virtual environment at ${VENV_DIR} is stale; recreating it"
+            rm -rf "$VENV_DIR"
+        fi
+    fi
+
     log "Creating virtual environment at ${VENV_DIR}"
     python3 -m venv "$VENV_DIR"
 
@@ -179,10 +207,10 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
 
     if [[ -f "$TOOLING_CONSTRAINTS_FILE" ]]; then
         log "Installing Ansible tooling with constraints from ${TOOLING_CONSTRAINTS_FILE}"
-        python3 -m pip install -c "$TOOLING_CONSTRAINTS_FILE" ansible-core ansible-lint tox
+        python3 -m pip install -c "$TOOLING_CONSTRAINTS_FILE" ansible-core ansible-lint pycodestyle pylint tox
     else
         warn "Constraints file not found at ${TOOLING_CONSTRAINTS_FILE}; using fallback ranges"
-        python3 -m pip install "ansible-core>=2.20,<2.21" "ansible-lint>=26,<27" tox
+        python3 -m pip install "ansible-core>=2.20,<2.21" "ansible-lint>=26,<27" "pycodestyle>=2.11,<3" "pylint>=3.3,<5" tox
     fi
 
     log "Installing Python dependencies"

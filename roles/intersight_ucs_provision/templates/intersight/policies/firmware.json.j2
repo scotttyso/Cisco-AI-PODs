@@ -17,12 +17,13 @@
   "ModelBundleCombo": [
 {% if item.model_bundle_version | default([]) | length > 0 %}
 {% for bundle in item.model_bundle_version %}
+{% set bundle_loop = loop %}
 {% for model in bundle.server_models %}
     {
       "BundleVersion": "{{ bundle.firmware_version }}",
       "ModelFamily": "{{ model }}",
       "ObjectType": "firmware.ModelBundleVersion"
-    }{% if not loop.last or not loop.parent.last %},{% endif %}
+    }{% if not loop.last or not bundle_loop.last %},{% endif %}
 {% endfor %}
 {% endfor %}
 {% endif %}

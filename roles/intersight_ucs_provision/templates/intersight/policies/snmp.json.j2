@@ -39,9 +39,9 @@
 {% endif %}
   ],
   "SnmpUsers": [
-{% if item.snmp_users | length > 0 %}
+{% if item.snmp_users | default([]) | length > 0 %}
 {% set _v3_enable = true %}
-{% for user in item.snmp_users %}
+{% for user in item.snmp_users | default([]) %}
     {
       "AuthPassword": {{ sensitive_vars['snmp_auth_passphrase_' ~ user.auth_password] | tojson }},
       "AuthType": {{ user.auth_type | default('SHA-256') | tojson }},

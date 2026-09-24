@@ -16,7 +16,7 @@
 {% set otype = k[:-7] if k.endswith('_policy') else k %}
 {% set ptype = "policies" if "policy" in k else "pools" %}
     {
-      "Moid": "{{ isight[_org][ptype][otype][_name].moid }}",
+      "Moid": "{{ resolve_policy_moid(v, organization, k) }}",
       "ObjectType": "{{ object_map[otype] }}"
     }{% if not loop.last %},{% endif %}
 {% endif %}

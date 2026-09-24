@@ -9018,7 +9018,7 @@
             "description": "",
             "properties": {
                 "certificate_file": {
-                    "$ref": "./shared.json#/definitions/file_path",
+                    "$ref": "../shared.json#/definitions/file_path",
                     "description": "Absolute path to the certificate file on the host. File must be in PEM format. Example: `/etc/pki/certs/server.crt` or `/opt/certs/certificate.pem`. For IMC type, both certificate_file and private_key_file are required. For RootCA type, only certificate_file is required.",
                     "examples": [
                         "/etc/pki/certs/server.crt"
@@ -9047,7 +9047,7 @@
                     "x-intersight-api": "$ref:certificatemanagement.CertificateBase:CertificateName"
                 },
                 "private_key_file": {
-                    "$ref": "./shared.json#/definitions/file_path",
+                    "$ref": "../shared.json#/definitions/file_path",
                     "description": "Absolute path to the private key file on the host. File must be in PEM format. Example: `/etc/pki/private/server.key` or `/opt/certs/private-key.pem`. Required for IMC type certificates only.",
                     "examples": [
                         "/etc/pki/private/server.key"
@@ -11918,7 +11918,7 @@
                         },
                         "encryption_key": {
                             "default": 1,
-                            "description": "The default value is `1`.  The Encryption Key Sensitive Variable Identifier.  The encryption key to use for IPMI communication. It should have an even number of hexadecimal characters and not exceed 40 characters. Use “00” to disable encryption key use. This configuration is supported by all standalone rack servers. FI-attached rack servers with firmware at minimum of 4.2.3a support this configuration. FI-attached blade servers with firmware at minimum of 5.1.0.x support this configuration. IPMI commands using this key should append zeroes to the key to achieve a length of 40 characters.  A number Between 1-64 to denote the variables ipmi_encryption_key_[1-64].  i.e. `export ipmi_encryption_key_1='cisco123'`.",
+                            "description": "The default value is `1`.  The Encryption Key Sensitive Variable Identifier.  The encryption key to use for IPMI communication. It should have an even number of hexadecimal characters and not exceed 40 characters. Use &quot;00&quot; to disable encryption key use. This configuration is supported by all standalone rack servers. FI-attached rack servers with firmware at minimum of 4.2.3a support this configuration. FI-attached blade servers with firmware at minimum of 5.1.0.x support this configuration. IPMI commands using this key should append zeroes to the key to achieve a length of 40 characters.  A number Between 1-64 to denote the variables ipmi_encryption_key_[1-64].  i.e. `export ipmi_encryption_key_1='cisco123'`.",
                             "maximum": 64,
                             "minimum": 1,
                             "title": "encryption_key",
@@ -12297,7 +12297,7 @@
             "description": "IPV4 configurations such as Netmask, Gateway and DNS for iSCSI Initiator.\n\nRequired Attributes:\n  * `ip_address`\n  * `gateway`\n  * `netmask`\n\nOptional Attributes:\n  * `primary_dns`\n  * `secondary_dns`",
             "properties": {
                 "gateway": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.0.1",
                     "description": "The default value is `198.18.0.1`.  Gateway to assign.",
                     "examples": [
@@ -12308,7 +12308,7 @@
                     "x-intersight-api": "Gateway"
                 },
                 "ip_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.0.10",
                     "description": "The default value is `198.18.0.10`.  The IPv4 address assigned to the iSCSI target.",
                     "examples": [
@@ -12319,7 +12319,7 @@
                     "x-intersight-api": "IpAddress"
                 },
                 "netmask": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_netmask",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_netmask",
                     "default": "255.255.255.0",
                     "description": "The default value is `255.255.255.0`.  A subnet mask is a 32-bit number that masks an IP address and divides the IP address into network address and host address.",
                     "examples": [
@@ -12330,7 +12330,7 @@
                     "x-intersight-api": "Netmask"
                 },
                 "primary_dns": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "208.67.220.220",
                     "description": "The default value is `208.67.220.220`.  IP Address of the primary Domain Name System (DNS) server.  Example `208.67.220.220`.",
                     "examples": [
@@ -12341,7 +12341,7 @@
                     "x-intersight-api": "PrimaryDns"
                 },
                 "secondary_dns": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "208.67.222.222",
                     "description": "The default value is `208.67.222.222`.  IP Address of the secondary Domain Name System (DNS) server.  Example `208.67.222.222`.",
                     "examples": [
@@ -12367,7 +12367,7 @@
             "description": "IPV6 configurations such as Netmask, Gateway and DNS for iSCSI Initiator.\n\nRequired Attributes:\n  * `ip_address`\n  * `gateway`\n  * `netmask`\n\nOptional Attributes:\n  * `primary_dns`\n  * `secondary_dns`",
             "properties": {
                 "gateway": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv6_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv6_address",
                     "default": "2001::1",
                     "description": "The default value is `2001::1`.  Gateway to assign.  Example `2001::1`.",
                     "examples": [
@@ -12378,7 +12378,7 @@
                     "x-intersight-api": "Gateway"
                 },
                 "ipv6_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv6_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv6_address",
                     "default": "2001::10",
                     "description": "The default value is `2001::10`.  The IPv6 address assigned to the iSCSI target.",
                     "examples": [
@@ -12389,7 +12389,7 @@
                     "x-intersight-api": "InitiatorStaticIpV6Address"
                 },
                 "prefix": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv6_prefix",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv6_prefix",
                     "default": 64,
                     "description": "The default value is `64`.  The prefix length for the IPv6 address.",
                     "examples": [
@@ -12400,7 +12400,7 @@
                     "x-intersight-api": "Prefix"
                 },
                 "primary_dns": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv6_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv6_address",
                     "default": "2620:119:35::35",
                     "description": "The default value is `2620:119:35::35`.  IP Address of the primary Domain Name System (DNS) server.",
                     "examples": [
@@ -12411,7 +12411,7 @@
                     "x-intersight-api": "PrimaryDns"
                 },
                 "secondary_dns": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv6_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv6_address",
                     "default": "2620:119:53::53",
                     "description": "The default value is `2620:119:53::53`.  IP Address of the secondary Domain Name System (DNS) server.",
                     "examples": [
@@ -14442,7 +14442,7 @@
                         },
                         "suspend_individual": {
                             "default": false,
-                            "description": "The default value is `false`.  Flag tells the switch whether to suspend the port if it didn’t receive LACP PDU.",
+                            "description": "The default value is `false`.  Flag tells the switch whether to suspend the port if it didn't receive LACP PDU.",
                             "title": "suspend_individual",
                             "type": "boolean",
                             "x-intersight-api": "SuspendIndividual"
@@ -16939,7 +16939,7 @@
             "description": "Netflow Configuration > Flow Exporters > Exporter Interfaces.  This object represents the exporter interfaces.\n\nRequired Attributes:\n  * `switch_a_ip_address`\n  * `switch_a_subnet_mask`\n  * `switch_b_ip_address`\n  * `switch_b_subnet_mask`\n  * `vlan_id`",
             "properties": {
                 "switch_a_ip_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.1.5",
                     "description": "The default value is `198.18.1.5`.  Switch IP for the export interface.",
                     "examples": [
@@ -16950,7 +16950,7 @@
                     "x-intersight-api": "SwitchAIp"
                 },
                 "switch_a_subnet_mask": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_netmask",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_netmask",
                     "default": "255.255.255.0",
                     "description": "The default value is `255.255.255.0`.  Subnet mask for the export interface network.",
                     "examples": [
@@ -16961,7 +16961,7 @@
                     "x-intersight-api": "SwitchASubnetMask"
                 },
                 "switch_b_ip_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.1.5",
                     "description": "The default value is `198.18.1.5`.   Switch IP for the export interface.",
                     "examples": [
@@ -16972,7 +16972,7 @@
                     "x-intersight-api": "SwitchBIp"
                 },
                 "switch_b_subnet_mask": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_netmask",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_netmask",
                     "default": "255.255.255.0",
                     "description": "The default value is `255.255.255.0`.  Subnet mask for the export interface network.",
                     "examples": [
@@ -17010,7 +17010,7 @@
             "description": "Netflow Configuration > Flow Exporters > Flow Collector.\n\nRequired Attributes:\n  * `destination_ip_address`\n  * `dscp`\n  * `gateway_ip_address`\n  * `udp_port`",
             "properties": {
                 "destination_ip_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.1.5",
                     "description": "The default value is `198.18.1.5`.  Netflow collector IP address, The Netflow collector receives flow records from one or more exporters.  It processes the received export packets and stores the flow record information.",
                     "examples": [
@@ -17030,7 +17030,7 @@
                     "x-intersight-api": "Dscp"
                 },
                 "gateway_ip_address": {
-                    "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+                    "$ref": "../shared.json#/definitions/ip/properties/ipv4_address",
                     "default": "198.18.1.1",
                     "description": "The default value is `198.18.1.1`.  Gateway IP address for the export interface network.",
                     "examples": [
@@ -17310,7 +17310,7 @@
                             "x-intersight-uri": "not_applicable"
                         },
                         "timezone": {
-                            "$ref": "./shared.json#/definitions/timezone"
+                            "$ref": "../shared.json#/definitions/timezone"
                         }
                     },
                     "required": [

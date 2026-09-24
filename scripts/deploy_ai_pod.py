@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run Cisco AI POD deployment stages with live output.
 
 Existing roles remain the implementation. This module owns role selection,
@@ -193,10 +192,13 @@ def openshift_commands(
 
 def command_for_role(role: str, host_vars_dir: Path, check: bool) -> list[str]:
     if role == "intersight":
+        intersight_dir = host_vars_dir / "intersight"
+        if not any(intersight_dir.rglob("*.ezai.yaml")):
+            intersight_dir = host_vars_dir
         command = [
             PYTHON,
             str(REPO_ROOT / "roles/intersight_ucs_provision/library/deploy_intersight_ucs.py"),
-            "--dir", str(host_vars_dir / "intersight"),
+            "--dir", str(intersight_dir),
             "--non-interactive",
         ]
         if check:

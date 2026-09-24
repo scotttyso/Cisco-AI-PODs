@@ -23,9 +23,11 @@ if [[ -r /proc/driver/nvidia/params ]]; then
     echo "  (informational only - the DCGM and CUPTI checks below are definitive)"
   else
     echo "  RmProfilingAdminOnly=${RESTRICT}"
-    [[ "${RESTRICT}" == "0" ]] \
-      && pass "profiling counters are available to non-admin users" \
-      || fail "profiling is admin-restricted; DCGM_FI_PROF_* will be missing"
+    if [[ "${RESTRICT}" == "0" ]]; then
+      pass "profiling counters are available to non-admin users"
+    else
+      fail "profiling is admin-restricted; DCGM_FI_PROF_* will be missing"
+    fi
   fi
 else
   echo "  /proc/driver/nvidia/params not mounted into the container (informational only)"

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Set up and run the NVIDIA non-admin GPU metrics test on OpenShift.
 
 This script is a thin wrapper around `oc` and `podman`/BuildConfig builds. It:
@@ -37,7 +36,7 @@ def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
 
 
 def run_ok(cmd: list[str]) -> bool:
-    return subprocess.run(cmd, capture_output=True).returncode == 0
+    return subprocess.run(cmd, capture_output=True, check=False).returncode == 0
 
 
 def capture(cmd: list[str]) -> str:
@@ -77,7 +76,9 @@ def check_registry() -> dict:
 def enable_registry(storage_class: str) -> None:
     print(f"\nEnabling the internal image registry with storage class '{storage_class}'...")
     pvc_yaml = REGISTRY_PVC_TEMPLATE.read_text().replace("__STORAGE_CLASS__", storage_class)
-    proc = subprocess.run(["oc", "apply", "-f", "-"], input=pvc_yaml, text=True)
+    proc = subprocess.run(
+        ["oc", "apply", "-f", "-"], input=pvc_yaml, text=True, check=False
+    )
     if proc.returncode != 0:
         sys.exit("error: failed to create the image-registry-storage PVC")
 

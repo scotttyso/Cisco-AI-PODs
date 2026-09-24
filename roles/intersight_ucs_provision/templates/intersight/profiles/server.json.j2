@@ -1,9 +1,11 @@
 {
 {% set _template = true if item.ucs_server_profile_template is defined and item.ucs_server_profile_template | length > 0 else false %}
-{% if item.serial_number is defined and item.serial_number  is not none %}
-{% set object_type = isight.system.serial_number[item.serial_number].result.SourceObjectType %}
+{% set _serial_number = item.serial_number | default(None) %}
+{% set _assigned_server = isight.system.serial_number.get(_serial_number) if _serial_number else None %}
+{% if _assigned_server %}
+{% set object_type = _assigned_server.result.SourceObjectType %}
   "AssignedServer": {
-    "Moid": "{{ isight.system.serial_number[item.serial_number].moid }}",
+    "Moid": "{{ _assigned_server.moid }}",
     "ObjectType": "{{ object_type }}"
   },
 {% else %}
@@ -11,7 +13,7 @@
 {% endif %}
   "Description": "{{ item.description | default('') }}",
   "InitialAutoDeployMode": {% if (item.pre_assign | default({})).get('initial_auto_deploy_when_server_is_available', false) %}true{% else %}false{% endif %},
-{% if item.persistent_memory_passphrase %}
+{% if item.persistent_memory_passphrase | default(false) %}
   "PmcDeployedSecurePassphrase": "",
 {% endif %}
   "Name": "{{ name_prefix ~ item.name ~ name_suffix }}",
@@ -38,7 +40,7 @@
 {% endif %}
   ],
 {% endif %}
-{% if item.serial_number is defined and item.serial_number is not none %}
+{% if _assigned_server %}
   "ServerAssignmentMode": "Static",
 {% elif item.resource_pool is defined and item.resource_pool is not none %}
   "ServerAssignmentMode": "Pool",

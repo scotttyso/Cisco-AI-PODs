@@ -11,7 +11,7 @@
     "EnablePasswordExpiry": {{ (item.password_properties | default({})).get('enable_password_expiry', false) | tojson }},
     "EnforceStrongPassword": {{ (item.password_properties | default({})).get('enforce_strong_password', true) | tojson }},
     "ForceSendPassword": {{ (item.password_properties | default({})).get('always_send_user_password', false) | tojson }},
-    "GracePeriod": {{ (item.password_properties | default({})).get('grace_period', 1) | int }},
+    "GracePeriod": {{ (item.password_properties | default({})).get('grace_period', 0) | int }},
     "NotificationPeriod": {{ (item.password_properties | default({})).get('notification_period', 15) | int }},
     "ObjectType": "iam.EndPointPasswordProperties",
     "PasswordExpiryDuration": {{ (item.password_properties | default({})).get('password_expiry_duration', 90) | int }},

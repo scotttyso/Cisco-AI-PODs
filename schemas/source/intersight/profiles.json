@@ -1436,7 +1436,7 @@
                             "$ref": "#/definitions/serial_number"
                         },
                         "server_address": {
-                            "$ref": "./shared.json#/definitions/hostname_ipv4_or_ipv6",
+                            "$ref": "../shared.json#/definitions/hostname_ipv4_or_ipv6",
                             "default": "",
                             "description": "The default value is ``.  IP or Hostname for a C885A Server.",
                             "examples": [

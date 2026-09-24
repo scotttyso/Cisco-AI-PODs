@@ -1,0 +1,6 @@
+---
+- name: Restart DHCP Service
+  ansible.builtin.systemd:
+    name: "{{ dhcp_service_name }}"
+    state: restarted
+    daemon_reload: true

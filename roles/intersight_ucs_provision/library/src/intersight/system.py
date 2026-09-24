@@ -370,7 +370,7 @@ class system:
             if api_body['Name'] in kwargs.intersight_api[self.category][self.type]:
                 intersight_api = kwargs.intersight_api[self.category][self.type][api_body['Name']]
                 patch_resource = configure(
-                    self.type).compare_body_result(
+                    type=self.type).compare_body_result(
                     api_body, intersight_api.result)
                 api_body['pmoid'] = intersight_api.moid
                 if patch_resource:

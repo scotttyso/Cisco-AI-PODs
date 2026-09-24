@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Sample DCGM profiling fields and report whether any produced non-zero data.
 
 Exit code 0 means every requested profiling field returned at least one valid,

@@ -800,7 +800,55 @@ class configure:
         template_name = f'{self.type}.json.j2'
         template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(template_dir),
-            autoescape=False)
+            autoescape=False,
+            undefined=jinja2.StrictUndefined)
+
+        def resolve_policy_moid(reference, default_org, policy_key):
+            nonlocal kwargs
+            policy_org, separator, policy_name = str(reference).partition('/')
+            if not separator:
+                policy_org = default_org
+                policy_name = str(reference)
+            policy_type = policy_key[:-7] if policy_key.endswith('_policy') else policy_key
+
+            def cached_policy():
+                api_data = kwargs.intersight_api.toDict()
+                org_data = api_data.get(policy_org, {})
+                category_data = org_data.get('policies', {})
+                policy_data = category_data.get(policy_type, {})
+                resource = policy_data.get(policy_name)
+                if isinstance(resource, dict) and resource.get('moid'):
+                    return resource
+                return None
+
+            resource = cached_policy()
+            if resource is None:
+                previous_filter = kwargs.get('api_filter')
+                kwargs.api_filter = ''
+                kwargs = configure(
+                    category='policies',
+                    type=policy_type).api_get(
+                        empty=True,
+                        names=[f'{policy_org}/{policy_name}'],
+                        kwargs=kwargs)
+                if previous_filter is None:
+                    kwargs.pop('api_filter', None)
+                else:
+                    kwargs.api_filter = previous_filter
+                resource = cached_policy()
+
+            api_data = kwargs.intersight_api.toDict()
+            org_data = api_data.get(policy_org, {})
+            category_data = org_data.get('policies', {})
+            policy_data = category_data.get(policy_type, {})
+            if not isinstance(resource, dict) or not resource.get('moid'):
+                raise ValueError(
+                    f'Unable to resolve policy reference {reference!r}: '
+                    f'organization={policy_org!r}, type={policy_type!r}, '
+                    f'name={policy_name!r}; available types: '
+                    f'{sorted(category_data)}; available names: '
+                    f'{sorted(policy_data)}')
+            return resource['moid']
 
         render_item = item.toDict() if hasattr(item, 'toDict') else item
         rendered = template_env.get_template(template_name).render(
@@ -812,7 +860,8 @@ class configure:
             organization=kwargs.org,
             org_moids=kwargs.org_moids,
             rsg_moids=kwargs.rsg_moids,
-            sensitive_vars=kwargs.sensitive_vars
+            sensitive_vars=kwargs.sensitive_vars,
+            resolve_policy_moid=resolve_policy_moid
         )
         try:
             api_body = json.loads(rendered)

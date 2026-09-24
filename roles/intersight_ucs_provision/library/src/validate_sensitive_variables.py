@@ -26,9 +26,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Schema path (relative to filter_plugins directory)
 _SCHEMA_PATH = (
-    Path(__file__).resolve().parent.parent.parent
-    / "schema"
-    / "cisco-ai-pods.json"
+    Path(__file__).resolve().parents[3]
+    / "schemas"
+    / "sensitive"
+    / "variables.json"
 )
 
 # Sensitive variable patterns indexed by prefix
@@ -126,17 +127,23 @@ def load_schema(schema_path: Optional[Path] = None) -> Dict[str, Any]:
     with open(schema_path, encoding="utf-8") as schema_file:
         schema = json.load(schema_file)
 
-    if (
-        "definitions" not in schema
-        or "abstract.sensitive_variables" not in schema["definitions"]
-    ):
+    definitions = schema.get("definitions")
+    if not isinstance(definitions, dict):
+        raise ValueError("Schema missing 'definitions'")
+
+    sensitive_definition = definitions.get("abstract.sensitive_variables")
+    if isinstance(sensitive_definition, dict):
+        props = sensitive_definition.get("properties", {})
+    elif schema.get("$id") == "variables.json":
+        props = definitions
+    else:
         raise ValueError(
-            "Schema missing 'definitions.abstract.sensitive_variables'"
+            "Schema missing 'definitions.abstract.sensitive_variables' or "
+            "standalone variables.json definitions"
         )
 
-    props = schema["definitions"]["abstract.sensitive_variables"].get(
-        "properties", {}
-    )
+    if not isinstance(props, dict):
+        raise ValueError("Schema contains no sensitive-variable definitions")
     _SENSITIVE_SCHEMA_PROPS.clear()
     _SENSITIVE_SCHEMA_PROPS.update(props)
     return schema

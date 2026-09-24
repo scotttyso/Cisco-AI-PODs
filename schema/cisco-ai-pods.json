@@ -757,11 +757,17 @@
                         "intersight": {
                             "$ref": "#/definitions/intersight"
                         },
+                        "nexus_dashboard": {
+                            "$ref": "#/definitions/nexus_dashboard"
+                        },
                         "openshift": {
                             "$ref": "#/definitions/openshift"
                         },
                         "shared_services": {
                             "$ref": "#/definitions/shared_services"
+                        },
+                        "site": {
+                            "$ref": "#/definitions/site"
                         },
                         "splunk_observability": {
                             "$ref": "#/definitions/splunk_observability"
@@ -15657,7 +15663,7 @@
                         },
                         "encryption_key": {
                             "default": 1,
-                            "description": "The default value is `1`.  The Encryption Key Sensitive Variable Identifier.  The encryption key to use for IPMI communication. It should have an even number of hexadecimal characters and not exceed 40 characters. Use “00” to disable encryption key use. This configuration is supported by all standalone rack servers. FI-attached rack servers with firmware at minimum of 4.2.3a support this configuration. FI-attached blade servers with firmware at minimum of 5.1.0.x support this configuration. IPMI commands using this key should append zeroes to the key to achieve a length of 40 characters.  A number Between 1-64 to denote the variables ipmi_encryption_key_[1-64].  i.e. `export ipmi_encryption_key_1='cisco123'`.",
+                            "description": "The default value is `1`.  The Encryption Key Sensitive Variable Identifier.  The encryption key to use for IPMI communication. It should have an even number of hexadecimal characters and not exceed 40 characters. Use &quot;00&quot; to disable encryption key use. This configuration is supported by all standalone rack servers. FI-attached rack servers with firmware at minimum of 4.2.3a support this configuration. FI-attached blade servers with firmware at minimum of 5.1.0.x support this configuration. IPMI commands using this key should append zeroes to the key to achieve a length of 40 characters.  A number Between 1-64 to denote the variables ipmi_encryption_key_[1-64].  i.e. `export ipmi_encryption_key_1='cisco123'`.",
                             "maximum": 64,
                             "minimum": 1,
                             "title": "encryption_key",
@@ -18181,7 +18187,7 @@
                         },
                         "suspend_individual": {
                             "default": false,
-                            "description": "The default value is `false`.  Flag tells the switch whether to suspend the port if it didn’t receive LACP PDU.",
+                            "description": "The default value is `false`.  Flag tells the switch whether to suspend the port if it didn't receive LACP PDU.",
                             "title": "suspend_individual",
                             "type": "boolean",
                             "x-intersight-api": "SuspendIndividual"
@@ -35012,6 +35018,45 @@
             "x-intersight-type": "policies",
             "x-intersight-uri": "vnic/VnicTemplates"
         },
+        "nexus_dashboard": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the required configuration settings for Everpure deployment.\n\nRequired fields are:\n  * `settings`\n\nOptional fields are:\n  * `flash_arrays`\n  * `flash_blades`\n  * `notifications`\n  * `portworx`",
+            "properties": {
+                "flash_arrays": {
+                    "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+                    "items": {
+                        "$ref": "#/definitions/everpure.flash_arrays"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Flash Arrays",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "flash_blades": {
+                    "description": "List of Everpure Flash Blades.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`\n  * `nfs_endpoint`",
+                    "items": {
+                        "$ref": "#/definitions/everpure.flash_blades"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Everpure - Flash Blades",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "portworx": {
+                    "$ref": "#/definitions/everpure.portworx"
+                },
+                "settings": {
+                    "$ref": "#/definitions/everpure.settings"
+                }
+            },
+            "required": [
+                "settings"
+            ],
+            "title": "Everpure - Arrays",
+            "type": "object"
+        },
         "notifications": {
             "additionalProperties": false,
             "description": "This dictionary provides the notification settings for Instant Messenger Applications.\n\nOptional fields are:\n  * `cisco_webex`\n  * `microsoft_teams`\n  * `slack`",
@@ -36676,6 +36721,45 @@
             "title": "Shared Services",
             "type": "object",
             "unevaluatedProperties": false
+        },
+        "site": {
+            "additionalProperties": false,
+            "description": "Optional site-wide identity used by logs, asset tags, and observability labels. Lives at the root because it is shared across subsystems.",
+            "properties": {
+                "environment": {
+                    "default": "lab",
+                    "description": "The environment in which the site is deployed.",
+                    "enum": [
+                        "lab",
+                        "production",
+                        "staging"
+                    ],
+                    "title": "Site Environment",
+                    "type": "string"
+                },
+                "site_id": {
+                    "default": "12345",
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9_-]+$",
+                    "title": "Site Identifier",
+                    "type": "string"
+                },
+                "site_name": {
+                    "description": "The name of the site.",
+                    "minLength": 1,
+                    "title": "Site Name",
+                    "type": "string"
+                },
+                "owner": {
+                    "description": "The owner of the site.",
+                    "minLength": 1,
+                    "title": "Site Owner",
+                    "type": "string"
+                }
+            },
+            "title": "Site for Logging",
+            "type": "object"
         },
         "splunk_observability": {
             "allOf": [

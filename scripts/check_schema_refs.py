@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Check JSON schemas for broken $ref targets across the schema directories.
 
 Split source trees (any directory holding the composition root) are validated
@@ -80,7 +79,7 @@ def display_path(path, root):
 
 def is_split_source(document):
     """A composition root is split when it still points at sibling schema files."""
-    return any(urlsplit(ref).path for _, ref in iter_refs(document))
+    return any(urlsplit(entry[1]).path for entry in iter_refs(document))
 
 
 def check_document(label, document, base_dir, documents, allow_remote):

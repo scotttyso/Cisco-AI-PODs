@@ -7,6 +7,8 @@ Jinja2
 jmespath
 json-ref-dict
 kubernetes
+# Provides the removed Python 3.13+ cgi module used by json-ref-dict.
+legacy-cgi
 netaddr
 numpy
 openshift

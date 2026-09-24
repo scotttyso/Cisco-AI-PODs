@@ -183,7 +183,7 @@ class api:
                         kwargs.intersight_api[kwargs.org][self.category][parent_type][parent_name][child_type][iname] = DotMap(
                             moid=i.Moid, result=i)
                         continue
-                elif 'Name' in ikeys and isinstance(self.category, type(kwargs.org)) == str:
+                elif 'Name' in ikeys and isinstance(self.category, str):
                     # fcpool.Pool backs both wwnn and wwpn; keep the requested
                     # pool type to avoid collapsing both into a single key.
                     if self.category == 'pools' and i.ObjectType == 'fcpool.Pool' and self.type in [
@@ -217,6 +217,18 @@ class api:
                     iname = str(i.PciSlot)
                 else:
                     iname = i.Moid
+                if 'Organization' in ikeys and i.ObjectType.endswith('.Policy'):
+                    organization = kwargs.org_names.get(i.Organization.Moid)
+                    policy_type = kwargs.intersight_object_map[i.ObjectType]
+                    if organization:
+                        if not kwargs.intersight_api.get(organization):
+                            kwargs.intersight_api[organization] = DotMap()
+                        if not kwargs.intersight_api[organization].get('policies'):
+                            kwargs.intersight_api[organization].policies = DotMap()
+                        if not kwargs.intersight_api[organization].policies.get(policy_type):
+                            kwargs.intersight_api[organization].policies[policy_type] = DotMap()
+                        kwargs.intersight_api[organization].policies[policy_type][iname] = DotMap(
+                            moid=i.Moid, result=i)
                 if 'ConfiguredBootMode' in ikeys:
                     pmoids[iname].boot_mode = i.ConfiguredBootMode
                 if 'EnforceUefiSecureBoot' in ikeys:
@@ -329,7 +341,6 @@ class api:
 
             def send_error(kwargs, response):
                 pcolor.Red(json.dumps(kwargs.api_body, indent=4))
-                pcolor.Red(kwargs.api_body)
                 pcolor.Red('!!! ERROR !!!')
                 if method == 'get_by_moid':
                     pcolor.Red(f'  URL: {url}/{uri}/{moid}')
@@ -518,10 +529,10 @@ class api:
                                 pass
                             else:
                                 pcolor.Red(json.dumps(e.Body, indent=4))
-                                pcolor.Red(
-                                    'Missing name_key.  isight.py line 415')
-                                len(False)
-                                sys.exit(1)
+                                raise RuntimeError(
+                                    f'Bulk API response for {self.type!r} '
+                                    'does not contain a recognized identity '
+                                    f'field: {json.dumps(e.Body, default=str)}')
                             if not e.Body['ObjectType'] == 'iam.EndPointUserRole':
                                 indx = next(
                                     (index for (

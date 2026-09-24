@@ -1,0 +1,17 @@
+---
+# Configure DHCP services on a RHEL 9 staging host used for CIMC / management
+# network provisioning and Nexus POAP.
+#
+# Usage:
+#   ansible-playbook playbooks/deploy_dhcp_server.yaml \
+#     -i <inventory> -e dhcp_vars_file=$(pwd)/examples/dhcp/dhcp.yaml
+- name: Configure DHCP Services for AI Pod Staging
+  hosts: "{{ dhcp_hosts | default('dhcp_servers') }}"
+  become: true
+  gather_facts: true
+
+  vars:
+    dhcp_vars_file: "{{ lookup('ansible.builtin.env', 'dhcp_vars_file') | default(playbook_dir ~ '/../examples/dhcp/dhcp.yaml', true) }}"
+
+  roles:
+    - role: dhcp_server

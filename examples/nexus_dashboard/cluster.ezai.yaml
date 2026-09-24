@@ -1,0 +1,6 @@
+---
+site:
+  environment: lab
+  site_id: "example_site_id"
+  site_name: "Example Site Name"
+  owner: "Example Owner"

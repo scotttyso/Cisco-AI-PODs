@@ -1,0 +1,18 @@
+---
+# Path to the YAML file holding the dhcp data model. When empty the role expects
+# the `dhcp` variable to already be defined by the playbook / host_vars.
+dhcp_vars_file: ""
+
+dhcp_config_path: /etc/dhcp/dhcpd.conf
+dhcp_sysconfig_path: /etc/sysconfig/dhcpd
+dhcp_service_name: dhcpd
+dhcp_service_enabled: true
+dhcp_service_state: started
+
+# firewalld services opened on the host for DHCP (and optionally TFTP).
+dhcp_manage_firewall: true
+dhcp_firewall_zone: ""
+dhcp_firewall_services:
+  - dhcp
+
+dhcp: {}

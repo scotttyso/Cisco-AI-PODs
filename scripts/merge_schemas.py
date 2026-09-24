@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
 """Bundle the split Cisco AI POD JSON schemas into one VS Code-friendly schema."""
 
 import argparse
-import copy
 import json
-import re
+import posixpath
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -18,6 +16,7 @@ NAMESPACE_BY_FILE = {
     "notifications.json": "notifications",
     "openshift.json": "openshift",
     "splunk_observability.json": "splunk_observability",
+    "nexus-dashboard.json": "nexus_dashboard",
 }
 
 
@@ -41,6 +40,8 @@ def load_sources(source_dir):
     documents = {}
     for path in sorted(source_dir.rglob("*.json")):
         relative_path = path.relative_to(source_dir).as_posix()
+        if relative_path == "nexus-dashboard.json":
+            continue
         with path.open(encoding="utf-8") as stream:
             documents[relative_path] = json.load(stream)
     if ROOT_FILE not in documents:
@@ -62,7 +63,7 @@ def namespace_for_file(source_file):
 
 def resolve_source_file(source_file, target, documents):
     relative_target = Path(source_file).parent / target
-    target_path = relative_target.as_posix()
+    target_path = posixpath.normpath(relative_target.as_posix())
     if target_path in documents:
         return target_path
 
@@ -138,7 +139,7 @@ def build_definition_map(documents):
 def resolve_definition(source_file, definition_name, documents):
     source_namespace = namespace_for_file(source_file)
     if source_namespace == "intersight":
-        logical_definitions, _ = intersight_definitions(documents)
+        logical_definitions = intersight_definitions(documents)[0]
         if definition_name in logical_definitions:
             return f"intersight.{definition_name}"
         if source_file.startswith("intersight/"):
