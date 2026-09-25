@@ -1,0 +1,89 @@
+---
+# Complete Nexus Dashboard Fabric Lifecycle Playbook
+# Supports both single and bulk fabric operations
+#
+# SINGLE FABRIC OPERATIONS (with fabric_name and fabric_type):
+#
+# 1. Create a single classic-lan fabric:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=create_fabric \
+#      -e fabric_name=my-fabric \
+#      -e fabric_type=classicLan
+#
+# 2. Create fabric with custom settings from file:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=create_fabric \
+#      -e fabric_name=my-fabric \
+#      -e fabric_type=vxlanEbgp \
+#      -e config_file=examples/nexus_dashboard/vxlan_fabric.yaml
+#
+# 3. Add switches to specific fabric:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=add_devices \
+#      -e fabric_name=my-fabric \
+#      -e config_file=examples/nexus_dashboard/classic_lan_fabric.yaml
+#
+# BULK OPERATIONS (with config_file containing multiple fabrics):
+#
+# 4. Create all fabrics from config file:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=create_fabric \
+#      -e config_file=examples/nexus_dashboard/fabrics.yaml
+#
+# 5. Add switches to all fabrics from config file:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=add_devices \
+#      -e config_file=examples/nexus_dashboard/fabrics.yaml
+#
+# 6. List all fabrics:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=list_fabrics
+#
+# 7. List switches in specific fabric:
+#    ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
+#      -e action=list_switches \
+#      -e fabric_name=my-fabric
+#
+
+- name: "Nexus Dashboard Fabric Lifecycle Management"
+  hosts: localhost
+  gather_facts: false
+  
+  vars:
+    # Default values - override with -e flags
+    nd_url: "{{ lookup('env', 'ND_URL') | default('https://nd-lan.rich.ciscolabs.com') }}"
+    nd_username: "{{ lookup('env', 'ND_USERNAME') | default('admin') }}"
+    vault_file: "{{ playbook_dir }}/vault-ai-pod.yaml"
+    platform_type: "nx-os"
+    snmp_auth_protocol: "md5-aes"
+    switch_username: "admin"
+  
+  pre_tasks:
+    - name: "Display operation"
+      debug:
+        msg: "Nexus Dashboard Operation: {{ action | default('Not specified') }}"
+    
+    - name: "Validate action parameter"
+      assert:
+        that:
+          - action is defined
+          - action in ['create_fabric', 'add_devices', 'list_fabrics', 'list_switches']
+        fail_msg: |
+          'action' parameter required. Valid values:
+            - create_fabric (requires: fabric_name+fabric_type OR config_file with fabrics)
+            - add_devices (requires: fabric_name+config_file OR config_file with fabrics)
+            - list_fabrics
+            - list_switches (requires: fabric_name)
+  
+  tasks:
+    - name: "Execute Nexus Dashboard operations"
+      include_role:
+        name: nexus_dashboard
+      vars:
+        action: "{{ action }}"
+        config_file: "{{ config_file | default() }}"
+  
+  post_tasks:
+    - name: "Display completion message"
+      debug:
+        msg: "Nexus Dashboard operation '{{ action }}' completed successfully"

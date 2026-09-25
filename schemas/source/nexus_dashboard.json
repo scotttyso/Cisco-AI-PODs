@@ -1,0 +1,576 @@
+{
+    "$id": "nexus_dashboard.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "contact": {
+        "email": "tyscott@cisco.com"
+    },
+    "definitions": {
+        "switch": {
+            "type": "object",
+            "title": "Switch Configuration",
+            "description": "Configuration for a single switch to be added to fabric",
+            "additionalProperties": false,
+            "properties": {
+                "ip": {
+                    "type": "string",
+                    "title": "IP Address",
+                    "description": "Management IP address of the switch",
+                    "format": "ipv4",
+                    "example": "10.1.1.10"
+                },
+                "hostname": {
+                    "type": "string",
+                    "title": "Hostname",
+                    "description": "Hostname of the switch",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "example": "leaf1"
+                },
+                "model": {
+                    "type": "string",
+                    "title": "Model",
+                    "description": "Switch model number",
+                    "example": "N9K-C93180YC-FX"
+                },
+                "serialNumber": {
+                    "type": "string",
+                    "title": "Serial Number",
+                    "description": "Switch serial number",
+                    "example": "SAL1234ABCD"
+                },
+                "softwareVersion": {
+                    "type": "string",
+                    "title": "Software Version",
+                    "description": "NX-OS or OS version",
+                    "example": "10.3(3)"
+                },
+                "switchRole": {
+                    "type": "string",
+                    "title": "Switch Role",
+                    "description": "Role of the switch in the fabric",
+                    "enum": [
+                        "leaf",
+                        "spine",
+                        "border",
+                        "controller"
+                    ],
+                    "example": "leaf"
+                }
+            },
+            "required": [
+                "ip",
+                "hostname",
+                "model",
+                "serialNumber",
+                "softwareVersion"
+            ]
+        },
+        "switches": {
+            "type": "array",
+            "title": "Switches",
+            "description": "List of switches to add to fabric",
+            "items": {
+                "$ref": "#/definitions/switch"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+        },
+        "telemetry_settings": {
+            "type": "object",
+            "title": "Telemetry Settings",
+            "description": "Telemetry collection and reporting settings",
+            "additionalProperties": false,
+            "properties": {
+                "telemetryCollection": {
+                    "type": "boolean",
+                    "title": "Enable Telemetry Collection",
+                    "description": "Enable telemetry data collection from fabric",
+                    "default": false,
+                    "example": false
+                },
+                "telemetryMode": {
+                    "type": "string",
+                    "title": "Telemetry Mode",
+                    "description": "In-band or out-of-band telemetry collection",
+                    "enum": ["inband", "outofband"],
+                    "default": "outofband",
+                    "example": "outofband"
+                },
+                "telemetryVrf": {
+                    "type": "string",
+                    "title": "Telemetry VRF",
+                    "description": "VRF for inband telemetry collection (only used when telemetryMode is 'inband')",
+                    "default": "default",
+                    "example": "default"
+                },
+                "telemetrySourceInterface": {
+                    "type": "string",
+                    "title": "Telemetry Source Interface",
+                    "description": "Source interface for inband telemetry collection (only used when telemetryMode is 'inband')",
+                    "default": "loopback0",
+                    "example": "loopback0"
+                },
+                "performanceMonitoring": {
+                    "type": "boolean",
+                    "title": "Performance Monitoring",
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "default": false,
+                    "example": false
+                },
+                "realTimeInterfaceStatisticsCollection": {
+                    "type": "boolean",
+                    "title": "Real-Time Interface Statistics Collection",
+                    "description": "Enable real-time interface statistics collection",
+                    "default": false,
+                    "example": false
+                },
+                "snmpTrap": {
+                    "type": "boolean",
+                    "title": "SNMP Trap",
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "default": true,
+                    "example": true
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "type": "integer",
+                    "title": "Interface Statistics Load Interval",
+                    "description": "Interface statistics polling interval in seconds",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 10,
+                    "example": 10
+                }
+            }
+        },
+        "classic_lan_fabric_settings": {
+            "type": "object",
+            "title": "Classic-LAN Fabric Settings",
+            "description": "Settings specific to classic-lan fabric type",
+            "additionalProperties": true,
+            "properties": {
+                "monitoredMode": {
+                    "type": "boolean",
+                    "title": "Monitored Mode",
+                    "description": "If enabled, fabric is only monitored. No configuration will be deployed",
+                    "default": true,
+                    "example": true
+                },
+                "softwareUpdateMode": {
+                    "type": "boolean",
+                    "title": "Enable Fabric Software Update",
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "default": false,
+                    "example": false
+                },
+                "inbandManagement": {
+                    "type": "boolean",
+                    "title": "Inband Management",
+                    "description": "Enable inband management for the fabric (use fabric data network for management traffic)",
+                    "default": false,
+                    "example": false
+                },
+                "performanceMonitoring": {
+                    "type": "boolean",
+                    "title": "Performance Monitoring",
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "default": false,
+                    "example": false
+                },
+                "realTimeInterfaceStatisticsCollection": {
+                    "type": "boolean",
+                    "title": "Real-Time Interface Statistics Collection",
+                    "description": "Enable real-time interface statistics collection",
+                    "default": false,
+                    "example": false
+                },
+                "snmpTrap": {
+                    "type": "boolean",
+                    "title": "SNMP Trap",
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "default": true,
+                    "example": true
+                },
+                "cdp": {
+                    "type": "boolean",
+                    "title": "CDP",
+                    "description": "Enable CDP on management interface",
+                    "default": false,
+                    "example": false
+                },
+                "nxapi": {
+                    "type": "boolean",
+                    "title": "NX-API",
+                    "description": "Enable NX-API over HTTPS",
+                    "default": false,
+                    "example": false
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "type": "integer",
+                    "title": "Interface Statistics Load Interval",
+                    "description": "Interface statistics polling interval in seconds",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 10,
+                    "example": 10
+                },
+                "coppPolicy": {
+                    "type": "string",
+                    "title": "COPP Policy",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "moderate",
+                        "strict",
+                        "manual"
+                    ],
+                    "default": "manual",
+                    "example": "manual"
+                },
+                "mplsHandoff": {
+                    "type": "boolean",
+                    "title": "MPLS Handoff",
+                    "description": "Enable MPLS handoff",
+                    "default": false,
+                    "example": false
+                },
+                "mplsLoopbackIdentifier": {
+                    "type": "integer",
+                    "title": "MPLS Loopback Identifier",
+                    "description": "Underlay MPLS loopback identifier",
+                    "minimum": 0,
+                    "maximum": 1023,
+                    "default": 101,
+                    "example": 101
+                }
+            }
+        },
+        "vxlan_fabric_settings": {
+            "type": "object",
+            "title": "VXLAN Fabric Settings",
+            "description": "Settings specific to VXLAN fabric types (iBGP and eBGP)",
+            "additionalProperties": true,
+            "properties": {
+                "bgpAsn": {
+                    "type": [
+                        "string",
+                        "integer"
+                    ],
+                    "title": "BGP ASN",
+                    "description": "BGP Autonomous System Number",
+                    "example": "65000"
+                },
+                "fabricMtu": {
+                    "type": "integer",
+                    "title": "Fabric MTU",
+                    "description": "Maximum Transmission Unit for fabric",
+                    "minimum": 1500,
+                    "maximum": 9216,
+                    "default": 9216,
+                    "example": 9216
+                },
+                "firstHopRedundancyProtocol": {
+                    "type": "string",
+                    "title": "First Hop Redundancy Protocol",
+                    "description": "FHRP for redundancy",
+                    "enum": [
+                        "hsrp",
+                        "vrrp",
+                        "vrrpv3",
+                        "none"
+                    ],
+                    "default": "hsrp",
+                    "example": "hsrp"
+                },
+                "intraFabricSubnetRange": {
+                    "type": "string",
+                    "title": "Intra-Fabric Subnet Range",
+                    "description": "IP range for intra-fabric communication",
+                    "format": "ipv4WithSubnet",
+                    "default": "10.4.0.0/16",
+                    "example": "10.4.0.0/16"
+                },
+                "networkVlanRange": {
+                    "type": "string",
+                    "title": "Network VLAN Range",
+                    "description": "VLAN range for overlay networks",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "default": "2300-2999",
+                    "example": "2300-2999"
+                },
+                "l2VniRange": {
+                    "type": "string",
+                    "title": "L2 VNI Range",
+                    "description": "L2 VNI range for VXLAN",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "example": "30000-49000"
+                },
+                "l3VniRange": {
+                    "type": "string",
+                    "title": "L3 VNI Range",
+                    "description": "L3 VNI range for VXLAN",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "example": "50000-59000"
+                },
+                "performanceMonitoring": {
+                    "type": "boolean",
+                    "title": "Performance Monitoring",
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "default": true,
+                    "example": true
+                },
+                "snmpTrap": {
+                    "type": "boolean",
+                    "title": "SNMP Trap",
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "default": true,
+                    "example": true
+                },
+                "nxapi": {
+                    "type": "boolean",
+                    "title": "NX-API",
+                    "description": "Enable NX-API over HTTPS",
+                    "default": true,
+                    "example": true
+                },
+                "coppPolicy": {
+                    "type": "string",
+                    "title": "COPP Policy",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "moderate",
+                        "strict",
+                        "manual"
+                    ],
+                    "default": "strict",
+                    "example": "strict"
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "type": "integer",
+                    "title": "Interface Statistics Load Interval",
+                    "description": "Interface statistics polling interval in seconds",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 10,
+                    "example": 10
+                }
+            }
+        },
+        "ai_routed_fabric_settings": {
+            "type": "object",
+            "title": "AI Routed Fabric Settings",
+            "description": "Settings specific to AI Routed fabric type",
+            "additionalProperties": true,
+            "properties": {
+                "softwareUpdateMode": {
+                    "type": "boolean",
+                    "title": "Enable Fabric Software Update",
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "default": false,
+                    "example": false
+                },
+                "performanceMonitoring": {
+                    "type": "boolean",
+                    "title": "Performance Monitoring",
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "default": true,
+                    "example": true
+                },
+                "snmpTrap": {
+                    "type": "boolean",
+                    "title": "SNMP Trap",
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "default": true,
+                    "example": true
+                },
+                "nxapi": {
+                    "type": "boolean",
+                    "title": "NX-API",
+                    "description": "Enable NX-API over HTTPS",
+                    "default": true,
+                    "example": true
+                },
+                "coppPolicy": {
+                    "type": "string",
+                    "title": "COPP Policy",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "moderate",
+                        "strict",
+                        "manual"
+                    ],
+                    "default": "strict",
+                    "example": "strict"
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "type": "integer",
+                    "title": "Interface Statistics Load Interval",
+                    "description": "Interface statistics polling interval in seconds",
+                    "minimum": 5,
+                    "maximum": 300,
+                    "default": 10,
+                    "example": 10
+                }
+            }
+        },
+        "ai_vxlan_evpn_fabric_settings": {
+            "type": "object",
+            "title": "AI VXLAN EVPN Fabric Settings",
+            "description": "Settings specific to AI VXLAN EVPN fabric type",
+            "additionalProperties": true,
+            "properties": {
+                "bgpAsn": {
+                    "type": [
+                        "string",
+                        "integer"
+                    ],
+                    "title": "BGP ASN",
+                    "description": "BGP Autonomous System Number",
+                    "example": "65000"
+                },
+                "fabricMtu": {
+                    "type": "integer",
+                    "title": "Fabric MTU",
+                    "description": "Maximum Transmission Unit for fabric",
+                    "minimum": 1500,
+                    "maximum": 9216,
+                    "default": 9216,
+                    "example": 9216
+                },
+                "softwareUpdateMode": {
+                    "type": "boolean",
+                    "title": "Enable Fabric Software Update",
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "default": false,
+                    "example": false
+                },
+                "performanceMonitoring": {
+                    "type": "boolean",
+                    "title": "Performance Monitoring",
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "default": true,
+                    "example": true
+                },
+                "snmpTrap": {
+                    "type": "boolean",
+                    "title": "SNMP Trap",
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "default": true,
+                    "example": true
+                },
+                "nxapi": {
+                    "type": "boolean",
+                    "title": "NX-API",
+                    "description": "Enable NX-API over HTTPS",
+                    "default": true,
+                    "example": true
+                },
+                "coppPolicy": {
+                    "type": "string",
+                    "title": "COPP Policy",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "moderate",
+                        "strict",
+                        "manual"
+                    ],
+                    "default": "strict",
+                    "example": "strict"
+                }
+            }
+        },
+        "fabric_config": {
+            "type": "object",
+            "title": "Nexus Dashboard Fabric Configuration",
+            "description": "Configuration for Nexus Dashboard fabric deployment",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "title": "Fabric Name",
+                    "description": "Name of the fabric",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "example": "production-fabric"
+                },
+                "type": {
+                    "type": "string",
+                    "title": "Fabric Type",
+                    "description": "Type of fabric to deploy",
+                    "enum": [
+                        "classicLan",
+                        "vxlanIbgp",
+                        "vxlanEbgp",
+                        "aiRouted",
+                        "aiVxlanEvpn"
+                    ],
+                    "example": "classicLan"
+                },
+                "licenseTier": {
+                    "type": "string",
+                    "title": "License Tier",
+                    "description": "License tier for the fabric",
+                    "enum": [
+                        "essentials",
+                        "advantage",
+                        "premier"
+                    ],
+                    "default": "essentials",
+                    "example": "essentials"
+                },
+                "fabric_settings": {
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/classic_lan_fabric_settings"
+                        },
+                        {
+                            "$ref": "#/definitions/vxlan_fabric_settings"
+                        },
+                        {
+                            "$ref": "#/definitions/ai_routed_fabric_settings"
+                        },
+                        {
+                            "$ref": "#/definitions/ai_vxlan_evpn_fabric_settings"
+                        }
+                    ],
+                    "description": "Fabric-specific settings"
+                },
+                "telemetry": {
+                    "$ref": "#/definitions/telemetry_settings",
+                    "description": "Telemetry collection and reporting settings"
+                },
+                "switches": {
+                    "$ref": "#/definitions/switches"
+                }
+            },
+            "required": []
+        },
+        "fabrics": {
+            "type": "object",
+            "title": "Nexus Dashboard Fabrics",
+            "description": "Multiple Nexus Dashboard fabric configurations",
+            "additionalProperties": false,
+            "properties": {
+                "fabrics": {
+                    "type": "array",
+                    "title": "Fabrics Array",
+                    "description": "Array of fabric configurations",
+                    "items": {
+                        "$ref": "#/definitions/fabric_config"
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": [
+                "fabrics"
+            ]
+        }
+    },
+    "$ref": "#/definitions/fabric_config"
+}

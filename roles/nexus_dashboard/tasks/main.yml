@@ -1,0 +1,146 @@
+---
+# Nexus Dashboard Role - Main Tasks
+# This role manages Nexus Dashboard fabric lifecycle using cisco.nd collection
+# Supports both individual and bulk fabric operations
+
+- name: "Load vault credentials"
+  include_vars:
+    file: "{{ vault_file }}"
+    name: vault_credentials
+  when: vault_file is defined and vault_file
+  no_log: true
+
+- name: "Load configuration from YAML"
+  include_vars:
+    file: "{{ config_file }}"
+    name: fabric_config
+  when: config_file is defined and config_file
+
+- name: "Create Single Fabric (when fabric_name and fabric_type provided)"
+  block:
+    - name: "Create fabric using cisco.nd collection"
+      cisco.nd.nd_fabric:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        name: "{{ fabric_name }}"
+        fabric_type: "{{ fabric_type }}"
+        managed_settings: "{{ fabric_config.fabric_settings | default({}) }}"
+        state: present
+      register: fabric_result
+      no_log: true
+
+    - name: "Display fabric creation result"
+      debug:
+        msg: "Fabric '{{ fabric_name }}' created successfully with status: {{ fabric_result.fabric.status | default('created') }}"
+      when: fabric_result.changed
+  when: action is defined and action == "create_fabric" and fabric_name is defined and fabric_type is defined
+
+- name: "Create Multiple Fabrics (when config_file with fabrics array provided)"
+  block:
+    - name: "Create each fabric from config file"
+      cisco.nd.nd_fabric:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        name: "{{ item.name }}"
+        fabric_type: "{{ item.type }}"
+        managed_settings: "{{ item.fabric_settings | default({}) }}"
+        state: present
+      loop: "{{ fabric_config.fabrics | default([]) }}"
+      register: bulk_fabric_result
+      no_log: true
+
+    - name: "Display bulk fabric creation results"
+      debug:
+        msg: "Created {{ bulk_fabric_result.results | length }} fabric(s)"
+      when: bulk_fabric_result.results | length > 0
+  when: action is defined and action == "create_fabric" and fabric_name is not defined and config_file is defined
+
+- name: "Add Switches to Single Fabric (when fabric_name provided)"
+  block:
+    - name: "Add devices to fabric using cisco.nd collection"
+      cisco.nd.nd_device:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        fabric_name: "{{ fabric_name }}"
+        devices: "{{ fabric_config.switches | default([]) }}"
+        discovery_username: "{{ switch_username | default('admin') }}"
+        discovery_password: "{{ switch_password | default(vault_credentials.nexus_dashboard.switch_password) }}"
+        platform_type: "{{ platform_type | default('nx-os') }}"
+        preserve_config: "{{ preserve_config | default(true) }}"
+        snmp_v3_auth_protocol: "{{ snmp_auth_protocol | default('md5-aes') }}"
+        state: present
+      register: device_result
+      no_log: true
+
+    - name: "Display device addition result"
+      debug:
+        msg: "Added {{ device_result.devices_added | default(0) }} switch(es) to fabric '{{ fabric_name }}'"
+      when: device_result.changed
+  when: action is defined and action == "add_devices" and fabric_name is defined and config_file is defined
+
+- name: "Add Switches to Multiple Fabrics (when fabrics array in config file)"
+  block:
+    - name: "Add devices to each fabric from config"
+      cisco.nd.nd_device:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        fabric_name: "{{ item.name }}"
+        devices: "{{ item.switches | default([]) }}"
+        discovery_username: "{{ switch_username | default('admin') }}"
+        discovery_password: "{{ switch_password | default(vault_credentials.nexus_dashboard.switch_password) }}"
+        platform_type: "{{ platform_type | default('nx-os') }}"
+        preserve_config: "{{ preserve_config | default(true) }}"
+        snmp_v3_auth_protocol: "{{ snmp_auth_protocol | default('md5-aes') }}"
+        state: present
+      loop: "{{ fabric_config.fabrics | default([]) }}"
+      register: bulk_device_result
+      no_log: true
+
+    - name: "Display bulk device addition results"
+      debug:
+        msg: "Added devices to {{ bulk_device_result.results | length }} fabric(s)"
+      when: bulk_device_result.results | length > 0
+  when: action is defined and action == "add_devices" and fabric_name is not defined and config_file is defined
+
+- name: "List All Fabrics"
+  block:
+    - name: "Query all fabrics using cisco.nd collection"
+      cisco.nd.nd_fabric_info:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+      register: fabrics_result
+      no_log: true
+
+    - name: "Display all fabrics"
+      debug:
+        msg: |
+          Found {{ fabrics_result.fabrics | length }} fabric(s):
+          {% for fabric in fabrics_result.fabrics %}
+          - Name: {{ fabric.name }}, Type: {{ fabric.fabric_type }}, Status: {{ fabric.status | default('N/A') }}
+          {% endfor %}
+  when: action is defined and action == "list_fabrics"
+
+- name: "List Switches in Fabric"
+  block:
+    - name: "Query switches in fabric using cisco.nd collection"
+      cisco.nd.nd_device_info:
+        host: "{{ nd_url }}"
+        username: "{{ nd_username }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        fabric_name: "{{ fabric_name }}"
+      register: switches_result
+      no_log: true
+
+    - name: "Display switches in fabric"
+      debug:
+        msg: |
+          Found {{ switches_result.devices | length }} switch(es) in fabric '{{ fabric_name }}':
+          {% for switch in switches_result.devices %}
+          - Hostname: {{ switch.hostname }}, IP: {{ switch.ip }}, Serial: {{ switch.serial_number }}
+          {% endfor %}
+  when: action is defined and action == "list_switches" and fabric_name is defined

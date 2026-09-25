@@ -1,0 +1,165 @@
+---
+# Multiple Nexus Dashboard Fabric Definitions
+# Define multiple fabrics with their settings and switches in a single file
+
+fabrics:
+  - name: "production-classic"
+    type: "classicLan"
+    licenseTier: "essentials"
+    fabric_settings:
+      monitoredMode: true
+      inbandManagement: false
+      softwareUpdateMode: false
+      performanceMonitoring: false
+      snmpTrap: true
+      coppPolicy: manual
+    telemetry:
+      telemetryCollection: false
+      telemetryMode: outofband
+      performanceMonitoring: false
+      snmpTrap: true
+    switches:
+      - ip: "10.1.1.10"
+        hostname: "leaf1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL1234ABCD"
+        softwareVersion: "10.3(3)"
+      - ip: "10.1.1.11"
+        hostname: "leaf2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL1234ABCE"
+        softwareVersion: "10.3(3)"
+      - ip: "10.1.1.1"
+        hostname: "spine1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL1234SPINE1"
+        softwareVersion: "10.3(3)"
+      - ip: "10.1.1.2"
+        hostname: "spine2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL1234SPINE2"
+        softwareVersion: "10.3(3)"
+
+  - name: "production-vxlan"
+    type: "vxlanEbgp"
+    licenseTier: "advantage"
+    fabric_settings:
+      bgpAsn: 65001
+      fabricMtu: 9216
+      firstHopRedundancyProtocol: hsrp
+      networkVlanRange: "2300-2999"
+      performanceMonitoring: true
+      snmpTrap: true
+      nxapi: true
+    telemetry:
+      telemetryCollection: true
+      telemetryMode: inband
+      telemetryVrf: default
+      telemetrySourceInterface: loopback0
+      performanceMonitoring: true
+      snmpTrap: true
+    switches:
+      - ip: "10.2.1.10"
+        hostname: "leaf1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL2000ABCD"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.2.1.11"
+        hostname: "leaf2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL2000ABCE"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.2.1.1"
+        hostname: "spine1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL2000SPINE1"
+        softwareVersion: "10.3(3)"
+        switchRole: "spine"
+      - ip: "10.2.1.2"
+        hostname: "spine2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL2000SPINE2"
+        softwareVersion: "10.3(3)"
+        switchRole: "spine"
+
+  - name: "ai-routed-fabric"
+    type: "aiRouted"
+    licenseTier: "premier"
+    fabric_settings:
+      softwareUpdateMode: true
+      performanceMonitoring: true
+      snmpTrap: true
+      nxapi: true
+      coppPolicy: strict
+    telemetry:
+      telemetryCollection: true
+      telemetryMode: inband
+      telemetryVrf: default
+      telemetrySourceInterface: loopback0
+      performanceMonitoring: true
+      snmpTrap: true
+    switches:
+      - ip: "10.3.1.10"
+        hostname: "ai-leaf1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL3000ABCD"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.3.1.11"
+        hostname: "ai-leaf2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL3000ABCE"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.3.1.1"
+        hostname: "ai-spine1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL3000SPINE1"
+        softwareVersion: "10.3(3)"
+        switchRole: "spine"
+
+  - name: "ai-vxlan-evpn"
+    type: "aiVxlanEvpn"
+    licenseTier: "premier"
+    fabric_settings:
+      bgpAsn: 65002
+      fabricMtu: 9216
+      softwareUpdateMode: true
+      performanceMonitoring: true
+      snmpTrap: true
+      nxapi: true
+      coppPolicy: strict
+    telemetry:
+      telemetryCollection: true
+      telemetryMode: inband
+      telemetryVrf: management
+      telemetrySourceInterface: loopback0
+      performanceMonitoring: true
+      snmpTrap: true
+    switches:
+      - ip: "10.4.1.10"
+        hostname: "ai-evpn-leaf1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL4000ABCD"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.4.1.11"
+        hostname: "ai-evpn-leaf2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL4000ABCE"
+        softwareVersion: "10.3(3)"
+        switchRole: "leaf"
+      - ip: "10.4.1.1"
+        hostname: "ai-evpn-spine1"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL4000SPINE1"
+        softwareVersion: "10.3(3)"
+        switchRole: "spine"
+      - ip: "10.4.1.2"
+        hostname: "ai-evpn-spine2"
+        model: "N9K-C93180YC-FX"
+        serialNumber: "SAL4000SPINE2"
+        softwareVersion: "10.3(3)"
+        switchRole: "spine"

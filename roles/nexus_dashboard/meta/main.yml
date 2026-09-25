@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: "Cisco AI PODs"
+  description: "Nexus Dashboard Fabric Management Role"
+  company: "Cisco"
+  license: "Cisco Sample Code License"
+  min_ansible_version: "2.9"
+  galaxy_tags:
+    - networking
+    - nexus-dashboard
+    - fabric
+    - cisco
+
+dependencies:
+  - name: cisco.nd
+    version: ">=1.0.0"

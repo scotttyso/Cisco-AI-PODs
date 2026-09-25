@@ -17,6 +17,9 @@
                         "intersight": {
                             "$ref": "#/definitions/intersight"
                         },
+                        "nexus_dashboard": {
+                            "$ref": "#/definitions/nexus_dashboard"
+                        },
                         "openshift": {
                             "$ref": "#/definitions/openshift"
                         },
@@ -32,7 +35,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",
@@ -104,6 +107,49 @@
             "description": "This dictionary defines the Intersight deployment settings.\n\nOptional fields are:\n  * `configure` - Configuration of Pools, Policies, Profiles, and Templates\n  * `script_settings` - Global Script Settings like `intersight_fqdn`\n  * `system` - System settings for Intersight",
             "required": [],
             "title": "Intersight deployment settings",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "nexus_dashboard": {
+            "additionalProperties": false,
+            "description": "This dictionary provides the required configuration settings for Nexus Dashboard fabric deployment.\n\nOptional fields are:\n  * `fabrics` - List of fabrics to create and manage",
+            "properties": {
+                "fabrics": {
+                    "title": "Nexus Dashboard Fabrics",
+                    "type": "array",
+                    "description": "List of Nexus Dashboard fabrics (classic-lan, VXLAN)",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "title": "Fabric Name",
+                                "description": "Name of the fabric",
+                                "example": "prod-fabric"
+                            },
+                            "fabric_type": {
+                                "type": "string",
+                                "title": "Fabric Type",
+                                "description": "Type of fabric to create",
+                                "enum": ["classicLan", "vxlanIbgp", "vxlanEbgp"],
+                                "example": "classicLan"
+                            },
+                            "fabric_settings": {
+                                "$ref": "./nexus_dashboard.json#/definitions/classic_lan_fabric_settings"
+                            },
+                            "switches": {
+                                "$ref": "./nexus_dashboard.json#/definitions/switches"
+                            }
+                        },
+                        "required": ["name", "fabric_type"]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Nexus Dashboard",
             "type": "object",
             "unevaluatedProperties": false
         },

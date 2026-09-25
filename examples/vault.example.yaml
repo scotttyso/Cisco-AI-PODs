@@ -2,6 +2,11 @@
 #   ansible-vault encrypt vault-ai-pod.yaml
 # Keep the separate password file outside the repository.
 
+# Nexus Dashboard credentials and settings
+nexus_dashboard:
+  nd_password: ""
+  switch_password: ""
+
 # Environment variables used by Everpure, storage, and notification tasks.
 everpure:
   everpure_api_token_1: ""
