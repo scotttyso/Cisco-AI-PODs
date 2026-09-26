@@ -1,0 +1,19 @@
+---
+provisioning_web_packages:
+  - nginx
+provisioning_web_service_name: nginx
+provisioning_web_root: /usr/share/nginx/html/images
+provisioning_web_server_name: "{{ ansible_fqdn }}"
+provisioning_web_config_path: /etc/nginx/conf.d/provisioning-images.conf
+
+provisioning_web_tls_directory: /etc/nginx/tls
+provisioning_web_tls_certificate_path: "{{ provisioning_web_tls_directory }}/server.crt"
+provisioning_web_tls_private_key_path: "{{ provisioning_web_tls_directory }}/server.key"
+provisioning_web_tls_csr_path: "{{ provisioning_web_tls_directory }}/server.csr"
+provisioning_web_tls_self_signed: true
+provisioning_web_tls_subject_alt_name:
+  - "DNS:{{ provisioning_web_server_name }}"
+
+provisioning_web_manage_firewall: true
+provisioning_web_firewall_zone: ""
+provisioning_web_firewall_backend: auto

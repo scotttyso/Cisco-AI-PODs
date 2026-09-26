@@ -1,9 +1,6 @@
 {
     "$id": "nexus_dashboard.json",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "contact": {
-        "email": "tyscott@cisco.com"
-    },
     "definitions": {
         "switch": {
             "type": "object",

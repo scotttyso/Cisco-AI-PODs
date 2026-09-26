@@ -114,6 +114,28 @@
             "additionalProperties": false,
             "description": "This dictionary provides the required configuration settings for Nexus Dashboard fabric deployment.\n\nOptional fields are:\n  * `fabrics` - List of fabrics to create and manage",
             "properties": {
+                "cluster": {
+                    "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+                    "items": {
+                        "$ref": "./nexus_dashboard.json#/definitions/cluster"
+                    },
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "title": "Nexus Dashboard - Cluster Deployment",
+                    "type": "array",
+                    "uniqueItems": true
+                },
+                "fabrics": {
+                    "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+                    "items": {
+                        "$ref": "./nexus_dashboard.json#/definitions/fabrics"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "Nexus Dashboard - Fabric Provisioning",
+                    "type": "array",
+                    "uniqueItems": true
+                },
                 "fabrics": {
                     "title": "Nexus Dashboard Fabrics",
                     "type": "array",

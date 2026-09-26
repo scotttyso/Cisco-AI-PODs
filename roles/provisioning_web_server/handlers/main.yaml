@@ -1,0 +1,5 @@
+---
+- name: Restart Provisioning Web Service
+  ansible.builtin.service:
+    name: "{{ provisioning_web_service_name }}"
+    state: restarted

@@ -1,0 +1,8 @@
+---
+- name: Configure HTTPS Provisioning Image Server
+  hosts: "{{ provisioning_web_hosts | default('provisioning_web_servers') }}"
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: provisioning_web_server

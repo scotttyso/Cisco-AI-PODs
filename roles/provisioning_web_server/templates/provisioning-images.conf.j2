@@ -1,0 +1,16 @@
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{ provisioning_web_server_name }};
+
+    ssl_certificate {{ provisioning_web_tls_certificate_path }};
+    ssl_certificate_key {{ provisioning_web_tls_private_key_path }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    root {{ provisioning_web_root }};
+    autoindex on;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
