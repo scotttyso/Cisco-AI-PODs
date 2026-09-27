@@ -1,5 +1,5 @@
 ---
-# Cluster-level configuration for the 3-node ND 4.2.x install.
+# Cluster-level configuration for the 3-node ND 4.3.x install.
 # Copy to cluster.yaml (gitignored) and edit. No secrets here.
 nexus_dashboard:
   cluster:
