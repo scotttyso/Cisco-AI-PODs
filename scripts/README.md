@@ -139,6 +139,37 @@ Full background, including the naming convention for each variable, is in
 
 ---
 
+## update_nexus_switch_inventory.py
+
+Connects to the Nexus switches listed in the fabric YAML, reads the mgmt0 MAC,
+module model, and VDH serial number, then updates the matching DHCP reservations
+and fabric switch entries. It writes nothing unless every switch responds with
+all three values. New SSH host keys are shown for verification in the terminal.
+
+Export the switch password in the same shell used to run the script. Do not echo
+the password:
+
+```bash
+export NEXUS_PASSWORD
+python3 scripts/update_nexus_switch_inventory.py --dry-run
+python3 scripts/update_nexus_switch_inventory.py
+```
+
+The script uses SSH with `RSAMinSize=1024` for these switches. The password is
+read from the environment, placed briefly in a mode-0600 temporary file for
+OpenSSH password prompting, and removed when the script exits. It is not put in
+the SSH command line or sent as an SSH environment variable.
+
+| Option | Description |
+| --- | --- |
+| `--user USER` | SSH username. Defaults to `admin`. |
+| `--dhcp-file PATH` | DHCP variables file. Defaults to `host_vars/dhcp/dhcp.yaml`. |
+| `--fabric-file PATH` | Fabric variables file. Defaults to `host_vars/nexus_dashboard/fabrics.ezai.yaml`. |
+| `--connect-timeout SECONDS` | Per-connection timeout. Defaults to 10 seconds. |
+| `--dry-run` | Query all switches and display values without writing YAML. |
+
+---
+
 ## merge_schemas.py
 
 Bundles the split JSON schemas under `schemas/source/` into the single

@@ -4,7 +4,8 @@
 
 # Nexus Dashboard credentials and settings
 nexus_dashboard:
-  nd_password: ""
+  nexus_dashboard_password: ""
+  node_cimc_password: ""
   switch_password: ""
 
 # Environment variables used by Everpure, storage, and notification tasks.

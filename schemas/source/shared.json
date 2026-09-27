@@ -2,6 +2,18 @@
     "$id": "shared.json",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "definitions": {
+        "asn_2byte": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535,
+        "description": "2-byte BGP ASN. Use asn_4byte for 4-byte ASNs."
+        },
+        "asn_4byte": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4294967295,
+        "description": "4-byte BGP ASN (RFC 6793). Public range 1-65535 + 65536-4199999999, private 64512-65534 + 4200000000-4294967294."
+        },
         "dns_1123_label": {
             "default": "example",
             "description": "The default value is `example`.  Most Objects (Namespaces, Pods, Services, Routes): OpenShift Limits this to 49 characters max.",
@@ -41,6 +53,11 @@
         },
         "dns_servers": {
             "items": {
+                "anyOf": [
+                    { "$ref": "#/definitions/hostname" },
+                    { "$ref": "#/definitions/ip/properties/ipv4_address" },
+                    { "$ref": "#/definitions/ip/properties/ipv6_address" }
+                ],
                 "default": "208.67.220.220",
                 "description": "The default value is `208.67.220.220`.  DNS Server.",
                 "examples": [
@@ -48,9 +65,6 @@
                     "8.8.8.8",
                     "2001:db8::1"
                 ],
-                "maxLength": 39,
-                "minLength": 6,
-                "pattern": "^(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6})))$",
                 "title": "DNS Server",
                 "type": "string"
             },
@@ -92,14 +106,58 @@
             "type": "string"
         },
         "hostname_ipv4_or_ipv6": {
+            "anyOf": [
+                { "$ref": "#/definitions/hostname" },
+                { "$ref": "#/definitions/ip/properties/ipv4_address" },
+                { "$ref": "#/definitions/ip/properties/ipv6_address" }
+            ],
             "examples": [
                 "server.example.com",
                 "198.18.0.1",
                 "2001:db8::1"
             ],
-            "maxLength": 255,
-            "minLength": 3,
-            "pattern": "^(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))|((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6})$",
+            "type": "string"
+        },
+        "hostname_or_ipv4": {
+            "anyOf": [
+                { "$ref": "#/definitions/hostname" },
+                { "$ref": "#/definitions/ip/properties/ipv4_address" }
+            ],
+            "examples": [
+                "server.example.com",
+                "198.18.0.1",
+                "2001:db8::1"
+            ],
+            "type": "string"
+        },
+        "http_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+            "type": "string"
+        },
+        "http_or_https_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https?://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+            "type": "string"
+        },
+        "https_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
             "type": "string"
         },
         "ip": {
@@ -295,7 +353,7 @@
                 }
             ],
             "description": "This dictionary provides the required configuration settings for the network proxy settings.\n\nOptional fields are:\n  * `http_server`\n  * `https_server`\n  * `no_proxy`\n  * `password`\n  * `username`",
-            "title": "OpenShift Container Platform (OCP) - Machine Network Gateway",
+            "title": "Proxy Server Configuration",
             "unevaluatedProperties": false
         },
         "ssh_public_key": {
@@ -741,6 +799,12 @@
                 "UTC"
             ],
             "type": "string"
+        },
+        "vlan_id": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 4094,
+        "description": "802.1Q VLAN ID. 0 and 4095 are reserved."
         }
     },
     "description": "Reusable definitions shared by Cisco AI POD configuration schemas, including certificate paths, DNS names and servers, hostnames, IP addresses, MAC addresses, NTP servers, proxy settings, sensitive variables, time zones, and other common settings.",

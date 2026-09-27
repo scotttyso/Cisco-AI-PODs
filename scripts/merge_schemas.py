@@ -16,7 +16,7 @@ NAMESPACE_BY_FILE = {
     "notifications.json": "notifications",
     "openshift.json": "openshift",
     "splunk_observability.json": "splunk_observability",
-    "nexus-dashboard.json": "nexus_dashboard",
+    "nexus_dashboard.json": "nexus_dashboard",
 }
 
 
@@ -40,8 +40,6 @@ def load_sources(source_dir):
     documents = {}
     for path in sorted(source_dir.rglob("*.json")):
         relative_path = path.relative_to(source_dir).as_posix()
-        if relative_path == "nexus-dashboard.json":
-            continue
         with path.open(encoding="utf-8") as stream:
             documents[relative_path] = json.load(stream)
     if ROOT_FILE not in documents:

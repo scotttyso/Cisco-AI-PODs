@@ -6,6 +6,18 @@
         "email": "tyscott@cisco.com"
     },
     "definitions": {
+        "abstract.asn_2byte": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "2-byte BGP ASN. Use asn_4byte for 4-byte ASNs."
+        },
+        "abstract.asn_4byte": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967295,
+            "description": "4-byte BGP ASN (RFC 6793). Public range 1-65535 + 65536-4199999999, private 64512-65534 + 4200000000-4294967294."
+        },
         "abstract.dns_1123_label": {
             "default": "example",
             "description": "The default value is `example`.  Most Objects (Namespaces, Pods, Services, Routes): OpenShift Limits this to 49 characters max.",
@@ -45,6 +57,17 @@
         },
         "abstract.dns_servers": {
             "items": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/abstract.hostname"
+                    },
+                    {
+                        "$ref": "#/definitions/abstract.ip/properties/ipv4_address"
+                    },
+                    {
+                        "$ref": "#/definitions/abstract.ip/properties/ipv6_address"
+                    }
+                ],
                 "default": "208.67.220.220",
                 "description": "The default value is `208.67.220.220`.  DNS Server.",
                 "examples": [
@@ -52,9 +75,6 @@
                     "8.8.8.8",
                     "2001:db8::1"
                 ],
-                "maxLength": 39,
-                "minLength": 6,
-                "pattern": "^(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6})))$",
                 "title": "DNS Server",
                 "type": "string"
             },
@@ -96,14 +116,68 @@
             "type": "string"
         },
         "abstract.hostname_ipv4_or_ipv6": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/abstract.hostname"
+                },
+                {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address"
+                },
+                {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv6_address"
+                }
+            ],
             "examples": [
                 "server.example.com",
                 "198.18.0.1",
                 "2001:db8::1"
             ],
-            "maxLength": 255,
-            "minLength": 3,
-            "pattern": "^(((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}|((?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:|:(?::[0-9A-Fa-f]{1,4}){1,7}|(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|[0-9A-Fa-f]{1,4}:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|:(?:(?::[0-9A-Fa-f]{1,4}){1,6}))|((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6})$",
+            "type": "string"
+        },
+        "abstract.hostname_or_ipv4": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/abstract.hostname"
+                },
+                {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address"
+                }
+            ],
+            "examples": [
+                "server.example.com",
+                "198.18.0.1",
+                "2001:db8::1"
+            ],
+            "type": "string"
+        },
+        "abstract.http_or_https_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https?://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+            "type": "string"
+        },
+        "abstract.http_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
+            "type": "string"
+        },
+        "abstract.https_url": {
+            "examples": [
+                "https://host.example.com",
+                "https://host2.example.com"
+            ],
+            "maxLength": 265,
+            "minLength": 1,
+            "pattern": "^(?:https://)([a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]{0,1}\\.([a-zA-Z]{1,6}|[a-zA-Z0-9-]{1,30}\\.[a-zA-Z]{2,3})|((?:\\d{1,3})(?:\\.\\d{1,3}){3}))$",
             "type": "string"
         },
         "abstract.ip": {
@@ -299,7 +373,7 @@
                 }
             ],
             "description": "This dictionary provides the required configuration settings for the network proxy settings.\n\nOptional fields are:\n  * `http_server`\n  * `https_server`\n  * `no_proxy`\n  * `password`\n  * `username`",
-            "title": "OpenShift Container Platform (OCP) - Machine Network Gateway",
+            "title": "Proxy Server Configuration",
             "unevaluatedProperties": false
         },
         "abstract.ssh_public_key": {
@@ -746,6 +820,12 @@
             ],
             "type": "string"
         },
+        "abstract.vlan_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4094,
+            "description": "802.1Q VLAN ID. 0 and 4095 are reserved."
+        },
         "cisco_ai_pods": {
             "allOf": [
                 {
@@ -775,7 +855,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",
@@ -2089,7 +2169,7 @@
                 },
                 "group_base": {
                     "default": "",
-                    "description": "The default value is ``.  This is combined to complete the Group DN (group + group_base + base_dn). i.e. CN=Storage Admins,OU=Everpure,DC=example,DC=com.  In the Group Base field, enter the path to the configured groups in the directory tree. The Group Base consists of one or more path components (OUs and CNs) that, when combined with the base DN attribute and the configured group CNs, complete the full distinguished name of each group. The group base should specify \"OU=\" for each OU and \"CN=\" for each CN. Multiple path components should be separated by commas. The order of the path components should get larger in scope from left to right. In the following example, SANManagers contains the sub-organizational unit PureGroups: \"OU=PureGroups,OU=SANManagers\".",
+                    "description": "The default value is ``.  This is combined to complete the Group DN (group + group_base + base_dn). i.e. CN=Storage Admins,OU=Everpure,DC=example,DC=com.  In the Group Base field, enter the path to the configured groups in the directory tree. The Group Base consists of one or more path components (OUs and CNs) that, when combined with the base DN attribute and the configured group CNs, complete the full distinguished name of each group. The group base should specify “OU=” for each OU and “CN=” for each CN. Multiple path components should be separated by commas. The order of the path components should get larger in scope from left to right. In the following example, SANManagers contains the sub-organizational unit PureGroups: “OU=PureGroups,OU=SANManagers”.",
                     "examples": [
                         "OU=PureGroups,OU=SANManagers"
                     ],
@@ -35020,41 +35100,1027 @@
         },
         "nexus_dashboard": {
             "additionalProperties": false,
-            "description": "This dictionary provides the required configuration settings for Everpure deployment.\n\nRequired fields are:\n  * `settings`\n\nOptional fields are:\n  * `flash_arrays`\n  * `flash_blades`\n  * `notifications`\n  * `portworx`",
+            "description": "This dictionary provides the required configuration settings for Nexus Dashboard fabric deployment.\n\nOptional fields are:\n  * `cluster` - Nexus Dashboard cluster deployment settings\n  * `fabrics` - List of fabrics to create and manage",
             "properties": {
-                "flash_arrays": {
-                    "description": "List of Everpure Flash Arrays.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`",
+                "cluster": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster"
+                },
+                "fabrics": {
+                    "description": "List of Cisco Nexus Dashboard fabrics.  Supported fabric types are .\n\nRequired fields are:\n  * `fabric_settings`\n  * `licenseTier`\n  * `name`\n  * `type`\n\nOptional fields are:\n  * `switches`\n  * `telemetry`",
                     "items": {
-                        "$ref": "#/definitions/everpure.flash_arrays"
+                        "$ref": "#/definitions/nexus_dashboard.fabrics"
                     },
-                    "maxItems": 255,
+                    "maxItems": 20,
                     "minItems": 1,
-                    "title": "Everpure - Flash Arrays",
+                    "title": "Nexus Dashboard - Fabric Provisioning",
+                    "type": "array",
+                    "uniqueItems": true
+                }
+            },
+            "required": [],
+            "title": "Nexus Dashboard - Cluster Setup and Fabric Provisioning",
+            "type": "object",
+            "unevaluatedProperties": false
+        },
+        "nexus_dashboard.cluster": {
+            "additionalProperties": false,
+            "description": "Settings applied to the ND cluster as a whole.\n\nRequired Attributes:\n  * `dns`\n  * `iso`\n  * `name`\n  * `network`\n  * `ntp`\n  * `persistent_ips`\n\nOptional Attributes:\n  * `implementation_type` - Default is `LAN`.\n  * `proxy`\n  * `timezone`",
+            "properties": {
+                "dns": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.dns",
+                    "description": "DNS resolvers used by the cluster (Table 1: <dns_server_*>, <dns_search_domain>)."
+                },
+                "implementation_type": {
+                    "default": "LAN",
+                    "description": "ND implementation type. AI POD CVDs use LAN.",
+                    "enum": [
+                        "Fabric",
+                        "LAN"
+                    ],
+                    "type": "string"
+                },
+                "iso": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.iso",
+                    "description": "ND ISO image hosted on a server reachable from each node's CIMC."
+                },
+                "name": {
+                    "description": "Cluster name (Table 1: <cluster_name>). Letters, digits, hyphens; must start with a letter.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+                    "type": "string"
+                },
+                "network": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.network",
+                    "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array."
+                },
+                "ntp": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.ntp",
+                    "description": "NTP servers used by the cluster (Table 1: <ntp_server_*>). Two or more required by the MOP prereqs."
+                },
+                "persistent_ips": {
+                    "description": "Persistent IP pool for service endpoints (Table 1: <persistent_ip_start>-<persistent_ip_end>). MOP prerequisites require at least 5 values.\n\nRequired Attributes:\n  * `persistent_ips`\n\nOptional Attributes:\n  * None",
+                    "items": {
+                        "$ref": "#/definitions/abstract.ip/properties/ipv4_address"
+                    },
+                    "minItems": 5,
                     "type": "array",
                     "uniqueItems": true
                 },
-                "flash_blades": {
-                    "description": "List of Everpure Flash Blades.\n\nRequired fields are:\n  * `api_token_id`\n  * `array_fqdn`\n  * `array_url`\n  * `nfs_endpoint`",
-                    "items": {
-                        "$ref": "#/definitions/everpure.flash_blades"
-                    },
-                    "maxItems": 255,
-                    "minItems": 1,
-                    "title": "Everpure - Flash Blades",
-                    "type": "array",
-                    "uniqueItems": true
+                "proxy": {
+                    "$ref": "#/definitions/abstract.proxy_servers",
+                    "description": "Outbound HTTP(S) proxy. Set skip:true to disable; otherwise url is required."
                 },
-                "portworx": {
-                    "$ref": "#/definitions/everpure.portworx"
+                "runtime": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.runtime",
+                    "description": "Runtime environment for the cluster."
                 },
-                "settings": {
-                    "$ref": "#/definitions/everpure.settings"
+                "timezone": {
+                    "$ref": "#/definitions/abstract.timezone"
                 }
             },
             "required": [
-                "settings"
+                "dns",
+                "iso",
+                "name",
+                "network",
+                "ntp",
+                "persistent_ips"
             ],
-            "title": "Everpure - Arrays",
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.dns": {
+            "additionalProperties": false,
+            "description": "DNS resolvers used by the cluster (Table 1: <dns_server_*>, <dns_search_domain>).\n\nRequired Attributes:\n  * `servers`\n\nOptional Attributes:\n  * `search_domains`",
+            "properties": {
+                "search_domains": {
+                    "$ref": "#/definitions/abstract.dns_search_domains"
+                },
+                "servers": {
+                    "$ref": "#/definitions/abstract.dns_servers"
+                }
+            },
+            "required": [
+                "servers"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.iso": {
+            "additionalProperties": false,
+            "description": "ND ISO image hosted on a server reachable from each node's CIMC.\n\nRequired Attributes:\n  * `sha512`\n  * `url`\n\nOptional Attributes:\n  * `file_path`",
+            "properties": {
+                "file_path": {
+                    "$ref": "#/definitions/abstract.file_path",
+                    "description": "ISO file path relative to the server URL (Table 1: <iso_file_location>). HTTP/HTTPS reachable from each CIMC vMedia."
+                },
+                "sha512": {
+                    "description": "Vendor-published SHA-512 of the ISO. Pre-flight verifies the served file matches.",
+                    "maxLength": 128,
+                    "minLength": 128,
+                    "pattern": "^[a-fA-F0-9]{128}$",
+                    "title": "SHA-512 of the ISO",
+                    "type": "string"
+                },
+                "url": {
+                    "$ref": "#/definitions/abstract.http_or_https_url",
+                    "description": "ISO URL (Table 1: <iso_url>). HTTP/HTTPS reachable from each CIMC vMedia."
+                }
+            },
+            "required": [
+                "sha512",
+                "url"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.network": {
+            "additionalProperties": false,
+            "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array.\n\nRequired Attributes:\n  * `data_gateway`\n  * `data_subnet`\n  * `mgmt_gateway`\n  * `mgmt_subnet`\n\nOptional Attributes:\n  * None",
+            "properties": {
+                "data_gateway": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Default gateway on ND-DATA (Table 1: <data_gateway>)."
+                },
+                "data_subnet": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_network",
+                    "description": "ND data subnet. L2 mode requires persistent IPs in this subnet."
+                },
+                "mgmt_gateway": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Default gateway on ND-MGMT (Table 1: <mgmt_gateway>)."
+                },
+                "mgmt_subnet": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_network",
+                    "description": "ND management subnet (Table 1: <mgmt_prefix> applied)."
+                }
+            },
+            "required": [
+                "data_gateway",
+                "data_subnet",
+                "mgmt_gateway",
+                "mgmt_subnet"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.nodes": {
+            "allOf": [
+                {
+                    "contains": {
+                        "properties": {
+                            "role": {
+                                "const": "bootstrap"
+                            }
+                        }
+                    },
+                    "description": "Exactly one node must be role=bootstrap.",
+                    "maxContains": 1,
+                    "minContains": 1
+                }
+            ],
+            "description": "Exactly 3 ND nodes. Subsystem 01 currently scopes a 3-node primary cluster; standby/secondary scaling is out of scope until ND adds it to AI POD.\n\nRequired item attributes:\n  * `cimc`\n  * `data`\n  * `hostname`\n  * `mgmt`\n  * `role`\n  * `type`\n\nOptional item attributes:\n  * None",
+            "items": {
+                "$ref": "#/definitions/nexus_dashboard.cluster.nodes.node"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+        },
+        "nexus_dashboard.cluster.nodes.node": {
+            "additionalProperties": false,
+            "description": "Configuration for a single Nexus Dashboard node.\n\nRequired Attributes:\n  * `cimc`\n  * `data`\n  * `hostname`\n  * `mgmt`\n  * `role`\n  * `type`\n\nOptional Attributes:\n  * None",
+            "properties": {
+                "cimc": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.nodes.node.cimc",
+                    "description": "Out-of-band CIMC management for this chassis (Credentials table: CIMC admin)."
+                },
+                "data": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.nodes.node.data",
+                    "description": "ND-DATA (cluster data plane) interface for this node."
+                },
+                "hostname": {
+                    "description": "Node hostname (Table 2: <ndN_hostname>). Lowercase letters, digits, hyphens; must start with a letter. Convention is nd-1, nd-2, nd-3.",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[a-z][a-z0-9-]*$",
+                    "type": "string"
+                },
+                "mgmt": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.nodes.node.mgmt",
+                    "description": "ND-MGMT (out-of-band cluster mgmt) interface for this node."
+                },
+                "role": {
+                    "description": "Phase 1 automation role. Exactly one node has role=bootstrap (nd-1, runs Redfish + SOL install path); the other two are role=secondary (ND drives their install via cluster bringup API).",
+                    "enum": [
+                        "bootstrap",
+                        "secondary"
+                    ],
+                    "type": "string"
+                },
+                "type": {
+                    "description": "ND node type. AI POD always uses Primary for all 3 nodes.",
+                    "enum": [
+                        "Primary"
+                    ],
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cimc",
+                "data",
+                "hostname",
+                "mgmt",
+                "role",
+                "type"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.nodes.node.cimc": {
+            "additionalProperties": false,
+            "description": "Out-of-band CIMC management for this chassis (Credentials table: CIMC admin).",
+            "properties": {
+                "ip": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "CIMC IP (Table 2: <nd_cimc_ip>)."
+                },
+                "username": {
+                    "default": "admin",
+                    "description": "CIMC user (Table 1: <cimc_user>, typically admin).  Username (admin, oper, svc-...). No whitespace; no shell metacharacters.",
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9_.-]+$",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ip"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.nodes.node.data": {
+            "additionalProperties": false,
+            "description": "ND-DATA (cluster data plane) interface for this node.",
+            "properties": {
+                "gateway": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Data gateway (typically the same as cluster.network.data_gateway)."
+                },
+                "ip": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Data IP (Table 2: <ndN_data_ip>)."
+                },
+                "mask": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_netmask",
+                    "description": "Prefix length for the data subnet (matches cluster.network.data_subnet)."
+                },
+                "vlan": {
+                    "default": null,
+                    "description": "VLAN ID if the data link is trunked. null for access mode.",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/abstract.vlan_id"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "gateway",
+                "ip",
+                "mask"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.nodes.node.mgmt": {
+            "additionalProperties": false,
+            "description": "ND-MGMT (out-of-band cluster mgmt) interface for this node.",
+            "properties": {
+                "gateway": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Mgmt gateway (typically the same as cluster.network.mgmt_gateway)."
+                },
+                "ip": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                    "description": "Management IP (Table 2: <ndN_mgmt_ip>)."
+                },
+                "mask": {
+                    "$ref": "#/definitions/abstract.ip/properties/ipv4_netmask",
+                    "description": "Prefix length for the mgmt subnet (matches cluster.network.mgmt_subnet)."
+                },
+                "vlan": {
+                    "default": null,
+                    "description": "VLAN ID if the mgmt link is trunked. null for access mode (typical).",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/abstract.vlan_id"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "gateway",
+                "ip",
+                "mask"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.ntp": {
+            "additionalProperties": false,
+            "description": "NTP servers used by the cluster (Table 1: <ntp_server_*>). Two or more required by the MOP prerequisites.\n\nRequired Attributes:\n  * `servers`\n\nOptional Attributes:\n  * None",
+            "properties": {
+                "servers": {
+                    "description": "At least two NTP servers are required. Each server must provide a host; preferred is optional.",
+                    "items": {
+                        "$ref": "#/definitions/nexus_dashboard.cluster.ntp.server"
+                    },
+                    "minItems": 2,
+                    "type": "array",
+                    "uniqueItems": false
+                }
+            },
+            "required": [
+                "servers"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.ntp.server": {
+            "additionalProperties": false,
+            "description": "Configuration for a single NTP server.\n\nRequired Attributes:\n  * `host`\n\nOptional Attributes:\n  * `preferred` - Default is `false`.",
+            "properties": {
+                "host": {
+                    "$ref": "#/definitions/abstract.hostname_or_ipv4",
+                    "description": "NTP server (IP literal preferred; troubleshooting log notes verifyremoteservices fails when DNS can't resolve hostnames)."
+                },
+                "preferred": {
+                    "default": false,
+                    "description": "Marks the preferred peer. Exactly one server is typically marked preferred.",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "host"
+            ],
+            "type": "object"
+        },
+        "nexus_dashboard.cluster.runtime": {
+            "additionalProperties": false,
+            "description": "Operator-side defaults consumed by Phase 1 Python automation (scripts/main.py). Phase 2 mirrors these as Ansible role defaults.\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `ca_bundle` - Default is `null`.\n  * `cluster_bringup_timeout_s` - Default is `3600`.\n  * `state_dir` - Default is `state/`.\n  * `verify_tls` - Default is `true`.",
+            "properties": {
+                "ca_bundle": {
+                    "default": null,
+                    "description": "Path to a PEM CA bundle for TLS verification. null falls back to system trust.",
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "cluster_bringup_timeout_s": {
+                    "default": 3600,
+                    "description": "Total budget for cluster bringup poll. CVD says ~30 min; default 60 min.",
+                    "maximum": 14400,
+                    "minimum": 600,
+                    "type": "integer"
+                },
+                "state_dir": {
+                    "default": "state/",
+                    "minLength": 1,
+                    "type": "string"
+                },
+                "verify_tls": {
+                    "default": true,
+                    "description": "Set false only in labs with self-signed certs and no CA bundle. Logs a warning.",
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics": {
+            "additionalProperties": false,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "classicLan"
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "fabric_settings": {
+                                "$ref": "#/definitions/nexus_dashboard.fabrics.fabric_settings.classic_lan_fabric_settings"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "vxlanEbgp",
+                                    "vxlanIbgp"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "fabric_settings": {
+                                "$ref": "#/definitions/nexus_dashboard.fabrics.fabric_settings.vxlan_fabric_settings"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "aiRouted"
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "fabric_settings": {
+                                "$ref": "#/definitions/nexus_dashboard.fabrics.fabric_settings.ai_routed_fabric_settings"
+                            }
+                        }
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "aiVxlanEvpn"
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    "then": {
+                        "properties": {
+                            "fabric_settings": {
+                                "$ref": "#/definitions/nexus_dashboard.fabrics.fabric_settings.ai_vxlan_evpn_fabric_settings"
+                            }
+                        }
+                    }
+                }
+            ],
+            "description": "Configuration for Nexus Dashboard fabric deployment.\n\nRequired Attributes:\n  * `type`\n\nOptional Attributes:\n  * `fabric_settings`\n  * `licenseTier` - Default is `essentials`.\n  * `name`\n  * `switches`\n  * `telemetry`",
+            "properties": {
+                "fabric_settings": {
+                    "description": "Fabric-specific settings for four fabric types. The parent fabric `type` selects which settings definition is used. Omitted optional settings use their declared defaults.\n\n`classicLan` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `cdp` - Default is `false`.\n  * `coppPolicy` - Default is `manual`.\n  * `inbandManagement` - Default is `false`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `monitoredMode` - Default is `true`.\n  * `mplsHandoff` - Default is `false`.\n  * `mplsLoopbackIdentifier` - Default is `101`.\n  * `nxapi` - Default is `false`.\n  * `performanceMonitoring` - Default is `false`.\n  * `realTimeInterfaceStatisticsCollection` - Default is `false`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`vxlanIbgp` and `vxlanEbgp` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `firstHopRedundancyProtocol` - Default is `hsrp`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `intraFabricSubnetRange` - Default is `10.4.0.0/16`.\n  * `l2VniRange`\n  * `l3VniRange`\n  * `networkVlanRange` - Default is `2300-2999`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n\n`aiRouted` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `coppPolicy` - Default is `strict`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`aiVxlanEvpn` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.",
+                    "type": "object"
+                },
+                "licenseTier": {
+                    "default": "essentials",
+                    "description": "License tier for the fabric",
+                    "enum": [
+                        "advantage",
+                        "essentials",
+                        "premier"
+                    ],
+                    "example": "essentials",
+                    "title": "License Tier",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name of the fabric. Only alphanumeric, underscore, and hyphen characters are allowed; must start and end with an alphanumeric character, and cannot be numbers alone.",
+                    "examples": [
+                        "ai-backend",
+                        "production-fabric"
+                    ],
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "not": {
+                        "pattern": "^[0-9]+$"
+                    },
+                    "pattern": "^(?=.{1,64}$)[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$",
+                    "title": "Fabric Name",
+                    "type": "string"
+                },
+                "switches": {
+                    "$ref": "#/definitions/nexus_dashboard.fabrics.switches"
+                },
+                "telemetry": {
+                    "$ref": "#/definitions/nexus_dashboard.fabrics.telemetry_settings",
+                    "description": "Telemetry collection and reporting settings"
+                },
+                "type": {
+                    "description": "Type of fabric to deploy.",
+                    "enum": [
+                        "aiRouted",
+                        "aiVxlanEvpn",
+                        "classicLan",
+                        "vxlanEbgp",
+                        "vxlanIbgp"
+                    ],
+                    "example": "classicLan",
+                    "title": "Fabric Type",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "title": "Nexus Dashboard Fabric Configuration",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.fabric_settings.ai_routed_fabric_settings": {
+            "additionalProperties": true,
+            "description": "Settings specific to AI Routed fabric type",
+            "properties": {
+                "coppPolicy": {
+                    "default": "strict",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "manual",
+                        "moderate",
+                        "strict"
+                    ],
+                    "example": "strict",
+                    "title": "COPP Policy",
+                    "type": "string"
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "default": 10,
+                    "description": "Interface statistics polling interval in seconds",
+                    "example": 10,
+                    "maximum": 300,
+                    "minimum": 5,
+                    "title": "Interface Statistics Load Interval",
+                    "type": "integer"
+                },
+                "nxapi": {
+                    "default": true,
+                    "description": "Enable NX-API over HTTPS",
+                    "example": true,
+                    "title": "NX-API",
+                    "type": "boolean"
+                },
+                "performanceMonitoring": {
+                    "default": true,
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "example": true,
+                    "title": "Performance Monitoring",
+                    "type": "boolean"
+                },
+                "snmpTrap": {
+                    "default": true,
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "example": true,
+                    "title": "SNMP Trap",
+                    "type": "boolean"
+                },
+                "softwareUpdateMode": {
+                    "default": false,
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "example": false,
+                    "title": "Enable Fabric Software Update",
+                    "type": "boolean"
+                }
+            },
+            "title": "AI Routed Fabric Settings",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.fabric_settings.ai_vxlan_evpn_fabric_settings": {
+            "additionalProperties": true,
+            "description": "Settings specific to AI VXLAN EVPN fabric type",
+            "properties": {
+                "bgpAsn": {
+                    "description": "BGP Autonomous System Number",
+                    "example": "65000",
+                    "title": "BGP ASN",
+                    "type": [
+                        "integer",
+                        "string"
+                    ]
+                },
+                "coppPolicy": {
+                    "default": "strict",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "manual",
+                        "moderate",
+                        "strict"
+                    ],
+                    "example": "strict",
+                    "title": "COPP Policy",
+                    "type": "string"
+                },
+                "fabricMtu": {
+                    "default": 9216,
+                    "description": "Maximum Transmission Unit for fabric",
+                    "example": 9216,
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "Fabric MTU",
+                    "type": "integer"
+                },
+                "nxapi": {
+                    "default": true,
+                    "description": "Enable NX-API over HTTPS",
+                    "example": true,
+                    "title": "NX-API",
+                    "type": "boolean"
+                },
+                "performanceMonitoring": {
+                    "default": true,
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "example": true,
+                    "title": "Performance Monitoring",
+                    "type": "boolean"
+                },
+                "snmpTrap": {
+                    "default": true,
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "example": true,
+                    "title": "SNMP Trap",
+                    "type": "boolean"
+                },
+                "softwareUpdateMode": {
+                    "default": false,
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "example": false,
+                    "title": "Enable Fabric Software Update",
+                    "type": "boolean"
+                }
+            },
+            "title": "AI VXLAN EVPN Fabric Settings",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.fabric_settings.classic_lan_fabric_settings": {
+            "additionalProperties": true,
+            "description": "Settings specific to classic-lan fabric type",
+            "properties": {
+                "cdp": {
+                    "default": false,
+                    "description": "Enable CDP on management interface",
+                    "example": false,
+                    "title": "CDP",
+                    "type": "boolean"
+                },
+                "coppPolicy": {
+                    "default": "manual",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "manual",
+                        "moderate",
+                        "strict"
+                    ],
+                    "example": "manual",
+                    "title": "COPP Policy",
+                    "type": "string"
+                },
+                "inbandManagement": {
+                    "default": false,
+                    "description": "Enable inband management for the fabric (use fabric data network for management traffic)",
+                    "example": false,
+                    "title": "Inband Management",
+                    "type": "boolean"
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "default": 10,
+                    "description": "Interface statistics polling interval in seconds",
+                    "example": 10,
+                    "maximum": 300,
+                    "minimum": 5,
+                    "title": "Interface Statistics Load Interval",
+                    "type": "integer"
+                },
+                "monitoredMode": {
+                    "default": true,
+                    "description": "If enabled, fabric is only monitored. No configuration will be deployed",
+                    "example": true,
+                    "title": "Monitored Mode",
+                    "type": "boolean"
+                },
+                "mplsHandoff": {
+                    "default": false,
+                    "description": "Enable MPLS handoff",
+                    "example": false,
+                    "title": "MPLS Handoff",
+                    "type": "boolean"
+                },
+                "mplsLoopbackIdentifier": {
+                    "default": 101,
+                    "description": "Underlay MPLS loopback identifier",
+                    "example": 101,
+                    "maximum": 1023,
+                    "minimum": 0,
+                    "title": "MPLS Loopback Identifier",
+                    "type": "integer"
+                },
+                "nxapi": {
+                    "default": false,
+                    "description": "Enable NX-API over HTTPS",
+                    "example": false,
+                    "title": "NX-API",
+                    "type": "boolean"
+                },
+                "performanceMonitoring": {
+                    "default": false,
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "example": false,
+                    "title": "Performance Monitoring",
+                    "type": "boolean"
+                },
+                "realTimeInterfaceStatisticsCollection": {
+                    "default": false,
+                    "description": "Enable real-time interface statistics collection",
+                    "example": false,
+                    "title": "Real-Time Interface Statistics Collection",
+                    "type": "boolean"
+                },
+                "snmpTrap": {
+                    "default": true,
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "example": true,
+                    "title": "SNMP Trap",
+                    "type": "boolean"
+                },
+                "softwareUpdateMode": {
+                    "default": false,
+                    "description": "If enabled, Nexus Dashboard can push software updates to fabric devices",
+                    "example": false,
+                    "title": "Enable Fabric Software Update",
+                    "type": "boolean"
+                }
+            },
+            "title": "Classic-LAN Fabric Settings",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.fabric_settings.vxlan_fabric_settings": {
+            "additionalProperties": true,
+            "description": "Settings specific to VXLAN fabric types (iBGP and eBGP)",
+            "properties": {
+                "bgpAsn": {
+                    "description": "BGP Autonomous System Number",
+                    "example": "65000",
+                    "title": "BGP ASN",
+                    "type": [
+                        "integer",
+                        "string"
+                    ]
+                },
+                "coppPolicy": {
+                    "default": "strict",
+                    "description": "Fabric-wide Control Plane Policing policy",
+                    "enum": [
+                        "dense",
+                        "lenient",
+                        "manual",
+                        "moderate",
+                        "strict"
+                    ],
+                    "example": "strict",
+                    "title": "COPP Policy",
+                    "type": "string"
+                },
+                "fabricMtu": {
+                    "default": 9216,
+                    "description": "Maximum Transmission Unit for fabric",
+                    "example": 9216,
+                    "maximum": 9216,
+                    "minimum": 1500,
+                    "title": "Fabric MTU",
+                    "type": "integer"
+                },
+                "firstHopRedundancyProtocol": {
+                    "default": "hsrp",
+                    "description": "FHRP for redundancy",
+                    "enum": [
+                        "hsrp",
+                        "none",
+                        "vrrp",
+                        "vrrpv3"
+                    ],
+                    "example": "hsrp",
+                    "title": "First Hop Redundancy Protocol",
+                    "type": "string"
+                },
+                "interfaceStatisticsLoadInterval": {
+                    "default": 10,
+                    "description": "Interface statistics polling interval in seconds",
+                    "example": 10,
+                    "maximum": 300,
+                    "minimum": 5,
+                    "title": "Interface Statistics Load Interval",
+                    "type": "integer"
+                },
+                "intraFabricSubnetRange": {
+                    "default": "10.4.0.0/16",
+                    "description": "IP range for intra-fabric communication",
+                    "example": "10.4.0.0/16",
+                    "format": "ipv4WithSubnet",
+                    "title": "Intra-Fabric Subnet Range",
+                    "type": "string"
+                },
+                "l2VniRange": {
+                    "description": "L2 VNI range for VXLAN",
+                    "example": "30000-49000",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "title": "L2 VNI Range",
+                    "type": "string"
+                },
+                "l3VniRange": {
+                    "description": "L3 VNI range for VXLAN",
+                    "example": "50000-59000",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "title": "L3 VNI Range",
+                    "type": "string"
+                },
+                "networkVlanRange": {
+                    "default": "2300-2999",
+                    "description": "VLAN range for overlay networks",
+                    "example": "2300-2999",
+                    "pattern": "^[0-9]+-[0-9]+$",
+                    "title": "Network VLAN Range",
+                    "type": "string"
+                },
+                "nxapi": {
+                    "default": true,
+                    "description": "Enable NX-API over HTTPS",
+                    "example": true,
+                    "title": "NX-API",
+                    "type": "boolean"
+                },
+                "performanceMonitoring": {
+                    "default": true,
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "example": true,
+                    "title": "Performance Monitoring",
+                    "type": "boolean"
+                },
+                "snmpTrap": {
+                    "default": true,
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "example": true,
+                    "title": "SNMP Trap",
+                    "type": "boolean"
+                }
+            },
+            "title": "VXLAN Fabric Settings",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.switches": {
+            "description": "List of switches to add to a fabric. At least one switch is required.\n\nRequired item attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional item attributes:\n  * `switchRole`",
+            "items": {
+                "$ref": "#/definitions/nexus_dashboard.fabrics.switches.switch"
+            },
+            "minItems": 1,
+            "title": "Switches",
+            "type": "array",
+            "uniqueItems": true
+        },
+        "nexus_dashboard.fabrics.switches.switch": {
+            "additionalProperties": false,
+            "description": "Configuration for a single switch to be added to a fabric.\n\nRequired Attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional Attributes:\n  * `switchRole`",
+            "properties": {
+                "hostname": {
+                    "description": "Hostname of the switch",
+                    "example": "leaf1",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "title": "Hostname",
+                    "type": "string"
+                },
+                "ip": {
+                    "description": "Management IP address of the switch",
+                    "example": "10.1.1.10",
+                    "format": "ipv4",
+                    "title": "IP Address",
+                    "type": "string"
+                },
+                "model": {
+                    "description": "Switch model number",
+                    "example": "N9K-C93180YC-FX",
+                    "title": "Model",
+                    "type": "string"
+                },
+                "serialNumber": {
+                    "description": "Switch serial number",
+                    "example": "SAL1234ABCD",
+                    "title": "Serial Number",
+                    "type": "string"
+                },
+                "softwareVersion": {
+                    "description": "NX-OS or OS version",
+                    "example": "10.3(3)",
+                    "title": "Software Version",
+                    "type": "string"
+                },
+                "switchRole": {
+                    "description": "Role of the switch in the fabric",
+                    "enum": [
+                        "border",
+                        "controller",
+                        "leaf",
+                        "spine"
+                    ],
+                    "example": "leaf",
+                    "title": "Switch Role",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "hostname",
+                "ip",
+                "model",
+                "serialNumber",
+                "softwareVersion"
+            ],
+            "title": "Switch Configuration",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.telemetry_settings": {
+            "additionalProperties": false,
+            "description": "Telemetry collection and reporting settings",
+            "properties": {
+                "interfaceStatisticsLoadInterval": {
+                    "default": 10,
+                    "description": "Interface statistics polling interval in seconds",
+                    "example": 10,
+                    "maximum": 300,
+                    "minimum": 5,
+                    "title": "Interface Statistics Load Interval",
+                    "type": "integer"
+                },
+                "performanceMonitoring": {
+                    "default": false,
+                    "description": "Enable periodic SNMP polling for metrics",
+                    "example": false,
+                    "title": "Performance Monitoring",
+                    "type": "boolean"
+                },
+                "realTimeInterfaceStatisticsCollection": {
+                    "default": false,
+                    "description": "Enable real-time interface statistics collection",
+                    "example": false,
+                    "title": "Real-Time Interface Statistics Collection",
+                    "type": "boolean"
+                },
+                "snmpTrap": {
+                    "default": true,
+                    "description": "Configure Nexus Dashboard as SNMP trap receiver",
+                    "example": true,
+                    "title": "SNMP Trap",
+                    "type": "boolean"
+                },
+                "telemetryCollection": {
+                    "default": false,
+                    "description": "Enable telemetry data collection from fabric",
+                    "example": false,
+                    "title": "Enable Telemetry Collection",
+                    "type": "boolean"
+                },
+                "telemetryMode": {
+                    "default": "outofband",
+                    "description": "In-band or out-of-band telemetry collection",
+                    "enum": [
+                        "inband",
+                        "outofband"
+                    ],
+                    "example": "outofband",
+                    "title": "Telemetry Mode",
+                    "type": "string"
+                },
+                "telemetrySourceInterface": {
+                    "default": "loopback0",
+                    "description": "Source interface for inband telemetry collection (only used when telemetryMode is 'inband')",
+                    "example": "loopback0",
+                    "title": "Telemetry Source Interface",
+                    "type": "string"
+                },
+                "telemetryVrf": {
+                    "default": "default",
+                    "description": "VRF for inband telemetry collection (only used when telemetryMode is 'inband')",
+                    "example": "default",
+                    "title": "Telemetry VRF",
+                    "type": "string"
+                }
+            },
+            "title": "Telemetry Settings",
             "type": "object"
         },
         "notifications": {

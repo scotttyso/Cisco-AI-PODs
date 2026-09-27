@@ -1,6 +1,6 @@
 ---
 - name: Configure HTTPS Provisioning Image Server
-  hosts: "{{ provisioning_web_hosts | default('provisioning_web_servers') }}"
+  hosts: "{{ provisioning_web_hosts | default('localhost') }}"
   become: true
   gather_facts: true
 

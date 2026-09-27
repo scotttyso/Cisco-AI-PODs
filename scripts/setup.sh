@@ -9,6 +9,7 @@ ISERVER_OUTPUT_DEFAULT="assisted-installer"
 
 VENV_DIR="${VENV_DIR:-$VENV_DIR_DEFAULT}"
 ISERVER_OUTPUT="${ISERVER_OUTPUT:-$ISERVER_OUTPUT_DEFAULT}"
+PYTHON_BIN="${PYTHON_BIN:-python3.12}"
 GIT_USER_NAME="${GIT_USER_NAME:-}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 SKIP_APT="${SKIP_APT:-0}"
@@ -36,7 +37,7 @@ Options:
 
 Environment variable equivalents:
   GIT_USER_NAME, GIT_USER_EMAIL, VENV_DIR, ISERVER_OUTPUT,
-  SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1
+    PYTHON_BIN=python3.12, SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1
 
 Optional GitHub authentication (to avoid rate limiting):
   GITHUB_TOKEN=<your-pat>   Personal Access Token for higher GitHub API rate limits
@@ -58,14 +59,14 @@ die() {
 }
 
 create_virtual_environment() {
-    if python3 -m venv "$VENV_DIR"; then
+    if "$PYTHON_BIN" -m venv "$VENV_DIR"; then
         return 0
     fi
 
-    warn "python3 venv support is unavailable; installing the virtualenv fallback"
+    warn "${PYTHON_BIN} venv support is unavailable; installing the virtualenv fallback"
     rm -rf "$VENV_DIR"
-    python3 -m pip install --user virtualenv || python3 -m pip install virtualenv
-    python3 -m virtualenv "$VENV_DIR"
+    "$PYTHON_BIN" -m pip install --user virtualenv || "$PYTHON_BIN" -m pip install virtualenv
+    "$PYTHON_BIN" -m virtualenv "$VENV_DIR"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -119,13 +120,13 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
         if command -v apt >/dev/null 2>&1; then
             log "Installing Git and Python system packages with apt"
             sudo apt update
-            sudo apt install -y git python3 python3-pip python3-venv
+            sudo apt install -y git python3.12 python3.12-venv
         elif command -v dnf >/dev/null 2>&1; then
             log "Installing Git and Python system packages with dnf"
-            sudo dnf install -y git python3 python3-pip
+            sudo dnf install -y git python3.12 python3.12-pip
         elif command -v yum >/dev/null 2>&1; then
             log "Installing Git and Python system packages with yum"
-            sudo yum install -y git python3 python3-pip
+            sudo yum install -y git python3.12 python3.12-pip
         else
             warn "No supported package manager found (apt, dnf, or yum); skipping OS package install"
         fi
@@ -135,10 +136,11 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
 
     log "Validating Git and Python availability"
     command -v git >/dev/null 2>&1 || die "git is not installed or not in PATH"
-    command -v python3 >/dev/null 2>&1 || die "python3 is not installed or not in PATH"
+    command -v "$PYTHON_BIN" >/dev/null 2>&1 || die "${PYTHON_BIN} is required for the pinned Ansible tooling; install Python 3.12 or set PYTHON_BIN to a compatible interpreter"
+    "$PYTHON_BIN" -c 'import sys; sys.exit(sys.version_info < (3, 12))' || die "${PYTHON_BIN} must be Python 3.12 or newer for the pinned Ansible tooling"
 
     git --version
-    python3 --version
+    "$PYTHON_BIN" --version
 
     if [[ -n "$GIT_USER_NAME" ]]; then
         log "Configuring git user.name"
@@ -182,6 +184,9 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
     if [[ -d "$VENV_DIR" ]]; then
         venv_stale=0
         if [[ ! -x "${VENV_DIR}/bin/python3" ]] || ! "${VENV_DIR}/bin/python3" -c 'pass' >/dev/null 2>&1; then
+            venv_stale=1
+        elif [[ "$("${VENV_DIR}/bin/python3" -c 'import sys; print(sys.version_info[:2])')" != "$("$PYTHON_BIN" -c 'import sys; print(sys.version_info[:2])')" ]]; then
+            warn "Existing virtual environment uses a different Python version"
             venv_stale=1
         else
             for script in "${VENV_DIR}"/bin/*; do

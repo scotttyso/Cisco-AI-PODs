@@ -47,7 +47,7 @@ Optional flags:
 ```
 
 What the script does:
-- Auto-detects and uses apt, dnf, or yum to install Git and Python prerequisites
+- Auto-detects and uses apt, dnf, or yum to install Git and Python 3.12 prerequisites
 - Configures Git identity (if provided via flags)
 - Creates and activates a Python virtual environment
 - Installs Ansible tooling using centralized constraints (`constraints/python-tooling.txt`), Python dependencies (`requirements.txt`), and Ansible collections (`requirements.yaml`)
@@ -55,7 +55,7 @@ What the script does:
 - Downloads and extracts the latest iServer release
 - Prints the remaining manual VS Code configuration and iServer setup steps
 
-> If your distro does not use apt, dnf, or yum, install Git and Python manually, then run the script with `--skip-apt`.
+> The pinned Ansible tooling requires Python 3.12 or newer. If your distro does not provide Python 3.12 through apt, dnf, or yum, install a compatible interpreter manually and run with `--skip-apt`. Set `PYTHON_BIN` to its executable name or path if it is not `python3.12`.
 
 #### GitHub API Rate Limiting
 

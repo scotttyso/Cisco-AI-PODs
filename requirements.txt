@@ -18,6 +18,7 @@ pyOpenSSL
 py-pure-client>=1.67.2
 pytz
 PyYAML
+ruamel.yaml>=0.17
 requests
 tabulate
 urllib3>=1.26.5

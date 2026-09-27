@@ -10,20 +10,22 @@ discover hosted artifacts.
 
 ## Usage
 
-Add the target to an inventory group named `provisioning_web_servers`, then run:
+Run the playbook on the local machine without an inventory file:
 
 ```bash
-ansible-playbook playbooks/deploy_provisioning_web_server.yaml -i <inventory>
+ansible-playbook playbooks/deploy_provisioning_web_server.yaml
 ```
 
-Copy images to the server after deployment:
+If sudo requires a password, add `--ask-become-pass`. To target a remote host instead,
+pass an inventory and set `provisioning_web_hosts` to its host or group name.
+
+Copy images to the local server after deployment:
 
 ```bash
-scp rhcos-live.iso <server>:/tmp/
-ssh <server> sudo mv /tmp/rhcos-live.iso /usr/share/nginx/html/images/
+sudo cp rhcos-live.iso /usr/share/nginx/html/images/
 ```
 
-Set the OpenShift `iso_web_server.image_base_url` to `https://<server>/`.
+Set the OpenShift `iso_web_server.image_base_url` to the HTTPS address of this machine.
 
 ## TLS
 

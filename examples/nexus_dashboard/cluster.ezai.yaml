@@ -1,4 +1,81 @@
 ---
+# Cluster-level configuration for the 3-node ND 4.2.x install.
+# Copy to cluster.yaml (gitignored) and edit. No secrets here.
+nexus_dashboard:
+  cluster:
+    name: AIPOD-ND-CLUSTER
+    implementation_type: LAN
+
+    # ND ISO hosted on an internal HTTP server reachable from each node's CIMC.
+    iso:
+      file_path: iso/nd-dk9.4.3.1.175.iso
+      url: http://10.115.90.250
+      # Replace with the vendor-published SHA-512 from cisco.com (128 hex chars).
+      sha512: 5349fefdc4b601ea5fcc8ff7bdbbd40229c89c1fd31edaa6e8669b91daa984d0fd49061e9102d8c035a44288f410d23810cc4889d0cf1f3ad37f3ccb502a6a32
+
+    network:
+      # ND-MGMT subnet (CVD: /26).
+      mgmt_subnet: 10.115.90.0/26
+      mgmt_gateway: 10.115.90.1
+
+      # ND-DATA subnet (CVD: /27). Persistent IPs are allocated from here in L2 mode.
+      data_subnet: 10.115.90.224/27
+      data_gateway: 10.115.90.254
+
+      # Out-of-band subnet carrying the node CIMCs - the third network an ND node
+      # touches, after ND-MGMT and ND-DATA. ND has no interface here, so this is
+      # optional; declaring it lets pre-flight confirm CIMC placement instead of
+      # warning that the CIMCs sit outside every known subnet. Omit oob_gateway
+      # unless you actually know it - it is often owned by the network team.
+      # oob_subnet: 10.115.91.0/24
+      # oob_gateway: 10.115.91.1
+
+    dns:
+      servers:
+        - 10.115.0.10
+        - 10.115.0.11
+      search_domains:
+        - example.com
+
+    ntp:
+      # >= 2 recommended; mark one preferred.
+      servers:
+        - host: 10.115.0.20
+          preferred: true
+        - host: 10.115.0.21
+        - host: 10.115.0.22
+
+    # proxy:
+    #   http_proxy: http://proxy.example.com:8080
+    #   https_proxy: http://proxy.example.com:8080
+    #   no_proxy: []
+    #   username: your_username_here
+    #   password: 1
+
+    # Persistent IP pool (>= 5). L2 mode: same subnet as data network.
+    persistent_ips:
+      - 10.115.90.228
+      - 10.115.90.229
+      - 10.115.90.230
+      - 10.115.90.231
+      - 10.115.90.232
+      - 10.115.90.233
+      - 10.115.90.234
+      - 10.115.90.235
+      - 10.115.90.236
+      - 10.115.90.237
+      - 10.115.90.238
+
+    # Operator-side defaults used by scripts/.
+    runtime:
+      # Path (relative or absolute) for resumable state files.
+      state_dir: state/
+      # CA bundle used for TLS verification of CIMC and ND endpoints.
+      # Set to a path; or set verify_tls: false for lab use only (warns).
+      ca_bundle: null
+      verify_tls: true
+      # Total budget (seconds) for cluster bringup poll - CVD says ~30 min.
+      cluster_bringup_timeout_s: 3600
 site:
   environment: lab
   site_id: "example_site_id"
