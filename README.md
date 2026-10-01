@@ -126,6 +126,12 @@ Run the automated setup script from the repository root:
 ./scripts/setup.sh
 ```
 
+On RHEL, the script adds `REQUESTS_CA_BUNDLE` to `~/.bashrc`. To load it in the current terminal after setup, run:
+
+```bash
+source ~/.bashrc
+```
+
 This script will:
 - Install Git and Python prerequisites (auto-detects apt/dnf/yum)
 - Create a Python virtual environment

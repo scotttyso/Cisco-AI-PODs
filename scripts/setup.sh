@@ -162,6 +162,15 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
 
     log "Using repository directory: ${WORKDIR}"
 
+    if [[ -r /etc/os-release ]] && . /etc/os-release && [[ "${ID:-}" == "rhel" ]]; then
+        ca_bundle_export="export REQUESTS_CA_BUNDLE='/usr/share/pki/ca-trust-source/ca-bundle.trust.p11-kit'"
+        if ! grep -Fqx "$ca_bundle_export" "$HOME/.bashrc" 2>/dev/null; then
+            printf '\n%s\n' "$ca_bundle_export" >> "$HOME/.bashrc"
+            log "Configured REQUESTS_CA_BUNDLE in ${HOME}/.bashrc"
+        fi
+        export REQUESTS_CA_BUNDLE='/usr/share/pki/ca-trust-source/ca-bundle.trust.p11-kit'
+    fi
+
     # Resolve venv path relative to repository root when a relative path is provided.
     if [[ "$VENV_DIR" != /* ]]; then
         VENV_DIR="${WORKDIR}/${VENV_DIR}"

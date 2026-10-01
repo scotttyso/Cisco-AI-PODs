@@ -11,6 +11,19 @@ python3 scripts/<script>.py --help
 Dependencies come from [requirements.txt](../requirements.txt) (`PyYAML`, `tabulate`,
 and related packages). Activate your virtual environment first.
 
+## build_initial_inventory.py
+
+Read all `.xlsx` files in a folder and write rows with a MAC address to
+`host_vars/initial_inventory.ezai.yaml`. The script prompts for the folder;
+press Enter to use `~/orders`. Each entry has a placeholder hostname, a
+sequential `198.18.0.X` address, MAC, PID, and serial number.
+
+```bash
+python3 scripts/build_initial_inventory.py
+# Optional output location:
+python3 scripts/build_initial_inventory.py --output /path/to/initial_inventory.ezai.yaml
+```
+
 ---
 
 ## deploy_ai_pod.py

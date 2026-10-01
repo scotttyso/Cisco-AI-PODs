@@ -12,6 +12,7 @@ legacy-cgi
 netaddr
 numpy
 openshift
+openpyxl
 purestorage>=1.19.0
 pycountry
 pyOpenSSL
