@@ -295,11 +295,14 @@
                         },
                         "proxy_servers": {
                             "$ref": "./shared.json#/definitions/proxy_servers"
+                        },
+                        "timezone": {
+                            "$ref": "./shared.json#/definitions/timezone"
                         }
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `proxy_servers`",
+            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `proxy_servers`\n  * `timezone`",
             "required": [],
             "title": "Shared Services",
             "type": "object",

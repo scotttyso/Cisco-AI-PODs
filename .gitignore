@@ -4,6 +4,10 @@
 *.key
 *.pem
 pure.json
+.nicegui/
+/scripts/users.json
+/scripts/.storage-secret
+initial_inventory.secrets.yaml
 
 # Generated customer-specific artifacts
 .ansible/

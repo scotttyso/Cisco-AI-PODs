@@ -1,0 +1,4 @@
+nicegui==3.17.1
+openpyxl
+PyYAML
+jsonschema>=4.18

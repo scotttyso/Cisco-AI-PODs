@@ -6,6 +6,7 @@ intersight-auth
 Jinja2
 jmespath
 json-ref-dict
+jsonschema>=4.18
 kubernetes
 # Provides the removed Python 3.13+ cgi module used by json-ref-dict.
 legacy-cgi
