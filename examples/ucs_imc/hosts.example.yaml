@@ -1,0 +1,7 @@
+---
+# Hosts for scripts/ucs_imc_firmware.py
+# Usage: ./scripts/ucs_imc_firmware.py -f examples/ucs_imc/hosts.example.yaml --system-only
+hosts:
+  - 192.168.65.103
+  - 192.168.65.105
+  - 192.168.65.106
