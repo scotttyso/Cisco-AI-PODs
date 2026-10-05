@@ -11,6 +11,20 @@ python3 scripts/<script>.py --help
 Dependencies come from [requirements.txt](../requirements.txt) (`PyYAML`, `tabulate`,
 and related packages). Activate your virtual environment first.
 
+| Section | Purpose |
+| --- | --- |
+| [build_initial_inventory.py](#build_initial_inventorypy) | Build the initial inventory from order `.xlsx` files. |
+| [deploy_ai_pod.py](#deploy_ai_podpy) | Run the AI POD deployment roles in order. |
+| [validate_sensitive_variables.py](#validate_sensitive_variablespy) | Validate required sensitive environment variables. |
+| [update_nexus_switch_inventory.py](#update_nexus_switch_inventorypy) | Read MAC, model, and serial from Nexus switches and update the YAML. |
+| [ucs_imc_firmware.py](#ucs_imc_firmwarepy) | Report running firmware on standalone UCS C-Series servers. |
+| [merge_schemas.py](#merge_schemaspy) | Bundle the split JSON schemas. |
+| [check_schema_refs.py](#check_schema_refspy) | Check JSON schemas for broken `$ref` targets. |
+| [nvidia_support_matrix.py](#nvidia_support_matrixpy) | Report NVIDIA AI Enterprise compatibility. |
+| [regenerate_kubeconfig.py](#regenerate_kubeconfigpy) | Rebuild a kubeconfig with a new CA, server, or token. |
+| [Shell helpers](#shell-helpers) | Environment setup, lint, and sanity helpers. |
+| [Typical schema workflow](#typical-schema-workflow) | Edit, bundle, and check the schemas. |
+
 ## build_initial_inventory.py
 
 Read all `.xlsx` files in a folder and write rows with a MAC address to
@@ -180,6 +194,62 @@ the SSH command line or sent as an SSH environment variable.
 | `--fabric-file PATH` | Fabric variables file. Defaults to `host_vars/nexus_dashboard/fabrics.ezai.yaml`. |
 | `--connect-timeout SECONDS` | Per-connection timeout. Defaults to 10 seconds. |
 | `--dry-run` | Query all switches and display values without writing YAML. |
+
+---
+
+## ucs_imc_firmware.py
+
+Logs in to standalone UCS C-Series servers through the Cisco IMC XML API
+(`https://<host>/nuova`) and reports the model, serial number, and running
+firmware versions. Hosts are queried in parallel, and each session is logged out
+when done.
+
+Export the IMC password in the same shell used to run the script. Do not echo
+the password:
+
+```bash
+export local_user_password_1
+```
+
+Hosts can be passed on the command line, comma or space separated, or in a file.
+Files ending in `.yaml` or `.yml` must contain a `hosts` list. Any other file is
+read as plain text with one host per line and `#` comments allowed. Start from
+[examples/ucs_imc/hosts.example.yaml](../examples/ucs_imc/hosts.example.yaml):
+
+```yaml
+hosts:
+  - 192.168.65.103
+  - 192.168.65.105
+  - 192.168.65.106
+```
+
+```bash
+# All running firmware components per server
+python3 scripts/ucs_imc_firmware.py 192.168.65.106,192.168.65.105
+
+# Only the CIMC system firmware (sys/rack-unit-N/mgmt/fw-system), one row per server
+python3 scripts/ucs_imc_firmware.py -f examples/ucs_imc/hosts.example.yaml --system-only
+
+# JSON output
+python3 scripts/ucs_imc_firmware.py -f examples/ucs_imc/hosts.example.yaml --system-only --json
+```
+
+| Option | Description |
+| --- | --- |
+| `hosts ...` | IMC IPs or hostnames, comma and/or space separated. |
+| `-f`, `--hosts-file PATH` | YAML file with a `hosts` list, or a text file with one host per line. |
+| `-u`, `--username USER` | IMC username. Defaults to `admin`. |
+| `-p`, `--password-env NAME` | Environment variable holding the password. Defaults to `local_user_password_1`. |
+| `--system-only` | Only report the `sys/rack-unit-N/mgmt/fw-system` version per server. |
+| `--json` | Print JSON instead of a table. |
+| `--verify` | Verify TLS certificates. Off by default because IMC usually uses self-signed certificates. |
+| `--timeout SECONDS` | HTTP timeout per request. Defaults to 30 seconds. |
+| `--workers N` | Number of hosts to query in parallel. Defaults to 10. |
+
+Exit codes:
+
+- `0` — every host returned data
+- `1` — one or more hosts failed. The error is shown in that host's output.
 
 ---
 
