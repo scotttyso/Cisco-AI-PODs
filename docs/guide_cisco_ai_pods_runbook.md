@@ -128,8 +128,8 @@ Cisco AI PODs is an automated deployment framework for Cisco FlashStack infrastr
 
 | Device | Firmware Version | Notes |
 |-------|---------------------|----------------|
-| PureStorage FlashArray//X90R3 | 6.7.4 | Block / File |
-| PureStorage FlashBlade//S500 | 4.5.9 | File / Object |
+| PureStorage FlashArray//X90R3 | 6.9.6 | Block / File |
+| PureStorage FlashBlade//S500 | 4.7.11 | File / Object |
 
 ### [<ins>Back to Table of Contents<ins>](#table-of-contents)
 
