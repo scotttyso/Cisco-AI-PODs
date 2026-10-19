@@ -6,18 +6,28 @@ intersight:
   configure:
     default:
       policies:
-        certificate_management:
-          - assigned_sensitive_data: true
-            certificates:
-              - name: LDAPRootCA
-                type: RootCA
-                certificate_file: /home/certificates/LDAP-CA.crt
-            name: LDAP-Certificates
-        imc_access:
-          - inband_ip_pool: Inband
-            inband_vlan_id: 100
-            name: KVMAccess
-            out_of_band_ip_pool: OoBand
+        # certificate_management:
+        #   - assigned_sensitive_data: true
+        #     certificates:
+        #       - name: LDAPRootCA
+        #         type: RootCA
+        #         certificate_file: /home/certificates/LDAP-CA.crt
+        #     name: LDAP-Certificates
+        #   - assigned_sensitive_data: true
+        #     certificates:
+        #       - name: IMC-Certificate
+        #         type: IMC
+        #         certificate_file: /home/certificates/IMC-Certificate.crt
+        #         private_key_file: /etc/pki/private/IMC-Certificate.key
+        #     name: IMC-Certificates
+        # =========================================================
+        #   Only needed if not used in Chassis Profile
+        # =========================================================
+        # imc_access:
+        #   - inband_ip_pool: Inband
+        #     inband_vlan_id: 100
+        #     name: KVMAccess
+        #     out_of_band_ip_pool: OoBand
         local_user:
           - name: LocalUsers
             password_properties:
@@ -27,49 +37,12 @@ intersight:
               - password: 1
                 role: admin
                 username: admin
-        network_connectivity:
-          - dns_servers_v4:
-              - 208.67.222.222
-              - 208.67.220.220
-            name: DNS
-        ntp:
-          - name: NTP
-            ntp_servers:
-              - 0.pool.ntp.org
-              - 1.pool.ntp.org
-            timezone: America/Detroit
         serial_over_lan:
           - name: SoL
         ipmi_over_lan:
           - encryption_key: 1
             name: IPMIWithEncryption
             privilege: admin
-        ldap:
-          - base_settings:
-              domain: example.com
-            binding_parameters:
-              bind_dn: CN=Tyson Scott,OU=Employees,DC=example,DC=com
-              bind_method: ConfiguredCredentials
-            description: EXAMPLE LDAP Policy
-            enable_group_authorization: false
-            ldap_groups:
-              - domain: example.com
-                end_point_role: admin
-                group_dn: CN=FI Admins,OU=Users,DC=example,DC=com
-                name: FI Admins
-            ldap_servers:
-              - port: 636
-                server: 198.18.6.36
-                vendor: MSAD
-              - port: 636
-                server: 198.18.6.37
-                vendor: MSAD
-            name: LDAP
-            search_parameters:
-              attribute: memberof
-              filter: sAMAccountName=$userid
-              group_attribute: memberOf
-            user_search_precedence: LocalUserDb
         syslog:
           - local_logging:
               minimum_severity: warning

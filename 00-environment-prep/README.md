@@ -36,4 +36,9 @@ shared by every subsystem; subsystems do not maintain local inventories.
    ansible-playbook 00-environment-prep/automation/playbooks/deploy_dhcp_server.yml \
      -i <inventory> -e dhcp_hosts=localhost -e dhcp_vars_file=/path/to/dhcp.yaml -K
    ```
+
+   For Nexus switch POAP with external DHCP (the fabric page default), set **POAP / TFTP
+   server** (option 66) to the Nexus Dashboard address and **Boot file** (option 67) to
+   `poap_dcnm.py`. Switches without a MAC address in the inventory are not served while
+   **Only serve inventory devices** is on.
 3. **ISO library.** Upload installation media served by the deployment server.

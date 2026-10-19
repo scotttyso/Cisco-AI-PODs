@@ -5,7 +5,7 @@
     "{{ 'ActiveDirectory' if item.ldap_servers[0].vendor == 'MSAD' else 'LDAP' }}": {
         "Authentication": {
             "Username": "{{ ldap.binding_parameters.bind_dn }}",
-            "Password": "{{ sensitive_vars['ldap_binding_parameters_password_' ~ bind_password] }}"
+            "Password": "{{ sensitive_vars['ldap_binding_password_' ~ bind_password] }}"
         },
         "LDAPService": {
             "SearchSettings": {

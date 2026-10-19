@@ -101,7 +101,7 @@ takes ~5–6 min, and returns you to the first-boot console dialog.
   (`{"bootstrapped":false,"message":"Cluster is not bootstrapped"}`)
   whether the node is in a clean-not-bootstrapped state or has a pending
   draft from a half-failed prior commit — verified empirically against
-  ND 4.2.1.10 ([`logs/probe-cleanup-20260425T040218Z.log`](../logs/probe-cleanup-20260425T040218Z.log)
+  ND 4.2.1.10 (`logs/probe-cleanup-20260425T040218Z.log`
   shows POST returning 500 with the pending error while the simultaneous
   GET returns the clean shape). The precheck therefore WARNs (not FAILs)
   with both interpretations spelled out and a pointer to this section,
@@ -144,8 +144,8 @@ forwarder for `*.esl.cisco.com`, so the lookups fail before NTP can run.
 | Use a DNS server that **can** resolve `*.esl.cisco.com` | NTP hostnames are portable | Lab DNS may not be able to reach that DNS |
 
 This lab uses **NTP IP literals + lab DNS**, configured in
-[`inventories/lab/group_vars/nd_cluster.yml`](../../../inventories/lab/group_vars/nd_cluster.yml) and mirrored to
-[`logs/bootstrap-final-payload.json`](../logs/bootstrap-final-payload.json):
+[`inventories/<environment>/group_vars/nd_cluster.yml`](../../../inventories/example/group_vars/nd_cluster.yml) and mirrored to
+`logs/bootstrap-final-payload.json`:
 
 ```yaml
 ntp:
@@ -442,12 +442,12 @@ it surprises automation that infers CIMC IP from host mgmt IP.
 
 ### Fix
 
-Always read the CIMC IP from canonical inventory (`inventories/lab/host_vars/nd-*.yml`), never infer
+Always read the CIMC IP from canonical inventory (`inventories/<environment>/host_vars/nd-*.yml`), never infer
 it. The automation does this; document it explicitly in your runbook so a
 human troubleshooter doesn't go looking on the wrong subnet.
 
 ```yaml
-# inventories/lab/host_vars/nd-*.yml — CIMC and ND-MGMT are different subnets
+# inventories/<environment>/host_vars/nd-*.yml — CIMC and ND-MGMT are different subnets
 - hostname: nd-1
   cimc:  { ip: 198.18.0.7,   user: admin, pass_ref: CIMC_PASSWORD }
   mgmt:  { ip: 192.0.2.7,   mask: 24, gateway: 192.0.2.254 }
@@ -785,7 +785,7 @@ attempt is made), instead of mid-commit. See `--category network` in
 
 For the complete original evidence (Linux state, route table, Redfish link state,
 ND-side and workstation-side reachability matrix), see the captured snapshot:
-[`automation/logs/lab-routing-diag-20260425T210723Z.log`](../logs/lab-routing-diag-20260425T210723Z.log)
+`automation/logs/lab-routing-diag-20260425T210723Z.log`
 
 ### Fix — two paths, choose by lab topology
 
@@ -956,7 +956,7 @@ The two lab segments route to each other through the lab firewall (capacity
 ~1 Gbps). The FW is pre-permitted for this traffic — no rule change needed.
 Confirmed empirically on 2026-04-27 with `ping 198.51.100.124 / 198.51.100.125`
 from ND-1 (rescue-user @ 192.0.2.7); see
-[`automation/logs/lab-ib-oob-routing-verify-20260427T123154Z.log`](../logs/lab-ib-oob-routing-verify-20260427T123154Z.log).
+`automation/logs/lab-ib-oob-routing-verify-20260427T123154Z.log`.
 
 ### Tenant segments (tenant VRF, this pod)
 
@@ -1062,7 +1062,7 @@ from the same ISO that ND-1 was installed from**. This is the same Phase 1–4
 work that `install_node1.py` does, but for the secondary nodes.
 
 `scripts/install_secondaries.py` does exactly this in parallel for every node
-whose `nd_node.role != bootstrap` in `inventories/lab/host_vars/nd-*.yml`:
+whose `nd_node.role != bootstrap` in `inventories/<environment>/host_vars/nd-*.yml`:
 
 1. **mount_and_boot** — Redfish: eject any old vMedia, insert
    `cluster.iso.url`, set one-time UEFI vDVD boot, force-restart (or power-on

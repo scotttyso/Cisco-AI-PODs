@@ -5,7 +5,7 @@ This directory contains Ansible playbooks for managing Nexus Dashboard fabrics. 
 ## Prerequisites
 
 1. **Ansible**: >= 2.9
-2. **Python 3.6+** with required packages:
+2. **Python 3.12+** with required packages:
    - requests
    - pyyaml
    - jsonschema

@@ -1,5 +1,4 @@
 ---
-# yaml-language-server: $schema=../../../../schema/cisco-ai-pods.json
 intersight:
   configure:
     common:

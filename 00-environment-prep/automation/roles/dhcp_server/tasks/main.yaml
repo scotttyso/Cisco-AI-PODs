@@ -44,10 +44,10 @@
       - dhcp.interfaces is defined
       - dhcp.interfaces | length > 0
       - "'*' not in dhcp.interfaces"
-      - dhcp.interfaces | difference(ansible_facts.interfaces) | length == 0
+      - dhcp.interfaces | difference(ansible_facts.interfaces | default([])) | length == 0
     fail_msg: >-
       Set 'dhcp.interfaces' to the host interface(s) facing the bootstrap network or DHCP relay
-      (found: {{ dhcp.interfaces | default([]) }}; this host has: {{ ansible_facts.interfaces | sort | join(', ') }}).
+      (found: {{ dhcp.interfaces | default([]) }}; this host has: {{ ansible_facts.interfaces | default([]) | sort | join(', ') }}).
       Kea will not be installed to listen on every interface.
 
 - name: Render Kea Configuration Only

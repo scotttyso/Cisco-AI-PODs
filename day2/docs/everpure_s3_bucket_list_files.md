@@ -6,7 +6,7 @@ The `everpure_s3_bucket_list_files.py` script lists all objects stored in a Pure
 
 ## Prerequisites
 
-- Python 3.6+
+- Python 3.12+
 - boto3 library: `pip install boto3 botocore`
 - Access to Pure Storage FlashBlade S3 endpoint
 - Valid S3 access credentials

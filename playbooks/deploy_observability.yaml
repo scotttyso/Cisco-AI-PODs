@@ -16,6 +16,7 @@
         patterns:
           - "*.ezai.yaml"
         file_type: file
+        recurse: true
       register: splunk_observability_var_files
 
     - name: Merge Variable Files Into a Single Dictionary

@@ -258,7 +258,6 @@ class NexusDashboardClient:
             "managementIpv4Prefix": 24,
             "managementIpv6Prefix": 64,
             "netflowSettings": {"netflow": False},
-            "performanceMonitoring": False,
             "powerRedundancyMode": "redundant",
             "ptp": False,
             "ptpDomainId": 0,

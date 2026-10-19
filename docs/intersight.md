@@ -38,16 +38,31 @@ pools and many policies differ between UCS domains and servers:
 
 | Folder | WebUI page | Contents |
 |--------|------------|----------|
-| `system/system.ezai.yaml` | both | Organizations, shared by every deployment |
-| `domains/` | UCS Domains | Domain, management, and environment policies; VSAN policy (Fibre Channel only); domain and chassis templates and profiles |
+| `system/system.ezai.yaml` | System (Orgs) | Organizations and resource groups (saved as `host_vars/intersight/system.ezai.yaml`), used by every deployment |
+| `domains/` | UCS Domains | `policies.ezai.yaml` (every domain and chassis policy in one file; remove the ones you do not need), `pools.ezai.yaml` (the Inband / OoBand IP pools the Chassis IMC Access policy uses), templates, and profiles |
 | `servers/x-series/` | UCS Servers | X-Series pools and policies, optional Fibre Channel pools / policies / SAN connectivity, server templates, and blade server profiles |
 | `servers/standalone/` | UCS Servers | Standalone C-Series policies, templates, and profiles |
-| `servers/C885A/` | UCS Servers | C885A policies and profiles |
+| `C885A/` | (none) | C885A policies and profiles; not part of a WebUI page |
+
+Claim Targets claims every target into the `default` organization and resource group. The built-in `default` resource
+group always holds every target and is not changed; to separate servers, list them under another resource group in
+`system.ezai.yaml` and point an organization at it.
 
 Delete the files you do not deploy (for example the Fibre Channel files or templates); in the WebUI use the delete
-button on the Variables toolbar. `scripts/deploy_ai_pod.py --intersight-scope domains|servers` deploys
-`system.ezai.yaml` plus one folder. Files from different folders are merged, and identical policy entries that
+button on the Variables toolbar. `scripts/deploy_ai_pod.py --intersight-scope system` deploys only
+`system.ezai.yaml`; `--intersight-scope domains|servers` deploys `system.ezai.yaml` plus one folder. Files from different folders are merged, and identical policy entries that
 appear in both folders are kept once.
+
+On the UCS Domains and UCS Servers pages, the upload button on each Variables toolbar adds your own YAML files. They are
+schema-checked, saved as `<name>.ezai.yaml` under an `uploads/` folder in that page's folder (for example
+`host_vars/intersight/servers/x-series/uploads/`), listed as `uploads/<name>` in the file menu, and merged with the
+page's other files when it deploys. The delete button removes an uploaded file.
+
+Policy passwords and secrets are under Passwords and secrets on both pages: check each policy the YAML uses and set how
+many values it references (SNMP has a count per value, for example three `snmp_user_auth_password` entries referenced
+as `auth_password: 1`, `2`, `3`). Checking Certificate Management adds an upload for PEM certificate and key files; they
+are saved (mode 0600) under `<environment>/certificates/intersight/`, and a dialog shows the absolute path to use as
+each certificate's `certificate_file` / `private_key_file`.
 
 ## Folder Contents
 

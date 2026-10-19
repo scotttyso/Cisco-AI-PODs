@@ -3,7 +3,7 @@
 # the `dhcp` variable to already be defined by the playbook / host_vars.
 dhcp_vars_file: ""
 
-# ISC Kea DHCPv4. EL10 and Ubuntu 24.04 no longer ship ISC dhcpd.
+# ISC Kea DHCPv4. EL10 and Ubuntu 24.04+ no longer ship ISC dhcpd.
 dhcp_config_path: /etc/kea/kea-dhcp4.conf
 dhcp_lease_file: /var/lib/kea/kea-leases4.csv
 dhcp_packages_by_family:

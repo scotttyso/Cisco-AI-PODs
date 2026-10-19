@@ -14,7 +14,7 @@
 #################################################################################################################################
 
 ###############################################################################
-# Load and merge everpure variables from host_vars/everpure/*.ezai.yaml files
+# Load and merge everpure variables from host_vars/everpure/**/*.ezai.yaml files (uploads/ included)
 ###############################################################################
 - name: Find Variable Files Under host_vars
   ansible.builtin.find:
@@ -22,6 +22,7 @@
     patterns:
       - "*.ezai.yaml"
     file_type: file
+    recurse: true
   register: everpure_var_files
 
 - name: Merge Variable Files Into a Single Dictionary

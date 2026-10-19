@@ -359,6 +359,8 @@ def collect_required_sensitive_variables(
                             _add_env_var("ldap_binding_password", sid)
                         elif "local_user" in current_path and "users" in current_path:
                             _add_env_var("local_user_password", sid)
+                        elif "everpure" in current_path and "users" in current_path:
+                            _add_env_var("local_user_password", sid)
                         elif "profiles" in current_path and "server" in current_path and "targets" in current_path:
                             _add_env_var("local_user_password", sid)
                         elif "redfish" in current_path:
@@ -391,6 +393,9 @@ def collect_required_sensitive_variables(
                             _add_env_var("snmp_user_auth_password", sid)
                         elif "everpure" in current_path:
                             _add_env_var("everpure_snmp_auth_passphrase", sid)
+
+                    if key in ("auth_passphrase", "privacy_passphrase") and "everpure" in current_path:
+                        _add_env_var(f"everpure_snmp_{key}", sid)
 
                     if key == "privacy_password":
                         if "snmp_users" in current_path:

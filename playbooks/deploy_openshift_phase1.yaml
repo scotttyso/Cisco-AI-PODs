@@ -18,6 +18,7 @@
         patterns:
           - "*.ezai.yaml"
         file_type: file
+        recurse: true
       register: openshift_var_files
       tags: always
 

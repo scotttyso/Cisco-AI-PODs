@@ -729,9 +729,8 @@ def _ssh_acs_version(host: str, password: str, *, timeout: float = 8.0) -> tuple
     finally:
         # Close channel-backed file handles before the SSHClient so paramiko's
         # transport thread is still alive when each Channel's __del__ fires;
-        # otherwise we get a noisy AttributeError at interpreter shutdown on
-        # Py 3.9 (BufferedFile.__del__ -> Channel.shutdown_write ->
-        # Transport._send_user_message dereferencing torn-down `time` import).
+        # otherwise BufferedFile.__del__ -> Channel.shutdown_write can raise a
+        # noisy AttributeError at interpreter shutdown.
         for fh in (stdin, stdout, stderr):
             try:
                 if fh is not None:
@@ -777,7 +776,7 @@ def _ssh_run_pings(host: str, password: str, targets: list[tuple[str, str]],
     A single SSH session amortises connect cost across multiple pings; the
     function lazy-imports paramiko like ``_ssh_acs_version`` does, and uses
     the same channel-handle-cleanup-before-close discipline to avoid the
-    Py3.9 ``BufferedFile.__del__`` shutdown race.
+    ``BufferedFile.__del__`` shutdown race.
     """
     try:
         import paramiko  # type: ignore

@@ -1,6 +1,6 @@
 # dhcp_server
 
-Configures ISC Kea DHCPv4 on the deployment host (Rocky Linux 9/10, RHEL, or Ubuntu 24.04)
+Configures ISC Kea DHCPv4 on the deployment host (Rocky Linux 9/10, RHEL, or Ubuntu 24.04/26.04)
 used to bootstrap an AI Pod. Serves addresses for CIMC out-of-band management, the in-band
 management network, and Nexus switches via POAP (DHCP options 66/67/150 pointing at the
 Nexus Dashboard data interface IP).
@@ -10,7 +10,7 @@ The role installs Kea (`kea` on EL, `kea-dhcp4-server` on Ubuntu), renders
 enables/starts the service (`kea-dhcp4` on EL, `kea-dhcp4-server` on Ubuntu), and opens
 UDP 67 in firewalld or ufw. ISC dhcpd is no longer used because EL10 and Ubuntu 24.04 do not
 ship it. The rendered configuration has been validated with Kea 2.4.1 (Ubuntu 24.04) and
-3.0.3 (Rocky Linux 10).
+3.0.3 (Rocky Linux 10 and Ubuntu 26.04).
 
 ## Usage
 

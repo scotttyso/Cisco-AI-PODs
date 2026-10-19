@@ -56,8 +56,22 @@ def load_models(host_vars_dir: Path) -> dict[str, Any]:
     return merged
 
 
-def load_vault_environment(vault_file: Path, password_file: Path) -> dict[str, str]:
-    """Decrypt the vault and return its four environment-variable sections."""
+def load_vault_environment(vault_file: Path, password_file: Path, prefer: str | None = None) -> dict[str, str]:
+    """Decrypt the vault and return its sections flattened into environment variables."""
+    return vault_environment(load_vault_sections(vault_file, password_file), prefer)
+
+
+def vault_environment(sections: dict[str, dict[str, str]], prefer: str | None = None) -> dict[str, str]:
+    """Flatten vault sections; ``prefer`` is applied last so its values win shared names such as
+    local_user_password_1, which both Everpure and Intersight use."""
+    environment: dict[str, str] = {}
+    for section in sorted(sections, key=lambda name: name == prefer):
+        environment.update(sections[section])
+    return environment
+
+
+def load_vault_sections(vault_file: Path, password_file: Path) -> dict[str, dict[str, str]]:
+    """Decrypt the vault and return its environment-variable sections."""
     ansible_vault = shutil.which("ansible-vault")
     if ansible_vault is None:
         raise DeploymentError("ansible-vault was not found on PATH")
@@ -91,13 +105,14 @@ def load_vault_environment(vault_file: Path, password_file: Path) -> dict[str, s
     if not isinstance(vault, dict):
         raise DeploymentError("vault content must be a YAML mapping")
 
-    environment: dict[str, str] = {}
+    sections: dict[str, dict[str, str]] = {}
     for section in VAULT_SECTIONS:
         values = vault.get(section, {})
         if values is None:
             continue
         if not isinstance(values, dict):
             raise DeploymentError(f"vault section {section!r} must be a mapping")
+        environment = sections.setdefault(section, {})
         for name, value in values.items():
             if not isinstance(name, str):
                 raise DeploymentError(f"vault variable name in {section!r} must be a string")
@@ -105,15 +120,16 @@ def load_vault_environment(vault_file: Path, password_file: Path) -> dict[str, s
                 raise DeploymentError(f"vault variable {name!r} must be a scalar value")
             if value is not None:
                 environment[name] = str(value).lower() if isinstance(value, bool) else str(value)
-    key = environment.get("intersight_secret_key", "")
+    intersight = sections.get("intersight", {})
+    key = intersight.get("intersight_secret_key", "")
     if key.lstrip().startswith("-----BEGIN"):
         # The vault may hold the PEM itself; the Intersight tooling expects a file path.
         descriptor, path = tempfile.mkstemp(prefix="intersight-", suffix=".pem")
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(key.strip() + "\n")
         atexit.register(Path(path).unlink, missing_ok=True)
-        environment["intersight_secret_key"] = path
-    return environment
+        intersight["intersight_secret_key"] = path
+    return sections
 
 
 def run_command(command: list[str], env: dict[str, str], cwd: Path = REPO_ROOT) -> None:
@@ -201,13 +217,19 @@ def openshift_commands(
 
 
 def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path) -> Path:
-    """Copy shared Intersight files (``intersight/*.ezai.yaml``) plus one page's subfolder into ``target``."""
+    """Copy shared Intersight files (``intersight/*.ezai.yaml`` and the System (Orgs) uploads in
+    ``intersight/system/``) plus one page's subfolder into ``target``."""
     source = host_vars_dir / "intersight"
-    if not (source / scope).is_dir() or not any((source / scope).rglob("*.ezai.yaml")):
+    if scope == "system":
+        if not list(source.glob("*.ezai.yaml")) and not any((source / "system").rglob("*.ezai.yaml")):
+            raise DeploymentError(f"no *.ezai.yaml files found in {source}")
+    elif not (source / scope).is_dir() or not any((source / scope).rglob("*.ezai.yaml")):
         raise DeploymentError(f"no *.ezai.yaml files found under {source / scope}")
     for path in source.glob("*.ezai.yaml"):
         shutil.copy2(path, target / path.name)
-    shutil.copytree(source / scope, target / scope)
+    for folder in dict.fromkeys(("system", scope)):
+        if (source / folder).is_dir():
+            shutil.copytree(source / folder, target / folder, dirs_exist_ok=True)
     return target
 
 
@@ -260,9 +282,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--check", action="store_true", help="pass check mode where supported")
     parser.add_argument(
-        "--intersight-scope", choices=("all", "domains", "servers"), default="all",
-        help="intersight files to deploy: everything under host_vars/intersight, or the shared top-level files plus "
-             "only the domains/ or servers/ subfolder (default: all)",
+        "--intersight-scope", choices=("all", "system", "domains", "servers"), default="all",
+        help="intersight files to deploy: everything under host_vars/intersight, only the shared top-level files "
+             "(system: organizations and resource groups), or the shared files plus only the domains/ or servers/ "
+             "subfolder (default: all)",
     )
     parser.add_argument(
         "--openshift-stage", choices=OPENSHIFT_STAGES, default="phase1",
@@ -288,12 +311,19 @@ def main(argv: list[str] | None = None) -> int:
         vault_file = args.vault_file.expanduser().resolve()
         vault_password_file = args.vault_password_file.expanduser().resolve()
         models = load_models(host_vars_dir)
-        env = os.environ.copy()
-        env.update(load_vault_environment(vault_file, vault_password_file))
-        env["PYTHONUNBUFFERED"] = "1"
+        vault = load_vault_sections(vault_file, vault_password_file)
+
+        def role_env(section: str | None = None) -> dict[str, str]:
+            env = os.environ.copy()
+            env.update(vault_environment(vault, section))
+            env["PYTHONUNBUFFERED"] = "1"
+            return env
+
         sections = {"splunk_observability" if role == "observability" else role for role in args.roles}
-        validate_models({key: value for key, value in models.items() if key in sections}, env)
+        for section in sorted(sections & models.keys()):
+            validate_models({section: models[section]}, role_env(section))
         for role in ROLE_ORDER:
+            env = role_env("splunk_observability" if role == "observability" else role)
             if role not in args.roles:
                 continue
             if not role_is_configured(models, role):
@@ -306,8 +336,9 @@ def main(argv: list[str] | None = None) -> int:
             elif role == "intersight" and args.intersight_scope != "all":
                 with tempfile.TemporaryDirectory(prefix=f"aipod-intersight-{args.intersight_scope}-") as folder:
                     scoped = scoped_intersight_dir(host_vars_dir, args.intersight_scope, Path(folder))
-                    print(f"Deploying shared intersight/*.ezai.yaml and intersight/{args.intersight_scope}/ only",
-                          flush=True)
+                    folders = dict.fromkeys(("system", args.intersight_scope))
+                    print("Deploying shared intersight/*.ezai.yaml, " + ", ".join(f"intersight/{name}/" for name in folders)
+                          + " only", flush=True)
                     run_command(command_for_role(role, host_vars_dir, args.check, scoped), env)
             else:
                 run_command(command_for_role(role, host_vars_dir, args.check), env)

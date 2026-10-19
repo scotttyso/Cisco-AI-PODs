@@ -15,6 +15,35 @@ must match `^[a-z][a-z0-9_]*$`. `be_fabric.location` is passed through when
 present and omitted otherwise. Vault credentials use `vault_<pass_ref lower>`;
 ND credentials use `vault_nd_admin_password`.
 
+## Automation UI fabric pages
+
+The Backend, Frontend, and Management Fabric pages (*Network → Nexus Dashboard*) edit a
+`nexus_dashboard.fabrics` file and run `scripts/nd_fabric.py`. The Nexus Dashboard URL,
+username, and admin password come from the Cluster Deployment page.
+
+- Fabric types default to `aiVxlanEvpn` (backend and frontend) and `classicLan`
+  (management, not in monitor mode so POAP works).
+- Telemetry defaults to out-of-band: VRF `management`, source interface `mgmt0`.
+  `performanceMonitoring` is not set.
+- The page's **Switches** table starts from the initial inventory rows with that
+  fabric's switch role. Switches can be added, edited, or removed, and the table writes
+  the YAML `switches` list.
+- Day-0 order: **Create / update fabric** (also enables POAP from `poap`), power on
+  the switches, **Claim POAP switches** (matched by serial number), **Discover ports**
+  (SSH: interfaces with optics and LLDP neighbors), assign fabric / host roles in the
+  **Ports** table (`fabricLinkInterfaces` / `hostInterfaces`), **Apply port roles**
+  (host trunk policy), and **Deploy fabric**. **Add configured switches** adds switches
+  that already have a management address instead of using POAP.
+
+From a shell (`ND_URL`, `ND_USERNAME`, `ND_PASSWORD`, `SWITCH_PASSWORD` in the
+environment):
+
+```bash
+scripts/nd_fabric.py create --config backend-fabric.ezai.yaml
+scripts/nd_fabric.py claim  --config backend-fabric.ezai.yaml
+scripts/nd_fabric.py ports  --config backend-fabric.ezai.yaml --report ports.json
+```
+
 ## Core connectivity gate
 
 Before a template deployment, the read-only checker samples switch identity,

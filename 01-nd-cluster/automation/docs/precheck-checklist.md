@@ -239,7 +239,7 @@ verification per workstation.
 
 | Check | Command | Expected |
 |---|---|---|
-| Python version | `python3 --version` | >= 3.10 |
+| Python version | `python3 --version` | >= 3.12 |
 | venv created | `ls -d .venv` | exists |
 | Required Python deps | `.venv/bin/pip check` | `No broken requirements found.` |
 | `dig` available (for DNS check) | `which dig` | non-empty path; `bind-utils` / `dnsutils` installed if not |
@@ -282,7 +282,7 @@ power-management heuristic, `-w` ties lifetime to the watched pid.)
 ```
 
 This pairs with the agent-side
-[`notify-when-blocked-or-stalled`](../../../.cursor/rules/notify-when-blocked-or-stalled.mdc)
+`notify-when-blocked-or-stalled`
 rule, which asks the agent to flag silence as itself a signal — but the
 operator-side mitigation is the cheaper preventative.
 

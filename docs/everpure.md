@@ -60,6 +60,22 @@ Edit variables in Visual Studio Code:
 The encrypted deployment vault supplies one API token per `api_token_id` used in
 variables. The script uses `~/.config/cisco-ai-pods/vault-password` by default.
 
+Other values are referenced by number in the YAML and stored in the `everpure` vault section:
+
+| YAML key | Vault / environment name |
+|---|---|
+| `array_certificates[].private_key_passphrase` | `private_key_passphrase_<n>` |
+| `directory_service.configuration[].bind_password` | `ldap_binding_password_<n>` (Shared services LDAP bind password is `1`) |
+| `settings.security.users[].password` | `local_user_password_<n>` |
+| SNMP `community` | `everpure_snmp_community_<n>` |
+| SNMP `auth_passphrase` / `privacy_passphrase` | `everpure_snmp_auth_passphrase_<n>` / `everpure_snmp_privacy_passphrase_<n>` |
+
+On the WebUI Everpure page, check each policy under **Passwords and secrets > Policy passwords and secrets**
+and set how many values it uses. For Array Certificates, upload the PEM certificate and key files; they are
+saved in `<environment>/certificates/everpure/` and referenced by absolute path as `certificate_file`,
+`intermediate_certificate_file`, and `private_key_file`. The upload button in **Variables** adds your own
+YAML files under `host_vars/everpure/uploads/`; they are merged after `everpure.ezai.yaml`.
+
 ```bash
 python3 scripts/deploy_ai_pod.py --role everpure
 ```
@@ -105,6 +121,16 @@ The Everpure role configures FlashArray and FlashBlade settings from input varia
 
 Role details: [04-storage-everpure/automation/roles/everpure/README.md](../04-storage-everpure/automation/roles/everpure/README.md)
 
+### Appliance certificates (Web UI)
+
+The **Appliance certificates** card on the Everpure page creates one private key and CSR per FlashArray or FlashBlade. The appliances come from `array_fqdn` in the YAML, and you can add extra FQDNs. The common name is the appliance FQDN and is also included in the subject alternative names, along with any extra DNS names.
+
+1. Click **Generate keys and CSRs**, then **Download CSRs** and have them signed.
+2. Upload each signed chain: the server certificate first, followed by any intermediate certificates. The UI checks the chain against the key and saves the files under `certificates/everpure/` in the environment.
+3. Click **Add to YAML** to add or update the `everpure.settings.security.certificates.array_certificates` entries.
+
+When the environment is saved to Git with **Store secrets in the repository** enabled, private keys are committed only inside the encrypted `certificate-keys.vault.yaml`. PEM key files are never committed.
+
 ## Portworx Workflow
 
 The combined Everpure + Portworx flow does the following:
@@ -137,7 +163,7 @@ oc get pvc -A
 
 ## Troubleshooting
 
-- `pure.json` missing: Verify each `api_token_id` has matching `pure_api_token_<id>`
+- `pure.json` missing: Verify each `api_token_id` has matching `everpure_api_token_<id>`
 - Portworx operator not ready: Check Subscription and CSV in `openshift-operators`
 - StorageCluster pending: Inspect events and describe the StorageCluster
 - YAML input issues: Open files in Visual Studio Code and fix Red Hat YAML validation errors

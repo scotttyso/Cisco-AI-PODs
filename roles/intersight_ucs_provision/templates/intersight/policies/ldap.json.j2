@@ -13,7 +13,7 @@
   {% set bind_method = (item.binding_parameters | default({})).get('bind_method') | default('ConfiguredCredentials', true) %}
   {% set bind_password = (item.binding_parameters | default({})).get('password') | default('', true) %}
   {% if bind_method == 'ConfiguredCredentials' and bind_password | int > 0 %}
-    "Password": {{ sensitive_vars['ldap_binding_parameters_password_' ~ bind_password] | tojson }},
+    "Password": {{ sensitive_vars['ldap_binding_password_' ~ bind_password] | tojson }},
   {% endif %}
     "NestedGroupSearchDepth": {{ item.nested_group_search_depth | default(128, true) | int }},
     "ObjectType": "iam.LdapBaseProperties",

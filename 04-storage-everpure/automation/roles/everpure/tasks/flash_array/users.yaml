@@ -21,7 +21,7 @@
     fa_url: "{{ array_url }}"
     name: "{{ element.name }}"
     password: >-
-      {{ lookup('ansible.builtin.env', 'binding_parameters_password_{{ element.password }}')
+      {{ lookup('ansible.builtin.env', 'local_user_password_{{ element.password }}')
       if element.password > 0 else lookup('ansible.builtin.password', '/dev/null',
       chars=['ascii_lowercase', 'ascii_uppercase', 'digits'], length=20) }}
     public_key: ""

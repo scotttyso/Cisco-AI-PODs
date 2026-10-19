@@ -9,12 +9,12 @@ intersight:
         server:
           - bios_policy: GPUTraining-M8-Intel-Tpm
             boot_order_policy: M2-Boot
-            certificate_management_policy: LDAP-Certificates
+            # certificate_management_policy: LDAP-Certificates
             create_template: true
             firmware_policy: Recommended
             ipmi_over_lan_policy: IPMIWithEncryption
             local_user_policy: LocalUsers
-            ldap_policy: LDAP
+            # ldap_policy: LDAP
             name: AIOptimized
             network_connectivity_policy: DNS
             ntp_policy: NTP

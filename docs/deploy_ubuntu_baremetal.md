@@ -1,7 +1,7 @@
-# Deploy on Ubuntu 24.04 Bare Metal
+# Deploy on Ubuntu 24.04 or 26.04 Bare Metal
 
 This guide installs the Cisco AI PODs automation WebUI on an Ubuntu Server 24.04
-LTS host with the same service account, paths, systemd unit, Nginx front end,
+or 26.04 LTS host with the same service account, paths, systemd unit, Nginx front end,
 and updater as the [automation appliance](../automation-appliance/README.md).
 Keeping those paths identical lets `aipod-update` manage both deployments.
 
@@ -10,7 +10,8 @@ Keeping those paths identical lets `aipod-update` manage both deployments.
 
 ## Requirements
 
-- Ubuntu Server 24.04 LTS (Python 3.12 is the system Python), x86_64.
+- Ubuntu Server 24.04 LTS (system Python 3.12) or 26.04 LTS (system Python
+  3.14), x86_64. The system `python3` is used on both releases.
 - An administrator account with `sudo`.
 - Outbound HTTPS to `github.com`, `raw.githubusercontent.com`, `api.github.com`,
   PyPI, and Ansible Galaxy (directly or through `http_proxy`/`https_proxy`).
@@ -32,7 +33,7 @@ Keeping those paths identical lets `aipod-update` manage both deployments.
 ```bash
 sudo apt update
 sudo apt -y full-upgrade
-sudo apt -y install git python3.12 python3.12-venv python3-pip tmux nginx openssl curl \
+sudo apt -y install git python3 python3-venv python3-pip tmux nginx openssl curl \
     ca-certificates jq rsync tar unzip
 ```
 
@@ -65,7 +66,7 @@ cd "$HOME"
 git clone https://github.com/scotttyso/Cisco-AI-PODs.git
 cd Cisco-AI-PODs
 git -c advice.detachedHead=false checkout --detach "$1"
-PYTHON_BIN=python3.12 ./scripts/setup.sh --skip-apt --skip-iserver
+PYTHON_BIN=python3 ./scripts/setup.sh --skip-apt --skip-iserver
 .venv/bin/python3 -m pip install -r scripts/requirements-webui.txt
 ' _ "$tag"
 ```

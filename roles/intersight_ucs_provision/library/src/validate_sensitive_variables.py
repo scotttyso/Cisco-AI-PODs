@@ -89,6 +89,8 @@ _SENSITIVE_VAR_PATTERNS = {
     ),
     "snmp_password": ("snmp_password", "SNMP Password"),
     "snmp_privacy_passphrase": ("snmp_password", "SNMP Privacy Passphrase"),
+    "snmp_user_auth_password": ("snmp_password", "SNMP User Auth Password"),
+    "snmp_user_privacy_password": ("snmp_password", "SNMP User Privacy Password"),
     "ssh_public_key": ("ssh_public_key", "SSH Public Key"),
     "vmedia_password": ("vmedia_password", "Virtual Media Password"),
     "vmware_esxi_password": ("vmware_esxi_password", "VMware ESXi Password"),
@@ -324,8 +326,8 @@ def collect_required_sensitive_variables(
                     and sid is not None
                     and "snmp" in current_path
                 ):
-                    required_vars[f"snmp_auth_passphrase_{sid}"] = (
-                        "snmp_auth_passphrase",
+                    required_vars[f"snmp_user_auth_password_{sid}"] = (
+                        "snmp_user_auth_password",
                         "snmp_password",
                     )
                 elif (
@@ -333,8 +335,8 @@ def collect_required_sensitive_variables(
                     and sid is not None
                     and "snmp" in current_path
                 ):
-                    required_vars[f"snmp_privacy_passphrase_{sid}"] = (
-                        "snmp_privacy_passphrase",
+                    required_vars[f"snmp_user_privacy_password_{sid}"] = (
+                        "snmp_user_privacy_password",
                         "snmp_password",
                     )
                 elif (

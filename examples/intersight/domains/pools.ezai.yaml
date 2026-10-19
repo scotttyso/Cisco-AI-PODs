@@ -1,0 +1,25 @@
+---
+# =========================================================
+#   Pools
+# =========================================================
+intersight:
+  configure:
+    default:
+      pools:
+        ip:
+          - ipv4_blocks:
+              - from: 198.18.0.128
+                gateway: 198.18.0.1
+                netmask: 255.255.254.0
+                primary_dns: 198.18.5.53
+                secondary_dns: 198.18.6.53
+                size: 64
+            name: Inband
+          - ipv4_blocks:
+              - from: 198.18.2.128
+                gateway: 198.18.2.1
+                netmask: 255.255.254.0
+                primary_dns: 198.18.5.53
+                secondary_dns: 198.18.6.53
+                size: 64
+            name: OoBand

@@ -43,13 +43,13 @@
 {% set _v3_enable = true %}
 {% for user in item.snmp_users | default([]) %}
     {
-      "AuthPassword": {{ sensitive_vars['snmp_auth_passphrase_' ~ user.auth_password] | tojson }},
+      "AuthPassword": {{ sensitive_vars['snmp_user_auth_password_' ~ user.auth_password] | tojson }},
       "AuthType": {{ user.auth_type | default('SHA-256') | tojson }},
       "Name": {{ user.name | tojson }},
       "ObjectType": "snmp.User",
       "PrivacyType": {% if user.security_level != 'NoAuthNoPriv' %}{{ user.privacy_type | default('NA') | tojson }}{% else %}"NA"{% endif %},
 {% if user.privacy_password is defined and user.privacy_password | int > 0 and user.security_level != 'NoAuthNoPriv' %}
-      "PrivacyPassword": {{ sensitive_vars['snmp_privacy_passphrase_' ~ user.privacy_password] | tojson }},
+      "PrivacyPassword": {{ sensitive_vars['snmp_user_privacy_password_' ~ user.privacy_password] | tojson }},
 {% endif %}
       "SecurityLevel": {{ user.security_level | default('AuthPriv') | tojson }}
     }{% if not loop.last %},{% endif %}

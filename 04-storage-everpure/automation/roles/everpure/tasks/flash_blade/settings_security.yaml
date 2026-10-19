@@ -7,12 +7,14 @@
     api_token: "{{ api_token }}"
     disable_warnings: "{{ disable_certificate_warnings | default(true) | bool }}"
     fb_url: "{{ array_url }}"
-    certificate: "{{ lookup('file', lookup('ansible.builtin.env', 'cert_mgmt_certificate_{{ element.certificate_file }}')) }}"
+    certificate: "{{ lookup('file', element.certificate_file) }}"
     certificate_type: "{{ 'array' if element.private_key_file is defined else 'external' }}"
     intermediate_cert: >-
-      {{ lookup('file', lookup('ansible.builtin.env', 'cert_mgmt_intermediate_certificate_{{ element.intermediate_certificate_file }}')) if element.intermediate_certificate_file is defined else omit }}
-    key: "{{ lookup('file', lookup('ansible.builtin.env', 'cert_mgmt_private_key_{{ element.private_key_file }}')) if element.private_key_file is defined else omit }}"
-    passphrase: "{{ lookup('ansible.builtin.env', 'cert_mgmt_passphrase_{{ element.private_key_passphrase }}') | default(omit) }}"
+      {{ lookup('file', element.intermediate_certificate_file) if element.intermediate_certificate_file is defined else omit }}
+    key: "{{ lookup('file', element.private_key_file) if element.private_key_file is defined else omit }}"
+    passphrase: >-
+      {{ lookup('ansible.builtin.env', 'private_key_passphrase_' ~ element.private_key_passphrase)
+      if element.private_key_passphrase | default(0) | int > 0 else omit }}
     state: "{{ element.state | default('present') }}"
   loop_control:
     loop_var: element
@@ -63,7 +65,7 @@
     disable_warnings: "{{ disable_certificate_warnings | default(true) | bool }}"
     fb_url: "{{ array_url }}"
     base_dn: "{{ element.base_dn }}"
-    bind_password: "{{ lookup('ansible.builtin.env', 'binding_parameters_password_{{ element.bind_password }}') }}"
+    bind_password: "{{ lookup('ansible.builtin.env', 'ldap_binding_password_{{ element.bind_password }}') }}"
     bind_user: "{{ element.bind_user }}"
     dstype: "{{ element.type | default('management') }}"
     enable: "{{ element.enabled | default(true) }}"

@@ -128,7 +128,7 @@ sudo /usr/local/sbin/aipod-update --version vX.Y.Z
 
 The updater confirms the outage, backs up UI state, `~/playbooks`, and system configuration to `/var/backups/aipod-update-*`, checks out the verified release tag, reruns `setup.sh`, and waits for the UI to become healthy. On failure the service stays stopped and recovery commands are printed. Appliances built before the updater existed need a one-time bootstrap; see [Releases and Updates](../docs/releasing.md#bootstrap-older-installations). Appliances cloned from a fork must be updated manually.
 
-To run the same stack on an Ubuntu 24.04 bare-metal server instead of this image, see [Deploy on Ubuntu Bare Metal](../docs/deploy_ubuntu_baremetal.md).
+To run the same stack on an Ubuntu 24.04 or 26.04 bare-metal server instead of this image, see [Deploy on Ubuntu Bare Metal](../docs/deploy_ubuntu_baremetal.md).
 
 ## Security Notes
 

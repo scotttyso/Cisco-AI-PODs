@@ -527,8 +527,10 @@ def git_section():
                              placeholder="user@example.com").props("outlined dense")
         store_secrets = ui.switch("Store secrets in the repository (encrypted with a repository vault password)",
                                   value=settings.store_secrets).classes("mt-2")
-        ui.label("When enabled, Commit re-encrypts each environment's secrets into secrets.vault.yaml with the "
-                 "repository vault password below, and Pull merges them back into this server's vault. That password "
+        ui.label("When enabled, Commit re-encrypts each environment's secrets into secrets.vault.yaml, and the "
+                 "OpenShift / Everpure / Intersight certificate private keys into certificate-keys.vault.yaml, with the "
+                 "repository vault password below; Pull merges them back into this server's vault and restores the "
+                 "keys. Certificates are committed as-is; private keys are never committed in PEM form. That password "
                  "only protects the copy in git; the automation keeps using this server's vault password, so a "
                  "teammate or a rebuilt server only needs the repository vault password to restore the secrets."
                  ).classes("muted text-xs")

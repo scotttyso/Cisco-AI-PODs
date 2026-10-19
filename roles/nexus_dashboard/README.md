@@ -16,7 +16,7 @@ A comprehensive Python-based tool for creating and managing both classic-lan and
 
 ### Prerequisites
 
-- Python 3.6+
+- Python 3.12+
 - Required Python packages:
   ```bash
   pip install requests pyyaml jsonschema

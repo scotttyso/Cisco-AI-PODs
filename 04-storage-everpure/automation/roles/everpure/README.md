@@ -10,9 +10,19 @@ This role applies Day 0/Day 1 storage configuration across one or more arrays an
 
 ## Inputs
 
-- Variables file: `host_vars/everpure/everpure.ezai.yaml`
-- Environment variables:
-  - `pure_api_token_<id>` for each `api_token_id` in the variables file
+- Variables files: `host_vars/everpure/**/*.ezai.yaml` (`everpure.ezai.yaml` plus any files uploaded on the
+  WebUI Everpure page into `uploads/`)
+- Environment variables (stored in the `everpure` vault section; the YAML holds only the number):
+  - `everpure_api_token_<id>` for each `api_token_id`
+  - `private_key_passphrase_<id>` for an encrypted `array_certificates[].private_key_passphrase`
+  - `ldap_binding_password_<id>` for `directory_service.configuration[].bind_password` (the WebUI exports the
+    Shared services LDAP bind password as `ldap_binding_password_1`)
+  - `local_user_password_<id>` for `settings.security.users[].password`
+  - `everpure_snmp_community_<id>`, `everpure_snmp_auth_passphrase_<id>`, `everpure_snmp_privacy_passphrase_<id>`
+    for the SNMP managers and agent
+- Certificate files: `array_certificates[].certificate_file`, `intermediate_certificate_file`, and
+  `private_key_file` are absolute paths on the automation host. The WebUI saves uploads in
+  `<environment>/certificates/everpure/`.
 
 ## Role Structure
 
@@ -57,7 +67,7 @@ Safe to re-run. The role reconciles desired state from current inputs.
 ## Troubleshooting
 
 - Authentication failures:
-  - Confirm `pure_api_token_<id>` names match configured `api_token_id` values.
+  - Confirm `everpure_api_token_<id>` names match configured `api_token_id` values.
 - Unexpected task skips:
   - Verify keys under `everpure.settings.*` and array/blade objects are present.
 - Input validation issues:

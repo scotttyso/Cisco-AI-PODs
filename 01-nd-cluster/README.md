@@ -62,13 +62,6 @@ You can do this section either way; both produce the same outcome.
 | **Manual** | First time, learning, change-controlled environments | [`docs/MOP-ND4-install.md`](docs/MOP-ND4-install.md) |
 | **Automation** | Repeated deployments, labs, CI | [`automation/`](automation/) |
 
-For the screenshots embedded in the customer-facing chapter, the
-universal [Playwright capture harness](../../docs/capture/README.md) under
-`docs/capture/` covers the browser-reachable surfaces (CIMC
-web UI, the ND cluster bringup wizard, steady-state ND views, and the
-post-install landing pages); see the capture README for run modes and
-the manual-capture guidance for vKVM/SOL/CLI surfaces it doesn't reach.
-
 ## Workflow
 
 The chapter figures are SVG/PNG generated from
@@ -76,6 +69,5 @@ The chapter figures are SVG/PNG generated from
 and embedded in the MOP at
 [`docs/MOP-ND4-install.md` § Deployment Workflow](docs/MOP-ND4-install.md#deployment-workflow).
 Figure 1 starts and ends with compact stadium ovals; procedure figures end on a rectangular Verify terminal.
-The retired mermaid source is in [`docs/workflows/OLD/`](docs/workflows/OLD/).
 
 ![End-to-end deployment path for a 3-node ND cluster.](docs/workflows/nd-deployment-workflow.png)

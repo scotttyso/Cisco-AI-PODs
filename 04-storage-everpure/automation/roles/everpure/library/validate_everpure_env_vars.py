@@ -5,15 +5,15 @@ Validates sensitive environment variables required for Everpure configuration vi
 
 Sensitive Variable Patterns:
   - everpure_api_token_{1-64}       — API Token for Everpure Array
-  - cert_mgmt_certificate_{1-64} — Certificate path/content
-  - cert_mgmt_intermediate_certificate_{1-64} — Intermediate certificate (optional)
-  - cert_mgmt_passphrase_{1-64}  — Private key passphrase (if encrypted)
-  - cert_mgmt_private_key_{1-64} — Private key path/content
-  - ldap_bind_password_{1-64}    — LDAP binding password
-  - local_user_password_{1-64}   — Local user password
-  - snmp_community_{1-64}        — SNMP community string
-  - snmp_auth_passphrase_{1-64}  — SNMP v3 auth passphrase
-  - snmp_privacy_passphrase_{1-64} — SNMP v3 privacy passphrase
+  - private_key_passphrase_{1-64}   — Certificate private key passphrase (if encrypted)
+  - ldap_binding_password_{1-64}    — LDAP binding password
+  - local_user_password_{1-64}      — Local user password
+  - everpure_snmp_community_{1-64}  — SNMP community string
+  - everpure_snmp_auth_passphrase_{1-64}    — SNMP v3 auth passphrase
+  - everpure_snmp_privacy_passphrase_{1-64} — SNMP v3 privacy passphrase
+
+Certificate files (certificate_file, intermediate_certificate_file, private_key_file) are absolute paths
+on the automation host and must be readable.
 
 Usage:
   python3 validate_everpure_env_vars.py --config host_vars/everpure/everpure.ezai.yaml
@@ -31,8 +31,17 @@ import textwrap
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Schema path
-_SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "cisco-ai-pods.json"
+
+def _repository_root() -> Path:
+    """The checkout (or built collection) root: the first parent holding schema/cisco-ai-pods.json."""
+    here = Path(__file__).resolve()
+    return next((parent for parent in here.parents if (parent / "schema" / "cisco-ai-pods.json").is_file()),
+                here.parents[5])
+
+
+_SCHEMA_PATH = _repository_root() / "schema" / "cisco-ai-pods.json"
+# Length / pattern rules for the secrets when the bundled schema does not carry them.
+_SENSITIVE_SCHEMA_PATH = _SCHEMA_PATH.parents[1] / "schemas" / "sensitive" / "variables.json"
 
 # Module-level variable to cache sensitive schema properties
 _SENSITIVE_SCHEMA_PROPS: Dict[str, Any] = {}
@@ -47,13 +56,18 @@ def load_schema() -> None:
     with open(_SCHEMA_PATH, encoding='utf-8') as schema_file:
         schema = json.load(schema_file)
 
-    if "definitions" not in schema or "abstract.sensitive_variables" not in schema[
-            "definitions"]:
-        raise ValueError(
-            "Schema missing 'definitions.abstract.sensitive_variables'")
-
-    _SENSITIVE_SCHEMA_PROPS = schema["definitions"]["abstract.sensitive_variables"].get(
-        "properties", {})
+    definitions = schema.get("definitions")
+    if not isinstance(definitions, dict):
+        raise ValueError(f"Schema missing 'definitions': {_SCHEMA_PATH}")
+    sensitive = definitions.get("abstract.sensitive_variables")
+    if isinstance(sensitive, dict):
+        _SENSITIVE_SCHEMA_PROPS = sensitive.get("properties", {})
+    elif _SENSITIVE_SCHEMA_PATH.is_file():
+        with open(_SENSITIVE_SCHEMA_PATH, encoding='utf-8') as sensitive_file:
+            _SENSITIVE_SCHEMA_PROPS = json.load(sensitive_file).get("definitions", {})
+    else:
+        # Without rules every referenced value must still be set; only length / pattern checks are skipped.
+        _SENSITIVE_SCHEMA_PROPS = {}
 
 
 def _wrap_cli_text(text: str, indent: str = "  ", width: int = 100) -> str:
@@ -226,7 +240,7 @@ def _resolve_sensitive_var(
 
 
 def validate_pure_api_token(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-outer-name
-    """Validate pure_api_token for each FlashArray and FlashBlade."""
+    """Validate everpure_api_token for each FlashArray and FlashBlade."""
     for array_type in ["flash_arrays", "flash_blades"]:
         if array_type not in cfg.get("everpure", {}):
             continue
@@ -248,8 +262,8 @@ def validate_pure_api_token(cfg: Dict[str, Any]) -> None:  # pylint: disable=red
 
             _resolve_sensitive_identifier(
                 api_token_id,
-                "pure_api_token",
-                "pure_api_token",
+                "everpure_api_token",
+                "everpure_api_token",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
                 {},
@@ -276,53 +290,21 @@ def validate_certificates(cfg: Dict[str, Any]) -> None:  # pylint: disable=redef
         if not isinstance(cert, dict):
             continue
 
-        # Validate certificate
-        cert_id = cert.get("certificate")
-        if cert_id not in (None, "", 0):
-            context = f"everpure.settings.security.certificates.array_certificates[{idx}].certificate"
-            _resolve_sensitive_identifier(
-                cert_id,
-                "cert_mgmt_certificate",
-                "certificate",
-                context,
-                _SENSITIVE_SCHEMA_PROPS,
-                {},
-            )
+        for field in ("certificate_file", "intermediate_certificate_file", "private_key_file"):
+            path = cert.get(field)
+            if path in (None, ""):
+                continue
+            context = f"everpure.settings.security.certificates.array_certificates[{idx}].{field}"
+            if not os.path.isfile(path) or not os.access(path, os.R_OK):
+                raise ValueError(f"{context}: file '{path}' does not exist or is not readable.")
 
-        # Validate intermediate certificate (optional)
-        inter_cert_id = cert.get("intermediate_certificate")
-        if inter_cert_id not in (None, "", 0):
-            context = f"everpure.settings.security.certificates.array_certificates[{idx}].intermediate_certificate"
-            _resolve_sensitive_identifier(
-                inter_cert_id,
-                "cert_mgmt_intermediate_certificate",
-                "certificate",
-                context,
-                _SENSITIVE_SCHEMA_PROPS,
-                {},
-            )
-
-        # Validate private key
-        key_id = cert.get("private_key")
-        if key_id not in (None, "", 0):
-            context = f"everpure.settings.security.certificates.array_certificates[{idx}].private_key"
-            _resolve_sensitive_identifier(
-                key_id,
-                "cert_mgmt_private_key",
-                "private_key",
-                context,
-                _SENSITIVE_SCHEMA_PROPS,
-                {},
-            )
-
-        # Validate passphrase (if private key is encrypted)
-        passphrase_id = cert.get("key_passphrase")
+        passphrase_id = cert.get("private_key_passphrase")
         if passphrase_id not in (None, "", 0):
-            context = f"everpure.settings.security.certificates.array_certificates[{idx}].key_passphrase"
+            context = f"everpure.settings.security.certificates.array_certificates[{idx}].private_key_passphrase"
             _resolve_sensitive_identifier(
                 passphrase_id,
-                "cert_mgmt_passphrase",
-                "cert_mgmt_passphrase",
+                "private_key_passphrase",
+                "private_key_passphrase",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
                 {},
@@ -354,7 +336,7 @@ def validate_directory_service(cfg: Dict[str, Any]) -> None:  # pylint: disable=
             context = f"everpure.settings.security.directory_service.configuration[{idx}].bind_password"
             _resolve_sensitive_identifier(
                 bind_pwd_id,
-                "ldap_bind_password",
+                "ldap_binding_password",
                 "ldap_binding_password",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
@@ -418,8 +400,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
                 context = f"everpure.settings.system.monitoring.snmp.add_snmp_manager.v2c[{idx}].community"
                 _resolve_sensitive_identifier(
                     community_id,
-                    "snmp_community",
-                    "snmp_community_string",
+                    "everpure_snmp_community",
+                    "everpure_snmp_community",
                     context,
                     _SENSITIVE_SCHEMA_PROPS,
                     {},
@@ -437,8 +419,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
                 context = f"everpure.settings.system.monitoring.snmp.add_snmp_manager.v3[{idx}].auth_passphrase"
                 _resolve_sensitive_identifier(
                     auth_id,
-                    "snmp_auth_passphrase",
-                    "snmp_password",
+                    "everpure_snmp_auth_passphrase",
+                    "everpure_snmp_auth_passphrase",
                     context,
                     _SENSITIVE_SCHEMA_PROPS,
                     {},
@@ -449,8 +431,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
                 context = f"everpure.settings.system.monitoring.snmp.add_snmp_manager.v3[{idx}].privacy_passphrase"
                 _resolve_sensitive_identifier(
                     priv_id,
-                    "snmp_privacy_passphrase",
-                    "snmp_password",
+                    "everpure_snmp_privacy_passphrase",
+                    "everpure_snmp_privacy_passphrase",
                     context,
                     _SENSITIVE_SCHEMA_PROPS,
                     {},
@@ -464,8 +446,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
             context = "everpure.settings.system.monitoring.snmp.edit_snmp_agent.auth_passphrase"
             _resolve_sensitive_identifier(
                 auth_id,
-                "snmp_auth_passphrase",
-                "snmp_password",
+                "everpure_snmp_auth_passphrase",
+                "everpure_snmp_auth_passphrase",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
                 {},
@@ -476,8 +458,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
             context = "everpure.settings.system.monitoring.snmp.edit_snmp_agent.community"
             _resolve_sensitive_identifier(
                 community_id,
-                "snmp_community",
-                "snmp_community_string",
+                "everpure_snmp_community",
+                "everpure_snmp_community",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
                 {},
@@ -488,8 +470,8 @@ def validate_snmp(cfg: Dict[str, Any]) -> None:  # pylint: disable=redefined-out
             context = "everpure.settings.system.monitoring.snmp.edit_snmp_agent.privacy_passphrase"
             _resolve_sensitive_identifier(
                 priv_id,
-                "snmp_privacy_passphrase",
-                "snmp_password",
+                "everpure_snmp_privacy_passphrase",
+                "everpure_snmp_privacy_passphrase",
                 context,
                 _SENSITIVE_SCHEMA_PROPS,
                 {},

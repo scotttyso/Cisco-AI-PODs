@@ -1,33 +1,27 @@
 ---
 # yaml-language-server: $schema=../../../schema/cisco-ai-pods.json
+# Organizations and resource groups. Targets are claimed into the default organization and the built-in default
+# resource group (which always contains every target). To give servers their own organization, add a resource group
+# with those targets and an organization that uses it, for example:
+#
+#    organizations:
+#      - name: Production
+#        resource_groups:
+#          - Production
+#    resource_groups:
+#      - name: Production
+#        resources:
+#          targets:
+#            - ucs-c240-1
 intersight:
   system:
-    locations:
-      - input_by: Address
-        address_details:
-          address1: 170 W Tasman Dr
-          address2: Suite 150
-          city: San Jose
-          country: US
-          postal_code: '95134'
-          state_province: California
-        name: San Jose
     organizations:
-      - name: common
-        organizations_to_share_with:
-          - Asgard
-          - Wakanda
-      - name: testing123
+      - name: default
         resource_groups:
-          - testing123
-      - name: Wakanda
-        resource_groups:
-          - Wakanda
+          - default
     resource_groups:
-      - name: testing123
-      - name: Wakanda
+      - name: default
         resources:
           targets:
-            - r143e-2
-    path_tags:
-      - path_tag: Richfield/SE Lab/Room 142/Rack r142b
+            - ucs-domain-1
+            - ucs-c240-1

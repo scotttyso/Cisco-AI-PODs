@@ -118,18 +118,10 @@ DEFAULT_ORGANIZATION = {"organization": "default", "resource_group": "default"}
 FACTORY_PASSWORD_MIN = 12
 
 
-def organizations(state: dict) -> list[dict]:
-    """Organization / resource group pairs; the first one is the default for every target."""
-    pairs = [{"organization": str(item.get("organization") or "").strip(),
-              "resource_group": str(item.get("resource_group") or "").strip()}
-             for item in state.get("organizations") or [] if isinstance(item, dict)]
-    pairs = [item for item in pairs if item["organization"]]
-    if not pairs and (state.get("organization") or state.get("resource_group")):
-        pairs = [{"organization": state.get("organization") or "default",
-                  "resource_group": state.get("resource_group") or ""}]
-    for item in pairs:
-        item["resource_group"] = item["resource_group"] or item["organization"]
-    return pairs or [dict(DEFAULT_ORGANIZATION)]
+def organizations(state: dict | None = None) -> list[dict]:
+    """Every target is claimed into the default organization and resource group; the Intersight - System (Orgs)
+    page creates other organizations and moves targets to their resource groups."""
+    return [dict(DEFAULT_ORGANIZATION)]
 
 
 def target_from_row(row: dict, legacy: dict | None = None) -> dict:
@@ -138,7 +130,7 @@ def target_from_row(row: dict, legacy: dict | None = None) -> dict:
     return {"id": host_key(row["hostname"]), "hostname": row["hostname"], "role": row_role(row),
             "pid": row.get("pid", ""), "serial_number": row.get("serial_number", ""), "address": address,
             "static_ip": legacy.get("ip") or address, "netmask": legacy.get("netmask", ""),
-            "gateway": legacy.get("gateway", ""), "organization": "", "factory_default": False,
+            "gateway": legacy.get("gateway", ""), "factory_default": False,
             "override": bool(legacy.get("user") and legacy.get("user") != "admin"),
             "username": legacy.get("user", "") if legacy.get("user") != "admin" else ""}
 
@@ -174,8 +166,7 @@ def target_pass_ref(target: dict) -> str:
 def registration_hosts(rows: list[dict], state: dict | None = None) -> dict[str, dict]:
     """UCS claim endpoints in the stage 05/06 host_vars format, keyed by inventory host."""
     state = state or {}
-    pairs = organizations(state)
-    groups = {item["organization"]: item["resource_group"] for item in pairs}
+    default = organizations()[0]
     hosts = {}
     for target in registration_targets(rows, state):
         key = host_key(target["hostname"])
@@ -183,7 +174,6 @@ def registration_hosts(rows: list[dict], state: dict | None = None) -> dict[str,
         domain = role in DOMAIN_ROLES
         default_user = state.get("fi_username" if domain else "cimc_username") or "admin"
         user = (target.get("username") or default_user) if target.get("override") else default_user
-        organization = target.get("organization") if target.get("organization") in groups else pairs[0]["organization"]
         address = str(target.get("address") or "").strip()
         static = str(target.get("static_ip") or "").strip() or address
         cimc = {"ip": static, "user": user, "pass_ref": target_pass_ref(target)}
@@ -199,8 +189,8 @@ def registration_hosts(rows: list[dict], state: dict | None = None) -> dict[str,
             "hostname": target["hostname"],
             "claim_target": domain_name(target["hostname"]) if domain else key,
             "intersight_claim_supported": target_claimable(target),
-            "organization": organization,
-            "resource_group": groups[organization],
+            "organization": default["organization"],
+            "resource_group": default["resource_group"],
             "factory_default": bool(target.get("factory_default")) and role in REDFISH_ROLES,
             "cimc": cimc,
         }}
@@ -237,15 +227,17 @@ def backend_fabric_vars(fabrics: list[dict]) -> tuple[dict, dict[str, dict]]:
         be_fabrics.append(entry)
         if index == 0:
             telemetry = fabric.get("telemetry") or {}
+            inband = telemetry.get("telemetryMode") == "inband"
             features = {
                 "unified_fabric_type": "aimlVxlanEbgp", "bgp_as_mode": "Multi-AS", "enable_evpn": True,
                 "fabric_mtu": evpn.get("fabricMtu", 9216), "link_state_routing": "ebgp",
                 "enable_ai_ml_qos_policy": settings.get("enableAiMlQosPolicy", True),
                 "enable_telemetry": telemetry.get("telemetryCollection", True),
-                "telemetry_collection_mode": "out_of_band" if telemetry.get("telemetryMode") == "outofband" else "in_band",
+                "telemetry_collection_mode": "in_band" if inband else "out_of_band",
                 "telemetry_streaming_protocol": "ipv4",
-                "telemetry_vrf": telemetry.get("telemetryVrf", "Telemetry_VRF"),
-                "telemetry_source_interface": telemetry.get("telemetrySourceInterface", "loopback0"),
+                "telemetry_vrf": telemetry.get("telemetryVrf", "Telemetry_VRF" if inband else "management"),
+                "telemetry_source_interface": telemetry.get("telemetrySourceInterface",
+                                                            "loopback0" if inband else "mgmt0"),
                 "use_robot_password": settings.get("useRobotPassword", True),
                 "switch_password_ref": SWITCH_PASSWORD_REF,
                 "add_switches_without_reload": settings.get("addSwitchesWithoutReload", True),
@@ -308,7 +300,7 @@ def build(output_dir: Path, host_vars_dir: Path, rows: list[dict], services: dic
     local = {"ansible_connection": "local", "ansible_python_interpreter": "{{ ansible_playbook_python }}"}
     children: dict = {}
     intersight = page_state.get("intersight-registration", {})
-    default = organizations(intersight)[0]
+    default = organizations()[0]
     all_vars = {"intersight_api_uri": intersight.get("api_uri") or "https://intersight.com",
                 "intersight_resource_group_name": default["resource_group"],
                 "intersight_organization_name": default["organization"]}

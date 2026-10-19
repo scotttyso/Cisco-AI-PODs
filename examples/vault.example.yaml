@@ -14,14 +14,9 @@ everpure:
   everpure_snmp_community_1: ""
   everpure_snmp_auth_passphrase_1: ""
   everpure_snmp_privacy_passphrase_1: ""
-  cert_mgmt_certificate_1: ""
-  cert_mgmt_intermediate_certificate_1: ""
-  cert_mgmt_private_key_1: ""
-  cert_mgmt_passphrase_1: ""
-  binding_parameters_password_1: ""
-  snmp_community_1: ""
-  snmp_auth_passphrase_1: ""
-  snmp_privacy_passphrase_1: ""
+  # Certificate files are uploaded on the Everpure page and referenced by path; only the key passphrase is secret.
+  private_key_passphrase_1: ""
+  local_user_password_1: ""
   cisco_webex_token: ""
   microsoft_teams_webhook: ""
   slack_token: ""
@@ -66,6 +61,8 @@ openshift:
   iso_web_server_password_1: ""
   proxy_password_1: ""
   linux_password_1: ""
+  # HTTPS token for Push to GitOps repository (OpenShift GitOps page) when Gitea is not used.
+  gitops_git_token: ""
 
 # Environment variables used by Splunk Observability and its integrations.
 splunk_observability:

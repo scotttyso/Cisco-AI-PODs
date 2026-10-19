@@ -1,7 +1,7 @@
 ---
 - name: Flash Blade | Portworx | Ensure user is missing
   everpure.flashblade.purefb_user:
-    api_token: "{{ lookup('ansible.builtin.env', 'pure_api_token_{{ item.api_token_id }}') }}"
+    api_token: "{{ lookup('ansible.builtin.env', 'everpure_api_token_{{ item.api_token_id }}') }}"
     disable_warnings: true
     fb_url: "{{ item.array_url }}"
     state: absent
@@ -11,7 +11,7 @@
 
 - name: Flash Blade | Portworx | Create Storage Admin user for each Array
   everpure.flashblade.purefb_user:
-    api_token: "{{ lookup('ansible.builtin.env', 'pure_api_token_{{ item.api_token_id }}') }}"
+    api_token: "{{ lookup('ansible.builtin.env', 'everpure_api_token_{{ item.api_token_id }}') }}"
     disable_warnings: true
     fb_url: "{{ item.array_url }}"
     api: true

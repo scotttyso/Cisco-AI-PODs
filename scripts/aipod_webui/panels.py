@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,7 +13,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import Awaitable, Callable
 
 import yaml
 from nicegui import run, ui
@@ -89,7 +90,8 @@ class UiContext:
 
     def seed_context(self) -> seeds.SeedContext:
         files = sorted(path.name for path in self.media_dir.glob("*") if path.is_file()) if self.media_dir.is_dir() else []
-        state = {key: self.store.page_state(key) for key in ("ocp-cluster", "intersight-registration")}
+        state = {key: self.store.page_state(key) for key in ("ocp-cluster", "intersight-registration", "dhcp",
+                                                              *seeds.FABRIC_PAGES.values())}
         return seeds.SeedContext(self.store.inventory(), self.store.shared_services(), state, self.media_url,
                                  str(self.media_dir), files, self.collected_macs())
 
@@ -106,10 +108,41 @@ class FileSpec:
     seed: str = ""
     label: str = ""
     optional: bool = False
+    # A file the user uploaded (no repository example); removing it drops it from the page.
+    uploaded: bool = False
 
     @property
     def title(self) -> str:
         return self.label or self.target
+
+
+UPLOAD_MAX_BYTES = 1024 * 1024
+
+
+def upload_file_name(name: str) -> str:
+    """Safe ``<name>.ezai.yaml`` for an uploaded file, so the deployment picks it up (it loads ``*.ezai.yaml``)."""
+    stem = Path(name or "").name
+    for suffix in (".yaml", ".yml", ".ezai"):
+        stem = stem.removesuffix(suffix)
+    stem = re.sub(r"[^A-Za-z0-9_-]+", "_", stem).strip("_") or "uploaded"
+    return f"{stem}.ezai.yaml"
+
+
+def check_upload(content: bytes) -> str:
+    """The upload as text when it is a YAML mapping; raises ValueError otherwise."""
+    if len(content) > UPLOAD_MAX_BYTES:
+        raise ValueError("larger than 1 MB")
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("not UTF-8 text") from error
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as error:
+        raise ValueError(f"not valid YAML: {error}") from error
+    if not isinstance(data, dict):
+        raise ValueError("the top level must be a mapping (for example intersight:)")
+    return text if text.endswith("\n") else text + "\n"
 
 
 @dataclass
@@ -184,14 +217,28 @@ class CredentialsPanel:
 
     def __init__(self, context: UiContext, fields: Callable[[], list[SecretField]], title: str = "Passwords and secrets",
                  visible: bool = True, embedded: bool = False, on_change: Callable[[], None] | None = None,
-                 hide: tuple[str, ...] | dict[str, str] = ()):
+                 hide: tuple[str, ...] | dict[str, str] = (), header: Callable[[], None] | None = None):
         self.context = context
         self.fields = fields
         self.title, self.visible, self.embedded, self.on_change = title, visible, embedded, on_change
         # Keys still checked before a run but entered on another page or panel (dict values say where).
         self.hide = hide
         self.inputs: dict[str, ui.element] = {}
-        self.container = ui.column().classes("w-full gap-2")
+        # A header (for example the Intersight policy selector) is built once inside the section, above the inputs,
+        # so re-rendering the inputs does not rebuild it.
+        self.section = None
+        if header and not embedded:
+            with ui.expansion(self.title, icon="lock", value=True).classes(
+                    "w-full env-card page-section credentials") as self.section:
+                with ui.column().classes("w-full gap-2 p-4"):
+                    ui.label(f"Values are encrypted into {context.vault.status()['vault_file']} and passed to the "
+                             "automation as variables. Stored values are never displayed; type a new value to "
+                             "replace one.").classes("muted text-xs")
+                    header()
+                    self.container = ui.column().classes("w-full gap-2")
+            self.section.set_visibility(visible)
+        else:
+            self.container = ui.column().classes("w-full gap-2")
         self.render()
 
     def current(self) -> list[SecretField]:
@@ -214,22 +261,27 @@ class CredentialsPanel:
             return []
         data, _ = self._data()
         known = {item.key: item for item in self.current()}
-        wanted = [known[key] for key in keys if key in known] if "*" not in keys else list(known.values())
-        return [item.label + (f" ({self.hide[item.key]})" if isinstance(self.hide, dict) and self.hide.get(item.key) else "")
+        wanted = ([known[key] for key in keys if key in known] if "*" not in keys
+                  else [item for item in known.values() if not item.optional])
+        return [item.label + (f" ({self.hide[item.key]})" if isinstance(self.hide, dict) and self.hide.get(item.key)
+                              else f" (entered on {item.source})" if item.source else "")
                 for item in wanted if not self.is_set(data, item)]
 
     def render(self) -> None:
         self.container.clear()
         self.inputs = {}
         fields = [item for item in self.current() if item.key not in self.hide]
-        if not fields or not self.visible:
+        if not self.visible or (not fields and not self.section):
             return
         status = self.context.vault.status()
         data, error = self._data() if status["ready"] else ({}, "")
         missing = sum(not self.is_set(data, item) for item in fields)
         heading = f"{self.title} ({len(fields) - missing}/{len(fields)} stored in Ansible Vault)"
         with self.container:
-            if self.embedded:
+            if self.section:
+                self.section.set_text(heading)
+                frame = self.container
+            elif self.embedded:
                 frame = ui.column().classes("w-full gap-2")
                 with frame:
                     ui.label(heading).classes("font-medium")
@@ -246,11 +298,20 @@ class CredentialsPanel:
             if not Path(status["password_file"]).exists():
                 ui.button("Create vault password file", icon="key", on_click=self.create_password).props("outline dense")
                 return
+            if not fields:
+                return
             for item in fields:
                 stored = self.is_set(data, item)
+                if item.source:
+                    with ui.row().classes("w-full items-center gap-3 no-wrap"):
+                        ui.icon("check_circle" if stored else "error_outline", color="positive" if stored else "warning")
+                        ui.label(item.label).classes("font-medium")
+                        ui.label(("stored" if stored else "not set") + f", entered on {item.source}").classes(
+                            "muted text-sm")
+                    continue
                 with ui.row().classes("w-full items-start gap-3 no-wrap"):
-                    ui.icon("check_circle" if stored else "error_outline",
-                            color="positive" if stored else "warning").classes("mt-3")
+                    ui.icon("check_circle" if stored else "radio_button_unchecked" if item.optional else "error_outline",
+                            color="positive" if stored else "grey" if item.optional else "warning").classes("mt-3")
                     if item.multiline:
                         box = ui.textarea(item.label, placeholder="stored" if stored else "not set").props(
                             "outlined dense autogrow input-style=font-family:monospace").classes("grow")
@@ -259,7 +320,7 @@ class CredentialsPanel:
                             "flat dense hide-upload-btn label=Upload").style("width:120px")
                     else:
                         hint = f"at least {item.min_length} characters" if item.min_length else ""
-                        box = ui.input(item.label, placeholder="stored" if stored else "not set", password=True,
+                        box = ui.input(item.label, placeholder="stored" if stored else "optional" if item.optional else "not set", password=True,
                                        password_toggle_button=True).props(
                             f"outlined dense autocomplete=new-password hint='{hint}'" if hint else
                             "outlined dense autocomplete=new-password").classes("grow")
@@ -328,16 +389,21 @@ class Workbench:
     """Schema-validated YAML editor for the files a page owns under ``host_vars``."""
 
     def __init__(self, context: UiContext, files: tuple[FileSpec, ...],
-                 on_saved: Callable[[str, str], None] | None = None):
+                 on_saved: Callable[[str, str], None] | None = None, title: str = "Variables", upload_dir: str = "",
+                 expanded: bool = True):
         self.context = context
         self.specs = {spec.target: spec for spec in files if (context.repository / spec.example).is_file()}
         self.on_saved = on_saved
+        self.upload_dir = upload_dir.strip("/")
+        if self.upload_dir and self.specs:
+            for path in sorted((context.host_vars_dir / self.upload_dir).glob("*.yaml")):
+                self._add_upload(path.name)
         if not self.specs:
             self.editor = None
             return
         first = next(iter(self.specs))
         text, origin = self.load(first)
-        with collapsible("Variables", "data_object"):
+        with collapsible(title, "data_object", value=expanded):
             with ui.row().classes("toolbar"):
                 with ui.row().classes("items-center gap-3"):
                     self.selector = ui.select(self.options(), value=first,
@@ -350,6 +416,9 @@ class Workbench:
                     ui.button(icon="restart_alt", on_click=self.revert).props("flat round").tooltip(
                         "Replace the editor content with the repository example")
                     ui.button(icon="download", on_click=self.download).props("flat round").tooltip("Download YAML")
+                    if self.upload_dir:
+                        ui.button(icon="upload_file", on_click=self.upload_dialog).props("flat round").tooltip(
+                            "Upload your own YAML file; it is saved with this page's files and deployed with them")
                     if any(spec.optional for spec in self.specs.values()):
                         self.remove_button = ui.button(icon="delete", on_click=self.remove).props(
                             "flat round color=negative").tooltip("Remove the saved file so it is not deployed")
@@ -362,6 +431,56 @@ class Workbench:
 
     def path(self, target: str) -> Path:
         return self.context.host_vars_dir / target
+
+    def _add_upload(self, name: str) -> str:
+        target = f"{self.upload_dir}/{name}"
+        self.specs[target] = FileSpec("", target, label=f"uploads/{name}", optional=True, uploaded=True)
+        return target
+
+    def upload_dialog(self) -> None:
+        with ui.dialog() as dialog, ui.card().classes("dialog-surface").style("width:min(560px,94vw)"):
+            ui.label("Upload YAML files").classes("section-title")
+            ui.label(f"Each file is saved as <name>.ezai.yaml in {self.context.host_vars_dir / self.upload_dir} and "
+                     "deployed with this page's files (keys in several files are merged). A file with the same name "
+                     "is replaced.").classes("text-sm")
+
+            async def received(event) -> None:
+                await self.upload(event)
+
+            ui.upload(multiple=True, auto_upload=True, max_file_size=UPLOAD_MAX_BYTES, on_upload=received).props(
+                "accept=.yaml,.yml flat bordered label='Drop or choose .yaml files'").classes("w-full")
+            with ui.row().classes("w-full justify-end"):
+                ui.button("Done", on_click=dialog.close).props("flat")
+        dialog.open()
+
+    async def upload(self, event) -> None:
+        if hasattr(event, "file"):
+            name, content = event.file.name, await event.file.read()
+        else:
+            name, content = event.name, event.content.read()
+        try:
+            text = check_upload(content)
+        except ValueError as error:
+            ui.notify(f"{name}: {error}", type="negative")
+            return
+        file_name = upload_file_name(name)
+        target = f"{self.upload_dir}/{file_name}"
+        replaced = self.path(target).is_file()
+        await run.io_bound(write_text, self.path(target), text)
+        self._add_upload(file_name)
+        self.refresh_options()
+        _, issues = await run.io_bound(validate_yaml, text, self.context.schema_path)
+        if self.selector.value == target:
+            self.editor.set_value(text)
+            self.source.set_text(f"Saved: {self.path(target)}")
+        else:
+            self.selector.set_value(target)
+        show_problems(self.problems, issues, f"{file_name} has schema problems; fix them before running automation")
+        ui.notify(f"{'Replaced' if replaced else 'Uploaded'} {file_name}" +
+                  (f" with {len(issues)} schema problems" if issues else ""),
+                  type="warning" if issues else "positive")
+        if self.on_saved:
+            self.on_saved(target, text)
 
     def saved_paths(self) -> dict[str, Path]:
         return {target: self.path(target) for target in self.specs}
@@ -400,6 +519,11 @@ class Workbench:
         if not await dialog:
             return
         await run.io_bound(path.unlink, True)
+        if spec.uploaded:
+            del self.specs[target]
+            self.selector.set_options(self.options(), value=next(iter(self.specs)))
+            ui.notify(f"Removed uploaded file {path.name}", type="positive")
+            return
         text, origin = self.load(target)
         self.editor.set_value(text)
         self.source.set_text(origin)
@@ -412,6 +536,8 @@ class Workbench:
         saved = self.path(target)
         if saved.is_file():
             return saved.read_text(encoding="utf-8"), f"Saved: {saved}"
+        if spec.uploaded:
+            return "---\n", f"{saved} no longer exists; upload it again or remove it from the list"
         text = (self.context.repository / spec.example).read_text(encoding="utf-8")
         if spec.seed:
             try:
@@ -485,22 +611,42 @@ class Workbench:
             self.on_saved(self.selector.value, content)
         return not issues
 
+    def use_build(self, build: Callable[[], Awaitable[None]]) -> None:
+        """A page form that renders the YAML from its inputs: the seed button becomes Build from inputs and runs it
+        after the inventory pre-fill."""
+        self.build = build
+        if getattr(self, "seed_button", None) is not None:
+            self.seed_button.set_text("Build from inputs")
+            self.seed_button.props("icon=construction")
+            self.seed_button.tooltip("Regenerate the YAML from the answers above and the collected inventory data")
+
     async def reseed(self) -> None:
         spec = self.specs[self.selector.value]
-        if not spec.seed:
+        build = getattr(self, "build", None)
+        if not spec.seed and not build:
             ui.notify("This file has no inventory pre-fill", type="info")
             return
-        try:
-            text = await run.io_bound(seeds.apply_seed, spec.seed, await self.editor.get_value(), self.context.seed_context())
-        except Exception as error:
-            ui.notify(f"Cannot apply the inventory: {error}", type="negative")
+        if spec.seed:
+            try:
+                text = await run.io_bound(seeds.apply_seed, spec.seed, await self.editor.get_value(),
+                                          self.context.seed_context())
+            except Exception as error:
+                ui.notify(f"Cannot apply the inventory: {error}", type="negative")
+                return
+            self.editor.set_value(text)
+        if build:
+            await build()
+            self.source.set_text(f"Built from the inputs above (not saved yet): {self.path(spec.target)}")
+            ui.notify("YAML built from your answers. Review the changes, then Save.", type="info")
             return
-        self.editor.set_value(text)
         self.source.set_text(f"Refreshed from the initial inventory (not saved yet): {self.path(spec.target)}")
         ui.notify("Inventory values applied. Review the changes, then Save.", type="info")
 
     def revert(self) -> None:
         spec = self.specs[self.selector.value]
+        if spec.uploaded:
+            ui.notify("Uploaded files have no repository example; upload the file again to replace it", type="info")
+            return
         self.editor.set_value((self.context.repository / spec.example).read_text(encoding="utf-8"))
         self.source.set_text(f"Example {spec.example} (not saved yet)")
         self.problems.clear()
@@ -508,7 +654,7 @@ class Workbench:
     async def download(self) -> None:
         ui.download.content(await self.editor.get_value(), Path(self.selector.value).name)
 
-    async def ready(self) -> bool:
+    async def ready(self, require_saved: bool = True) -> bool:
         """Save the open file, then require every page file to exist and pass the schema.
 
         An unsaved optional file is only saved when it was edited, so a removed file is not recreated."""
@@ -522,7 +668,7 @@ class Workbench:
             return False
         problems = []
         saved = [target for target, path in self.saved_paths().items() if path.is_file()]
-        if not saved:
+        if not saved and require_saved:
             problems.append("Save at least one variable file first.")
         for target, path in self.saved_paths().items():
             if not path.is_file():
@@ -535,6 +681,36 @@ class Workbench:
         if problems:
             ui.notify("Saved variable files are incomplete or invalid", type="negative")
         return not problems
+
+
+class Workbenches:
+    """Several titled Variables sections on one page (for example X-Series and Standalone), used as one workbench."""
+
+    def __init__(self, context: UiContext, groups: tuple[tuple[str, tuple[FileSpec, ...]], ...],
+                 on_saved: Callable[[str, str], None] | None = None, upload_dirs: tuple[str, ...] = ()):
+        self.items = [Workbench(context, files, on_saved, title,
+                                upload_dirs[index] if index < len(upload_dirs) else "", expanded=False)
+                      for index, (title, files) in enumerate(groups)]
+        self.items = [item for item in self.items if item.specs]
+
+    @property
+    def specs(self) -> dict[str, FileSpec]:
+        return {key: spec for item in self.items for key, spec in item.specs.items()}
+
+    def saved_paths(self) -> dict[str, Path]:
+        return {key: path for item in self.items for key, path in item.saved_paths().items()}
+
+    def models(self) -> list[dict]:
+        return [model for item in self.items for model in item.models()]
+
+    async def ready(self) -> bool:
+        results = [await item.ready(require_saved=False) for item in self.items]
+        if not all(results):
+            return False
+        if not any(path.is_file() for path in self.saved_paths().values()):
+            ui.notify("Save at least one variable file first", type="negative")
+            return False
+        return True
 
 
 SUDO_ASKPASS = Path(__file__).resolve().parents[1] / "sudo_askpass.sh"
@@ -603,12 +779,20 @@ async def ask_sudo_password(title: str, message: str = "") -> str | None:
     return result
 
 
-def job_environment(context: UiContext, scratch: Path, extra: dict[str, str] | None = None) -> tuple[dict, list[str]]:
+def vault_section_for(page: str) -> str | None:
+    """The vault section whose values win shared names (such as local_user_password_1) for a page's runs."""
+    if page == "everpure":
+        return "everpure"
+    return "intersight" if page.startswith("intersight") else None
+
+
+def job_environment(context: UiContext, scratch: Path, extra: dict[str, str] | None = None,
+                    prefer: str | None = None) -> tuple[dict, list[str]]:
     env = dict(os.environ)
     redact: list[str] = []
     status = context.vault.status()
     if status["ready"] and status["exists"]:
-        values, redact = context.vault.environment(scratch)
+        values, redact = context.vault.environment(scratch, prefer)
         env.update(values)
         env["ANSIBLE_VAULT_PASSWORD_FILE"] = str(context.vault.password_file)
     env.update(PYTHONUNBUFFERED="1", ANSIBLE_NOCOLOR="1", ANSIBLE_FORCE_COLOR="0", ANSIBLE_HOST_KEY_CHECKING="False",
@@ -766,7 +950,8 @@ class JobConsole:
             extra = dict(action.env(run_context) if action.env else {})
             if sudo_password is not None:
                 extra.update(sudo_environment(sudo_password))
-            env, redact = await run.io_bound(job_environment, self.context, scratch, extra)
+            env, redact = await run.io_bound(job_environment, self.context, scratch, extra,
+                                              vault_section_for(self.page))
             if sudo_password:
                 redact = [*redact, sudo_password]
             job = self.context.jobs.start(self.page, action.label, commands, env, self.context.repository, redact,

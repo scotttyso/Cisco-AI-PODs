@@ -8,16 +8,16 @@ nexus_dashboard:
       type: "classicLan"
       licenseTier: "essentials"
       fabric_settings:
-        monitoredMode: true
+        monitoredMode: false
         inbandManagement: false
         softwareUpdateMode: false
-        performanceMonitoring: false
         snmpTrap: true
         coppPolicy: manual
       telemetry:
         telemetryCollection: false
         telemetryMode: outofband
-        performanceMonitoring: false
+        telemetryVrf: management
+        telemetrySourceInterface: mgmt0
         snmpTrap: true
       switches:
         - ip: "10.1.1.10"
@@ -49,15 +49,13 @@ nexus_dashboard:
         fabricMtu: 9216
         firstHopRedundancyProtocol: hsrp
         networkVlanRange: "2300-2999"
-        performanceMonitoring: true
         snmpTrap: true
         nxapi: true
       telemetry:
         telemetryCollection: true
-        telemetryMode: inband
-        telemetryVrf: default
-        telemetrySourceInterface: loopback0
-        performanceMonitoring: true
+        telemetryMode: outofband
+        telemetryVrf: management
+        telemetrySourceInterface: mgmt0
         snmpTrap: true
       switches:
         - ip: "10.2.1.10"
@@ -90,16 +88,14 @@ nexus_dashboard:
       licenseTier: "premier"
       fabric_settings:
         softwareUpdateMode: true
-        performanceMonitoring: true
         snmpTrap: true
         nxapi: true
         coppPolicy: strict
       telemetry:
         telemetryCollection: true
-        telemetryMode: inband
-        telemetryVrf: default
-        telemetrySourceInterface: loopback0
-        performanceMonitoring: true
+        telemetryMode: outofband
+        telemetryVrf: management
+        telemetrySourceInterface: mgmt0
         snmpTrap: true
       switches:
         - ip: "10.3.1.10"
@@ -146,17 +142,22 @@ nexus_dashboard:
         bgpAsn: 65002
         fabricMtu: 9216
         softwareUpdateMode: true
-        performanceMonitoring: true
         snmpTrap: true
         nxapi: true
         coppPolicy: strict
       telemetry:
         telemetryCollection: true
-        telemetryMode: inband
+        telemetryMode: outofband
         telemetryVrf: management
-        telemetrySourceInterface: loopback0
-        performanceMonitoring: true
+        telemetrySourceInterface: mgmt0
         snmpTrap: true
+      # Day-0 POAP: switches boot, pull a bootstrap config from Nexus Dashboard and wait to be
+      # claimed by serial number. External DHCP (e.g. the DHCP Bootstrap Kea service with
+      # option 66/67 pointing at Nexus Dashboard) is the default.
+      poap:
+        enabled: true
+        dhcp: external
+        gateway: 10.4.1.254/24
       switches:
         - ip: "10.4.1.10"
           hostname: "ai-evpn-leaf1"
@@ -166,6 +167,7 @@ nexus_dashboard:
           switchRole: "leaf"
           username: admin
           fabricLinkInterfaces: ["Ethernet1/1", "Ethernet1/2"]
+          hostInterfaces: ["Ethernet1/3", "Ethernet1/4"]
         - ip: "10.4.1.11"
           hostname: "ai-evpn-leaf2"
           model: "N9K-C93180YC-FX"

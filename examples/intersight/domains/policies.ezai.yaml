@@ -1,0 +1,162 @@
+---
+# =========================================================
+#   Policies -> Domain - Variables
+# =========================================================
+intersight:
+  configure:
+    default:
+      policies:
+        # =========================================================
+        #   Environment Policies for Chassis
+        # =========================================================
+        power:
+          - name: X9508
+            power_allocation: 8400
+            power_redundancy: Grid
+            target_platform: Chassis
+          - name: Server
+            power_restore: LastState
+            target_platform: FIAttached
+        thermal:
+          - fan_control_mode: Balanced
+            name: Balanced
+        # =========================================================
+        #   Policies for Port Settings
+        # =========================================================
+        ethernet_network_control:
+          - cdp_enable: true
+            lldp_enable_receive: true
+            lldp_enable_transmit: true
+            name: Both
+        # Only needed if doing Disjoint Layer 2 for the Domain
+        # ethernet_network_group:
+        #   - allowed_vlans: '100'
+        #     name: MachineNetwork
+        #     native_vlan: 100
+        #   - allowed_vlans: '101'
+        #     name: Storage
+        #     native_vlan: 101
+        flow_control:
+          - name: FlowCtrl
+        link_aggregation:
+          - lacp_rate: fast
+            name: LinkAgg
+        link_control:
+          - name: LinkCtrl
+        multicast:
+          - name: Multicast
+        port:
+          - device_model: UCSX-S9108-100G
+            names:
+              - A
+              - B
+            port_channel_ethernet_uplinks:
+              - flow_control_policy: FlowCtrl
+                interfaces:
+                  - port_id: 1
+                  - port_id: 2
+                  - port_id: 3
+                  - port_id: 4
+                link_aggregation_policy: LinkAgg
+                link_control_policy: LinkCtrl
+                pc_ids:
+                  - 1
+            target_platform: UCS Domain
+        vlan:
+          - name: Vlans
+            target_platform: UCS Domain
+            vlans:
+              - auto_allow_on_uplinks: true
+                multicast_policy: Multicast
+                name: vlan_
+                vlan_list: 101-102
+        # =========================================================
+        #   Policies for Switch and System
+        # =========================================================
+        switch_control:
+          - name: SwCtrl
+            target_platform: UCS Domain
+        system_qos:
+          - configure_recommended_classes: true
+            description: System QoS Policy
+            jumbo_mtu: true
+            name: QoS
+            priority_flow_control_watchdog_configuration:
+              shutdown_multiplier: 1
+              watchdog_enabled: true
+              watchdog_interval: 500
+            target_platform: UCS Domain
+        # =========================================================
+        #   Policies for Management
+        # =========================================================
+        imc_access:
+          - inband_ip_pool: Inband
+            inband_vlan_id: 100
+            name: KVMAccess
+            out_of_band_ip_pool: OoBand
+        network_connectivity:
+          - dns_servers_v4:
+              - 208.67.222.222
+              - 208.67.220.220
+            name: DNS
+        ntp:
+          - name: NTP
+            ntp_servers:
+              - 0.pool.ntp.org
+              - 1.pool.ntp.org
+            timezone: America/Detroit
+        # syslog:
+        #   - local_logging:
+        #       minimum_severity: warning
+        #     name: Syslog
+        #     remote_logging:
+        #       - hostname: 198.18.5.14
+        #         minimum_severity: warning
+        #       - hostname: 198.18.5.15
+        #         minimum_severity: warning
+        # snmp:
+        #   - name: SNMP
+        #     snmp_trap_destinations:
+        #       - destination_address: 198.18.1.161
+        #         user: snmpadmin
+        #     snmp_users:
+        #       - auth_password: 1
+        #         name: snmpadmin
+        #         privacy_password: 1
+        #         security_level: AuthPriv
+        # =========================================================
+        #   Policies for LDAP Authentication
+        # =========================================================
+        # certificate_management:
+        #   - assigned_sensitive_data: true
+        #     certificates:
+        #       - name: LDAPRootCA
+        #         type: RootCA
+        #         certificate_file: /home/certificates/LDAP-CA.crt
+        #     name: LDAP-Certificates
+        # ldap:
+        #   - base_settings:
+        #       domain: example.com
+        #     binding_parameters:
+        #       bind_dn: CN=Administrator,OU=Employees,DC=example,DC=com
+        #       bind_method: ConfiguredCredentials
+        #     description: EXAMPLE LDAP Policy
+        #     enable_group_authorization: false
+        #     ldap_groups:
+        #       - domain: example.com
+        #         end_point_role: admin
+        #         group_dn: CN=FI Admins,OU=Users,DC=example,DC=com
+        #         name: FI Admins
+        #     ldap_servers:
+        #       - port: 636
+        #         server: 198.18.6.36
+        #         vendor: MSAD
+        #       - port: 636
+        #         server: 198.18.6.37
+        #         vendor: MSAD
+        #     name: LDAP
+        #     search_parameters:
+        #       attribute: memberof
+        #       filter: sAMAccountName=$userid
+        #       group_attribute: memberOf
+        #     user_search_precedence: LocalUserDb

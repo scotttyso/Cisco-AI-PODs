@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   ansible-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       LINT_VER: 24.12.2
     steps:
@@ -43,7 +43,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - ansible-lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - run: >-
           python -c "assert '${{ needs.ansible-lint.result }}' == 'success'"

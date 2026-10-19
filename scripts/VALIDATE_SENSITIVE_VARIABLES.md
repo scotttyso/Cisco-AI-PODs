@@ -46,7 +46,6 @@ The validator currently maps detected variables to these schema keys:
 - `persistent_passphrase`
 - `private_key_passphrase`
 - `proxy_password`
-- `pure_api_token`
 - `redfish_password`
 - `root_password`
 - `snmp_community_string`
@@ -109,7 +108,7 @@ python3 scripts/validate_sensitive_variables.py --models model.json --verbose
 ### ✓ Comprehensive Coverage
 - Detects all currently supported sensitive prefixes across all roles
 - Handles path-aware detection (e.g., `binding_parameters.password` → `ldap_binding_password_*`)
-- Recognizes contextual field name mappings (e.g., `auth_password` in SNMP context → `snmp_auth_passphrase_*`)
+- Recognizes contextual field name mappings (e.g., `auth_password` in SNMP context → `snmp_user_auth_password_*`)
 
 ### ✓ Schema Validation
 - Validates against `minLength` / `maxLength` constraints

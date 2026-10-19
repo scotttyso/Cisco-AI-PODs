@@ -328,6 +328,15 @@ class system:
             notifications.section_end(self.category, self.type)
             return kwargs
         reconcile_resources = list({v.name: v for v in rdict}.values())
+        if self.type == 'resource_groups':
+            # The built-in `default` resource group already holds every target and its membership cannot be
+            # edited; listing targets under it only documents where they are.
+            if any(e.name == 'default' for e in reconcile_resources):
+                pcolor.Cyan("     * Skipping Resource Group `default`: built-in, contains all claimed targets.")
+            reconcile_resources = [e for e in reconcile_resources if e.name != 'default']
+            if not reconcile_resources:
+                notifications.section_end(self.category, self.type)
+                return kwargs
         # =====================================================================
         # Get Existing Resources
         # =====================================================================

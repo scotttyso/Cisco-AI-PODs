@@ -15,7 +15,7 @@ This role provides a unified interface for managing Nexus Dashboard fabrics thro
 
 ### Python
 
-Python 3.6+ with standard libraries (requests, etc.)
+Python 3.12+ with standard libraries (requests, etc.)
 
 ### Installation
 

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Share environment secrets through the deployments git repository.
 
-export  re-encrypt each environment's vault.yaml with the repository vault password into secrets.vault.yaml
-import  merge each secrets.vault.yaml back into the local vault.yaml (repository values win)
-remove  delete the secrets.vault.yaml copies (secrets are no longer stored in the repository)
+export  re-encrypt each environment's vault.yaml with the repository vault password into secrets.vault.yaml, and its
+        certificate private keys into certificate-keys.vault.yaml
+import  merge each secrets.vault.yaml back into the local vault.yaml (repository values win) and restore the
+        certificate private keys
+remove  delete those encrypted copies (secrets are no longer stored in the repository)
+
+export and remove also write certificates/.gitignore in each environment so private keys are never committed in PEM
+form.
 
 The repository vault password is read from the GIT_REPO_PASSWORD environment variable.
 """
@@ -17,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from aipod_webui.environments import (  # noqa: E402
-    REPO_PASSWORD_ENV, EnvironmentProblem, export_secrets, import_secrets, remove_exported,
+    REPO_PASSWORD_ENV, EnvironmentProblem, export_secrets, import_secrets, protect_private_keys, remove_exported,
 )
 from aipod_webui.vault import VaultError  # noqa: E402
 
@@ -29,6 +34,10 @@ def main() -> int:
     parser.add_argument("--password-file", type=Path, required=True, help="this server's automation vault password file")
     args = parser.parse_args()
     try:
+        if args.operation != "import":
+            keys = protect_private_keys(args.root)
+            if keys:
+                print(f"Kept {keys} certificate private keys out of git in PEM form (certificates/.gitignore)")
         if args.operation == "remove":
             removed = remove_exported(args.root)
             print("Secrets are not stored in the repository" + (f"; removed copies for {', '.join(removed)}" if removed else ""))

@@ -151,7 +151,7 @@ Day 2 operational playbooks located in `playbooks/` directory:
 
 ### Python Scripts
 
-- Python 3.6 or later
+- Python 3.12 or later
 - boto3 library:
   ```bash
   pip install boto3 botocore

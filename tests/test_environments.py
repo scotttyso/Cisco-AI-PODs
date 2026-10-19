@@ -12,7 +12,7 @@ sys.path.insert(0, str(REPOSITORY / "scripts"))
 from aipod_webui import custom_pages  # noqa: E402
 from aipod_webui.environments import (  # noqa: E402
     REPO_VAULT_NAME, EnvironmentManager, EnvironmentProblem, GitSettings, check_name, describe, export_secrets,
-    import_secrets, read_active, remove_exported, repository_visibility,
+    KEYS_VAULT_NAME, import_secrets, protect_private_keys, read_active, remove_exported, repository_visibility,
 )
 from aipod_webui.vault import TOP, VaultStore  # noqa: E402
 from aipod_webui.panels import UiContext  # noqa: E402
@@ -178,19 +178,126 @@ class RepositoryVaultTest(unittest.TestCase):
             self.assertFalse(shared.exists())
 
 
+    def test_certificate_private_keys_are_committed_only_encrypted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            local_pw = root / "local-pw"
+            local_pw.write_text("local-password-123\n")
+            local_pw.chmod(0o600)
+            production = root / "environments/Production"
+            key_text = "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n"
+            for relative in ("certificates/ocp1/api.key", "certificates/everpure/array01.pem"):
+                (production / relative).parent.mkdir(parents=True, exist_ok=True)
+                (production / relative).write_text(key_text)
+            (production / "certificates/everpure/array01.crt").write_text(
+                "-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n")
+            self.assertEqual(protect_private_keys(root), 2)
+            ignore = (production / "certificates/.gitignore").read_text()
+            self.assertIn("/everpure/array01.pem", ignore)
+            self.assertIn("/ocp1/api.key", ignore)
+            self.assertNotIn("array01.crt", ignore)
+            self.assertEqual(export_secrets(root, local_pw, "repo-password-789"),
+                             ["Production: 2 certificate private keys"])
+            bundle = production / KEYS_VAULT_NAME
+            self.assertTrue(bundle.read_text().startswith("$ANSIBLE_VAULT"))
+            self.assertNotIn("PRIVATE KEY", bundle.read_text())
+            (production / "certificates/ocp1/api.key").unlink()
+            self.assertIn("Production: 1 certificate private keys restored",
+                          import_secrets(root, local_pw, "repo-password-789"))
+            restored = production / "certificates/ocp1/api.key"
+            self.assertEqual(restored.read_text(), key_text)
+            self.assertEqual(restored.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(remove_exported(root), ["Production"])
+            self.assertFalse(bundle.exists())
+
+    def test_git_commit_never_stages_a_pem_private_key(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            production = root / "environments/Production/certificates/everpure"
+            production.mkdir(parents=True)
+            (production / "array01.pem").write_text("-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----\n")
+            (production / "array01.crt").write_text("-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n")
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            protect_private_keys(root)
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+            staged = subprocess.run(["git", "-C", str(root), "diff", "--cached", "--name-only"], capture_output=True,
+                                    text=True, check=True).stdout.split()
+            self.assertIn("environments/Production/certificates/everpure/array01.crt", staged)
+            self.assertNotIn("environments/Production/certificates/everpure/array01.pem", staged)
+
+
+@unittest.skipUnless(shutil.which("git"), "git is not installed")
+class GitopsPushTest(unittest.TestCase):
+    def run_push(self, directory: Path, url: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, str(REPOSITORY / "scripts/gitops_push.py"), "--directory", str(directory),
+                               "--url", url, "--branch", "main"], capture_output=True, text=True,
+                              env=dict(os.environ, gitops_git_token="secret-token-1"))
+
+    def test_push_creates_branch_then_keeps_remote_only_files(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            remote = root / "remote.git"
+            subprocess.run(["git", "init", "-q", "--bare", "--initial-branch", "main", str(remote)], check=True)
+            url = f"ssh://localhost{remote}"
+            work = root / "gitops"
+            (work / "apps/lldpd").mkdir(parents=True)
+            (work / "apps/lldpd/config.json").write_text("{}\n")
+            # A file:// remote is not an accepted URL; point git at the bare repository through insteadOf.
+            env_home = root / "home"
+            env_home.mkdir()
+            (env_home / ".gitconfig").write_text(f'[url "{remote}"]\n\tinsteadOf = {url}\n')
+            os.environ["HOME_BACKUP"] = os.environ.get("HOME", "")
+            os.environ["HOME"] = str(env_home)
+            try:
+                first = self.run_push(work, url)
+                self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+                self.assertNotIn("secret-token-1", first.stdout + first.stderr)
+                # Someone adds a file directly in the repository; the next push keeps it.
+                clone = root / "clone"
+                subprocess.run(["git", "clone", "-q", str(remote), str(clone)], check=True)
+                (clone / "README.md").write_text("team notes\n")
+                subprocess.run(["git", "-C", str(clone), "add", "README.md"], check=True)
+                subprocess.run(["git", "-C", str(clone), "-c", "user.name=t", "-c", "user.email=t@x", "commit", "-qm",
+                                "notes"], check=True)
+                subprocess.run(["git", "-C", str(clone), "push", "-q", "origin", "HEAD:main"], check=True)
+                (work / "apps/lldpd/config.json").write_text('{"deploymentWave": "-40"}\n')
+                second = self.run_push(work, url)
+                self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+                files = subprocess.run(["git", "--git-dir", str(remote), "ls-tree", "-r", "--name-only", "main"],
+                                       capture_output=True, text=True, check=True).stdout.split()
+                self.assertEqual(sorted(files), ["README.md", "apps/lldpd/config.json"])
+                content = subprocess.run(["git", "--git-dir", str(remote), "show", "main:apps/lldpd/config.json"],
+                                         capture_output=True, text=True, check=True).stdout
+                self.assertIn("-40", content)
+            finally:
+                os.environ["HOME"] = os.environ.pop("HOME_BACKUP")
+
+    def test_rejects_missing_content_and_bad_url(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.run_push(Path(folder), "https://example.com/r.git").returncode, 1)
+            self.assertEqual(self.run_push(Path(folder), "file:///tmp/x").returncode, 1)
+
+
 class IntersightScopeTest(unittest.TestCase):
     def test_scoped_copy_keeps_shared_files_only(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             source = root / "host_vars/intersight"
-            for relative in ("system.ezai.yaml", "domains/profiles.ezai.yaml", "servers/profiles.ezai.yaml"):
+            for relative in ("system.ezai.yaml", "domains/profiles.ezai.yaml", "domains/uploads/mine.ezai.yaml",
+                             "servers/profiles.ezai.yaml", "system/uploads/orgs.ezai.yaml"):
                 (source / relative).parent.mkdir(parents=True, exist_ok=True)
                 (source / relative).write_text("intersight: {}\n")
             target = root / "scoped"
             target.mkdir()
             deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "domains", target)
             found = sorted(path.relative_to(target).as_posix() for path in target.rglob("*.ezai.yaml"))
-            self.assertEqual(found, ["domains/profiles.ezai.yaml", "system.ezai.yaml"])
+            self.assertEqual(found, ["domains/profiles.ezai.yaml", "domains/uploads/mine.ezai.yaml", "system.ezai.yaml",
+                                     "system/uploads/orgs.ezai.yaml"])
+            system = root / "system-only"
+            system.mkdir()
+            deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "system", system)
+            self.assertEqual(sorted(path.relative_to(system).as_posix() for path in system.rglob("*.ezai.yaml")),
+                             ["system.ezai.yaml", "system/uploads/orgs.ezai.yaml"])
             command = deploy_ai_pod.command_for_role("intersight", root / "host_vars", True, target)
             self.assertEqual(command[command.index("--dir") + 1], str(target))
             empty = root / "empty"
@@ -198,6 +305,15 @@ class IntersightScopeTest(unittest.TestCase):
             (source / "servers/profiles.ezai.yaml").unlink()
             with self.assertRaises(deploy_ai_pod.DeploymentError):
                 deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "servers", empty)
+
+
+class VaultPrecedenceTest(unittest.TestCase):
+    def test_role_section_wins_shared_names(self):
+        sections = {"everpure": {"local_user_password_1": "pure", "everpure_api_token_1": "token"},
+                    "intersight": {"local_user_password_1": "ucs"}}
+        self.assertEqual(deploy_ai_pod.vault_environment(sections, "everpure")["local_user_password_1"], "pure")
+        self.assertEqual(deploy_ai_pod.vault_environment(sections, "intersight")["local_user_password_1"], "ucs")
+        self.assertEqual(deploy_ai_pod.vault_environment(sections)["everpure_api_token_1"], "token")
 
 
 class GiteaUrlTest(unittest.TestCase):

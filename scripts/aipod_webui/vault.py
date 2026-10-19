@@ -43,6 +43,10 @@ class SecretField:
     multiline: bool = False
     help: str = ""
     min_length: int = 0
+    # Not required by actions unless the saved YAML references it.
+    optional: bool = False
+    # Entered on another page (named here); this page only shows whether it is stored.
+    source: str = ""
 
 
 def tool(name: str) -> str | None:
@@ -153,17 +157,22 @@ class VaultStore:
                 Path(temporary).unlink(missing_ok=True)
             self._cache = None
 
-    def environment(self, scratch: Path | None = None) -> tuple[dict[str, str], list[str]]:
-        """Return (env vars, secret values to redact). PEM keys become 0600 files under ``scratch``."""
+    def environment(self, scratch: Path | None = None, prefer: str | None = None) -> tuple[dict[str, str], list[str]]:
+        """Return (env vars, secret values to redact). PEM keys become 0600 files under ``scratch``. ``prefer`` is
+        exported last so its values win names shared by sections (Everpure and Intersight local_user_password_N)."""
         data = self.load()
         env: dict[str, str] = {}
-        for section in SECTIONS:
+        for section in sorted(SECTIONS, key=lambda name: name == prefer):
             for name, value in (data.get(section) or {}).items():
                 if isinstance(name, str) and _scalar(value):
                     env[name] = _text(value)
         for name, value in data.items():
             if isinstance(name, str) and name.startswith("vault_") and _scalar(value):
                 env.setdefault(stage_env_name(name), _text(value))
+        # Intersight LDAP policies reuse the Shared services LDAP bind password unless one is stored for Intersight.
+        ldap_bind = (data.get("openshift") or {}).get("ldap_bind_password")
+        if _scalar(ldap_bind) and str(ldap_bind):
+            env.setdefault("ldap_binding_password_1", _text(ldap_bind))
         if scratch is not None:
             for name in PEM_ENV_KEYS & env.keys():
                 if env[name].lstrip().startswith("-----BEGIN"):
@@ -195,13 +204,14 @@ def sensitive_fields(model: dict) -> list[SecretField]:
     """Credential inputs for every integer secret reference found in a saved YAML model."""
     from validate_sensitive_variables import _SENSITIVE_VAR_PATTERNS, collect_required_sensitive_variables
 
-    section_of = _example_sections()
+    sections_of = _example_sections()
+    own = next((key for key in SECTIONS if key in model), "openshift")
     fields = []
     for name, (prefix, _) in sorted(collect_required_sensitive_variables(model).items()):
         label = _SENSITIVE_VAR_PATTERNS.get(prefix, (None, prefix.replace("_", " ").title()))[1]
-        section = section_of.get(prefix) or next((key for key in SECTIONS if key in model), "openshift")
-        multiline = prefix in ("ssh_public_key", "cert_mgmt_certificate", "cert_mgmt_private_key",
-                               "cert_mgmt_intermediate_certificate")
+        candidates = sections_of.get(prefix, ())
+        section = own if own in candidates or not candidates else candidates[0]
+        multiline = prefix == "ssh_public_key"
         number = name.rsplit('_', 1)[-1]
         fields.append(SecretField(name, f"{label} #{number} (vault key {name})", ((section, name),), multiline,
                                   f"The YAML only holds the reference number ({number}); the value itself is "
@@ -209,8 +219,9 @@ def sensitive_fields(model: dict) -> list[SecretField]:
     return fields
 
 
-def _example_sections() -> dict[str, str]:
-    """Map env-name prefixes to the vault section documented in examples/vault.example.yaml."""
+def _example_sections() -> dict[str, tuple[str, ...]]:
+    """Map env-name prefixes to the vault sections documented in examples/vault.example.yaml (some, such as
+    local_user_password, are listed under both everpure and intersight)."""
     example = Path(__file__).resolve().parents[2] / "examples/vault.example.yaml"
     mapping = {}
     try:
@@ -219,5 +230,7 @@ def _example_sections() -> dict[str, str]:
         return mapping
     for section, values in data.items():
         for name in (values or {}):
-            mapping[name.rsplit("_", 1)[0] if name[-1].isdigit() else name] = section
+            prefix = name.rsplit("_", 1)[0] if name[-1].isdigit() else name
+            if section not in mapping.setdefault(prefix, ()):
+                mapping[prefix] += (section,)
     return mapping

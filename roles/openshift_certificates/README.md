@@ -67,9 +67,24 @@ openssl req -newkey rsa:2048 -keyout api.key -out api.csr \
 **Ingress:**
 ```bash
 openssl req -newkey rsa:2048 -keyout ingress.key -out ingress.csr \
-  -subj "/CN=*.apps.<cluster>.<domain>/O=Org/C=US" \
-  -addext "subjectAltName=DNS:*.apps.<cluster>.<domain>"
+  -subj "/CN=apps.<cluster>.<domain>/O=Org/C=US" \
+  -addext "subjectAltName=DNS:apps.<cluster>.<domain>,DNS:*.apps.<cluster>.<domain>"
 ```
+
+The subject alternative names include the common name. With an openssl config file, the equivalent is:
+
+```ini
+# API
+[alt_names]
+DNS.1 = api.<cluster>.<domain>
+
+# Ingress
+[alt_names]
+DNS.1 = apps.<cluster>.<domain>
+DNS.2 = *.apps.<cluster>.<domain>
+```
+
+The WebUI Certificates page generates both CSRs with these names.
 
 ## Idempotency
 

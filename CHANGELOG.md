@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.1] - 2026-10-19
+
+### Added
+- WebUI: Intersight pages reworked (System organizations, UCS Domains and UCS Servers with pools and policies, collapsed X-Series and Standalone variables).
+- WebUI: Nexus Dashboard fabric POAP script and fabric seeding.
+- WebUI: certificate management uploads (servers and domains), and multi-value policy secrets (local user, SNMP auth/priv, LDAP binding, MACsec).
+- WebUI: YAML upload buttons for Network fabrics, Everpure, Intersight, System, HGX, OpenShift install/certificates/LDAP and Splunk Observability.
+- WebUI: Everpure certificate uploads with passphrases, SNMP community strings and users, and per-appliance key/CSR generation.
+- WebUI: OpenShift certificate CSRs include subject alternative names; ingress CN is `apps.<cluster>.<domain>`.
+- WebUI: certificate private keys are committed to the deployments repository only inside the encrypted `certificate-keys.vault.yaml`.
+- WebUI: push rendered OpenShift GitOps content to an external repository (`scripts/gitops_push.py`) and "Build from inputs".
+- Ubuntu 26.04 support for the automation appliance.
+
+### Changed
+- Python 3.12 or later is required (Python 3.9 support dropped).
+- Release workflow pinned to `ubuntu-24.04`.
+- Stage 01 documentation no longer links to lab logs and lab inventories.
+
 ## [0.1.0] - 2026-05-21
 
 ### Added

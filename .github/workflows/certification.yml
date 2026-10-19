@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build-import:
     name: Build and import collection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -43,11 +43,18 @@ jobs:
 
   sanity:
     name: Sanity (${{ matrix.ansible }}, Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        ansible: [stable-2.16]
-        python: ['3.9', '3.10', '3.11', '3.12']
+        include:
+          - ansible: stable-2.16
+            python: '3.12'
+          - ansible: stable-2.20
+            python: '3.12'
+          - ansible: stable-2.20
+            python: '3.13'
+          - ansible: stable-2.20
+            python: '3.14'
     steps:
       - name: Perform sanity testing
         uses: ansible-community/ansible-test-gh-action@d3a8ec7a59694e25e210fcd44738910149537f0e # v1.17.0

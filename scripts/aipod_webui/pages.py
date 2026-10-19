@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import dataclasses
 import hashlib
 import ipaddress
 import json
@@ -15,9 +16,10 @@ from typing import Callable
 import yaml
 from nicegui import run, ui
 
-from . import custom_pages, seeds, stage_inventory
+from . import custom_pages, intersight_policies, seeds, stage_inventory
 from .dhcp_model import build_dhcp_model, default_gateway, host_interfaces, suggest_network
-from .panels import (Action, CredentialsPanel, FileSpec, JobConsole, RunContext, UiContext, Workbench, collapsible,
+from .panels import (Action, CredentialsPanel, FileSpec, JobConsole, RunContext, UiContext, Workbench, Workbenches,
+                     collapsible,
                      model_secret_fields, secret, show_problems, write_text)
 from .vault import TOP, SecretField
 from .yaml_editor import YamlEditor, validate_yaml
@@ -41,6 +43,10 @@ LDAP_BIND = secret("ldap_bind_password", "LDAP bind password", ("openshift", "ld
 ISOVALENT_TOKEN = secret("isovalent_registry_token", "Isovalent registry identity token",
                          ("openshift", "isovalent_registry_token"),
                          help="Identity token from https://docs.isovalent.com/iep/latest/platform/registry.html")
+GITOPS_TOKEN = dataclasses.replace(
+    secret("gitops_git_token", "GitOps repository access token", ("openshift", "gitops_git_token"),
+           help="HTTPS token (for example a GitHub fine-grained token with Contents read/write) used by Push to "
+                "GitOps repository. Not needed for SSH remotes that use this server's SSH key."), optional=True)
 OCP_API = (secret("openshift_api_url", "OpenShift API URL (optional when a kubeconfig is set)",
                   ("openshift", "openshift_api_url")),
            secret("openshift_token_id", "OpenShift API token (optional when a kubeconfig is set)",
@@ -57,6 +63,8 @@ class PageSpec:
     stage: str = ""
     summary: str = ""
     files: tuple[FileSpec, ...] = ()
+    # Separate titled Variables sections; used instead of ``files``.
+    file_groups: tuple[tuple[str, tuple[FileSpec, ...]], ...] = ()
     actions: tuple[Action, ...] = ()
     secrets: Callable[["PageHandle"], list[SecretField]] | None = None
     form: Callable[["PageHandle"], None] | None = None
@@ -67,6 +75,11 @@ class PageSpec:
     inline_secrets: bool = False
     # Secret key -> where it is entered (another page or a form card); still checked before runs.
     hidden_secrets: dict[str, str] = field(default_factory=dict)
+    # Rendered inside the Passwords and secrets section, above the inputs (for example the Intersight policy choices).
+    secrets_header: Callable[["PageHandle"], None] | None = None
+    # Folders below host_vars where the user can upload extra YAML files: one per Variables section (file_groups),
+    # or one for ``files``. Empty entries disable uploads for that section.
+    upload_dirs: tuple[str, ...] = ()
 
     @property
     def full_title(self) -> str:
@@ -87,7 +100,7 @@ class PageHandle:
 
     context: UiContext
     spec: PageSpec
-    workbench: Workbench | None = None
+    workbench: Workbench | Workbenches | None = None
     credentials: CredentialsPanel | None = None
 
     def state(self, key: str = "") -> dict:
@@ -125,16 +138,49 @@ def phase2(tags: str) -> Callable[[RunContext], list[list[str]]]:
                                 "--tags", tags)]
 
 
+OCP_UPLOADS = {"ocp-cluster": "openshift/uploads/install", "ocp-certificates": "openshift/uploads/certificates",
+               "ocp-ldap": "openshift/uploads/ldap"}
+
+
 def apply_certificates(rc: RunContext) -> list[list[str]]:
     state = {**rc.ui.store.page_state("ocp-cluster"), **rc.ui.store.page_state("ocp-certificates")}
-    custom_pages.write_certificates_vars(rc.ui, state.get("cluster_name", ""),
-                                         state.get("base_dns_domain") or rc.ui.store.shared_services().get("domain_name", ""))
+    try:
+        custom_pages.write_certificates_vars(rc.ui, state.get("cluster_name", ""), state.get("base_dns_domain")
+                                             or rc.ui.store.shared_services().get("domain_name", ""))
+    except ValueError:
+        # An uploaded certificates YAML may point at certificates created outside this page.
+        if not any(key.startswith(OCP_UPLOADS["ocp-certificates"] + "/") for key in rc.files):
+            raise
     return phase2("certificates")(rc)
 
 
 def ocp_env(rc: RunContext) -> dict[str, str]:
     kubeconfig = rc.ui.store.page_state("ocp-cluster").get("kubeconfig", "")
     return {"KUBECONFIG": kubeconfig, "K8S_AUTH_KUBECONFIG": kubeconfig} if kubeconfig else {}
+
+
+OPERATORS_TARGET = "openshift/operators.ezai.yaml"
+
+
+def gitops_push(rc: RunContext) -> list[list[str]]:
+    """Commit openshift.destination_directory and push it to openshift.operators.openshift_gitops.gitops_repo_url."""
+    openshift = rc.model(OPERATORS_TARGET).get("openshift") or {}
+    directory = str(openshift.get("destination_directory") or "").strip()
+    url = str(((openshift.get("operators") or {}).get("openshift_gitops") or {}).get("gitops_repo_url") or "").strip()
+    if not (directory and url):
+        raise ValueError("Set destination_directory and openshift_gitops.gitops_repo_url, then Save")
+    state = rc.state.get("gitops_repository") or {}
+    command = script(rc, "scripts/gitops_push.py", "--directory", directory, "--url", url,
+                     "--branch", str(state.get("branch") or "main"))
+    for option, key in (("--author-name", "author_name"), ("--author-email", "author_email")):
+        if state.get(key):
+            command += [option, str(state[key])]
+    return [command]
+
+
+def gitops_env(rc: RunContext) -> dict[str, str]:
+    username = str((rc.state.get("gitops_repository") or {}).get("username") or "")
+    return {"AIPOD_GIT_USERNAME": username} if username else {}
 
 
 def write_devices(rc: RunContext, roles: tuple[str, ...], name: str) -> Path:
@@ -261,24 +307,64 @@ def nd_env(rc: RunContext) -> dict[str, str]:
     return {"ND_URL": url, "ND_USERNAME": username}
 
 
-def fabric_names(model: dict) -> list[str]:
-    fabrics = ((model or {}).get("nexus_dashboard") or {}).get("fabrics") or []
-    return [str(item["name"]) for item in fabrics if isinstance(item, dict) and item.get("name")]
+ND_FABRIC_SCRIPT = "scripts/nd_fabric.py"
 
 
-def nd_fabric(target: str, operation: str) -> Callable[[RunContext], list[list[str]]]:
+def merge_models(left: dict, right: dict) -> dict:
+    """Recursive merge like the deployment playbooks: mappings merge, anything else (lists too) is replaced."""
+    result = dict(left)
+    for key, value in right.items():
+        result[key] = (merge_models(result[key], value) if isinstance(result.get(key), dict) and isinstance(value, dict)
+                       else value)
+    return result
+
+
+def run_config(rc: RunContext, target: str, upload_dir: str) -> Path:
+    """The page file, or for scripts that read a single file, a run copy with the page's uploaded YAML merged in."""
+    main = rc.files[target]
+    uploads = [path for key, path in sorted(rc.files.items())
+               if key.startswith(f"{upload_dir}/") and key != target and path.is_file()]
+    if not uploads:
+        return main
+    merged: dict = {}
+    for path in (main, *uploads):
+        model = yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else {}
+        if not isinstance(model, dict):
+            raise ValueError(f"{path} is not a YAML mapping")
+        merged = merge_models(merged, model)
+    folder = rc.ui.output_dir / "merged"
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    output = folder / Path(target).name
+    output.write_text(yaml.safe_dump(merged, sort_keys=False), encoding="utf-8")
+    output.chmod(0o600)
+    return output
+
+
+def fabric_uploads(kind: str) -> str:
+    return f"nexus_dashboard/uploads/{kind}-fabric"
+
+
+def fabric_report(context: UiContext, kind: str) -> Path:
+    """Port discovery report written by ``nd_fabric.py ports`` and read by the fabric page port table."""
+    return context.output_dir / "reports" / f"{kind}-fabric-ports.json"
+
+
+def nd_fabric(target: str, command: str, kind: str = "") -> Callable[[RunContext], list[list[str]]]:
     def build(rc: RunContext) -> list[list[str]]:
-        base = playbook(rc, "playbooks/deploy_nexus_dashboard.yaml", "-e", f"action={operation}",
-                        "-e", f"vault_file={rc.ui.vault.vault_file}")
-        if operation in ("create_fabric", "add_devices"):
-            return [base + ["-e", f"config_file={rc.files[target]}"]]
-        if operation == "list_switches":
-            names = fabric_names(rc.model(target))
-            if not names:
-                raise ValueError(f"No fabrics are defined in {target}")
-            return [base + ["-e", f"fabric_name={name}"] for name in names]
-        return [base]
+        if command == "list":
+            return [script(rc, ND_FABRIC_SCRIPT, "list")]
+        extra = ["--report", str(fabric_report(rc.ui, kind))] if command == "ports" else []
+        config = run_config(rc, target, fabric_uploads(target.rsplit("/", 1)[-1].removesuffix("-fabric.ezai.yaml")))
+        return [script(rc, ND_FABRIC_SCRIPT, command, "--config", str(config), *extra)]
     return build
+
+
+OPENSHIFT_UPLOAD_NOTE = ("Use the upload button in Variables to add your own YAML files (listed as uploads/...). Every "
+                         "OpenShift action merges all host_vars/openshift files, uploads last, so an uploaded key "
+                         "overrides the page file.")
+UPLOAD_NOTE = ("Use the upload button in Variables to add your own YAML files (listed as uploads/...). They are merged "
+               "with this page's file when an action runs: mappings merge, and a list in an uploaded file replaces "
+               "the list of the same key.")
 
 
 def fabric_page(key: str, title: str, icon: str, stage: str, summary: str, kind: str, notes: tuple[str, ...] = (),
@@ -286,27 +372,48 @@ def fabric_page(key: str, title: str, icon: str, stage: str, summary: str, kind:
                 page_secrets: Callable[[PageHandle], list[SecretField]] | None = None) -> PageSpec:
     target = f"nexus_dashboard/{kind}-fabric.ezai.yaml"
     secrets = (ND_ADMIN.key,)
+    switch = secrets + (ND_SWITCH.key,)
     return PageSpec(
         key, title, icon, stage, summary,
         files=(FileSpec("examples/nexus_dashboard/fabrics.ezai.yaml", target, f"fabric_{kind}", f"{kind}-fabric.ezai.yaml"),),
         actions=(
             check_action(f"{kind}-switches", "Switch reachability", f"switch-{kind}"),
-            Action("create", "Create fabrics", "add_circle", nd_fabric(target, "create_fabric"), secrets=secrets, env=nd_env,
-                   confirm="Creates (or updates) the fabrics in this file on Nexus Dashboard."),
-            Action("devices", "Add switches", "dns", nd_fabric(target, "add_devices"), secrets=secrets + (ND_SWITCH.key,),
-                   env=nd_env, confirm="Discovers and adds the switches in this file to their fabrics. Switch "
-                                       "configuration may be overwritten when the fabric is deployed."),
-            Action("list", "List fabrics", "list", nd_fabric(target, "list_fabrics"), group="Post-check", secrets=secrets,
-                   env=nd_env, files=False),
-            Action("switches", "List fabric switches", "lan", nd_fabric(target, "list_switches"), group="Post-check",
-                   secrets=secrets, env=nd_env),
+            Action("create", "Create / update fabric", "add_circle", nd_fabric(target, "create"), secrets=secrets,
+                   env=nd_env, confirm="Creates the fabric on Nexus Dashboard (or updates its settings and telemetry) "
+                                       "and enables POAP when poap.enabled is true.",
+                   tooltip="Telemetry defaults to out-of-band over mgmt0 in the management VRF."),
+            Action("claim", "Claim POAP switches", "how_to_reg", nd_fabric(target, "claim"), secrets=switch, env=nd_env,
+                   confirm="Waits for every switch in this file to appear in the fabric's POAP list (power them on "
+                           "with no configuration), claims them by serial number with the hostname, management "
+                           "address, and admin password, waits until they join the fabric, then sets their roles.",
+                   tooltip="External DHCP: the DHCP Bootstrap scope needs option 66 = Nexus Dashboard and option 67 "
+                           "= poap_dcnm.py."),
+            Action("add", "Add configured switches", "dns", nd_fabric(target, "add"), secrets=switch, env=nd_env,
+                   confirm="Discovers switches that already have a management address and admin account (no POAP) "
+                           "and adds them to the fabric. Switch configuration may be overwritten when the fabric is "
+                           "deployed."),
+            Action("ports", "Discover ports", "settings_input_hdmi", nd_fabric(target, "ports", kind),
+                   secrets=(ND_SWITCH.key,),
+                   tooltip="SSH to each switch and list the interfaces with optics installed and their LLDP "
+                           "neighbors. Assign fabric / host roles in the Ports section afterwards."),
+            Action("apply-ports", "Apply port roles", "tune", nd_fabric(target, "apply-ports"), secrets=secrets,
+                   env=nd_env, confirm="Sets the host interfaces in this file to the host trunk policy (jumbo MTU) "
+                                       "on Nexus Dashboard. Run Deploy fabric afterwards."),
+            Action("deploy", "Deploy fabric", "rocket_launch", nd_fabric(target, "deploy"), secrets=secrets, env=nd_env,
+                   confirm="Recalculates the fabric and deploys the pending configuration to every switch."),
+            Action("status", "Fabric status", "lan", nd_fabric(target, "status"), group="Post-check", secrets=secrets,
+                   env=nd_env),
             *extra_actions,
         ),
         secrets=page_secrets or (lambda handle: [ND_ADMIN, ND_SWITCH]),
         hidden_secrets={ND_ADMIN.key: f"entered under {ND_ACCESS_PAGE}"},
-        notes=notes + ("Nexus Dashboard URL, username, and admin password come from Cluster Deployment. Switch "
-                       "hostnames, serial numbers, and management addresses come from the initial inventory rows with "
-                       "a switch role; use Refresh from inventory after changing the inventory.",),
+        form=custom_pages.fabric_form, upload_dirs=(fabric_uploads(kind),),
+        notes=notes + ("Nexus Dashboard URL, username, and admin password come from Cluster Deployment. The Switches "
+                       "section starts from the initial inventory rows with this fabric's switch role; add or remove "
+                       "switches there and the YAML switches list follows.",
+                       "Day-0 flow: Create / update fabric (enables POAP), power on the switches, Claim POAP "
+                       "switches, Discover ports, assign port roles, Apply port roles, Deploy fabric.",
+                       UPLOAD_NOTE),
         group="Nexus Dashboard",
     )
 
@@ -373,7 +480,7 @@ NETWORK_CHECK_ACTIONS = (
            secrets=("*",), inventory=True, files=False),
     Action("nd-validate", "Nexus Dashboard cluster health", "verified", nd_phase("validate"), group="Post-check",
            secrets=("*",), inventory=True, files=False),
-    Action("nd-fabrics", "Nexus Dashboard fabrics", "list", nd_fabric("", "list_fabrics"), group="Post-check",
+    Action("nd-fabrics", "Nexus Dashboard fabrics", "list", nd_fabric("", "list"), group="Post-check",
            secrets=(ND_ADMIN.key,), env=nd_env, files=False),
     check_action("post-all", "Device reachability", group="Post-check"),
 )
@@ -426,24 +533,49 @@ REGISTRATION_ACTIONS = (
            files=False, confirm="Sets each CIMC / BMC management interface to the static address in the Targets list. "
                                 "Connections to the old DHCP address drop."),
     Action("claim", "Claim into Intersight", "app_registration", claim, secrets=("*",), inventory=True, files=False,
-           confirm="Claims every target into the Intersight account, in its organization and resource group."),
+           confirm="Claims every target into the Intersight account, in the default organization and resource "
+                   "group. Use Intersight - System (Orgs) to move them."),
     check_action("registration-post", "Device reachability", *seeds.REGISTRATION_ROLES, group="Post-check"),
 )
 
 
 def intersight_secrets(handle: PageHandle) -> list[SecretField]:
-    return [INTERSIGHT_KEY_ID, INTERSIGHT_SECRET_KEY] + model_secrets(handle)
+    """API key, then values the saved YAML references (required), then the enabled policy secrets (form)."""
+    page = handle.spec.key
+    enabled = intersight_policies.counts(handle.state(), page)
+    referenced = [item for item in model_secrets(handle) if item.key != intersight_policies.LDAP_ALIAS]
+    uses_ldap = "ldap" in enabled or len(referenced) != len(model_secrets(handle))
+    return ([INTERSIGHT_KEY_ID, INTERSIGHT_SECRET_KEY] + referenced + intersight_policies.fields(handle.state(), page)
+            + ([LDAP_BIND] if uses_ldap else []))
+
+
+INTERSIGHT_HIDDEN = {LDAP_BIND.key: "Initial Inventory - Shared services - LDAP"}
+
+
+def everpure_secrets(handle: PageHandle) -> list[SecretField]:
+    """Values the saved YAML references (API tokens and any others), then the enabled policy secrets (form)."""
+    enabled = intersight_policies.counts(handle.state(), "everpure")
+    models = model_secrets(handle)
+    referenced = [item for item in models if item.key != intersight_policies.LDAP_ALIAS]
+    uses_ldap = "everpure_ldap" in enabled or len(referenced) != len(models)
+    return referenced + intersight_policies.fields(handle.state(), "everpure") + ([LDAP_BIND] if uses_ldap else [])
 
 
 def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
+    check = Action("check", "Validate (check mode)", "fact_check",
+                   deploy("intersight", "--intersight-scope", scope, "--check"), group="Pre-check", secrets=("*",))
+    if scope == "system":
+        return (check, Action("deploy", "Deploy to Intersight", "cloud_upload",
+                              deploy("intersight", "--intersight-scope", scope), secrets=("*",),
+                              confirm="Creates or updates the organizations and resource groups in "
+                                      "host_vars/intersight/system.ezai.yaml."))
     return (
-        Action("check", "Validate (check mode)", "fact_check", deploy("intersight", "--intersight-scope", scope, "--check"),
-               group="Pre-check", secrets=("*",)),
+        check,
         Action("deploy", "Deploy to Intersight", "cloud_upload", deploy("intersight", "--intersight-scope", scope),
                secrets=("*",),
                confirm=f"Creates or updates pools, policies, templates, and profiles from this page's {label} files "
-                       f"(host_vars/intersight/{scope}/) plus the shared host_vars/intersight/system.ezai.yaml, then "
-                       "deploys the profiles."),
+                       f"(host_vars/intersight/{scope}/) plus the organizations in host_vars/intersight/system.ezai.yaml, "
+                       "then deploys the profiles."),
         INTERSIGHT_MACS,
     )
 
@@ -470,13 +602,14 @@ def hgx_secrets(handle: PageHandle) -> list[SecretField]:
 
 
 HGX_VARS = "hgx/hgx.ezai.yaml"
+HGX_UPLOADS = "hgx/uploads"
 HGX_FILE = FileSpec("examples/hgx/hgx.ezai.yaml", HGX_VARS, "hgx", "hgx.ezai.yaml (BMC settings)")
 
 
 def hgx_bmc(apply: bool) -> Callable[[RunContext], list[list[str]]]:
     def build(rc: RunContext) -> list[list[str]]:
         return [script(rc, "06-workload-nodes-ucs/automation/scripts/configure_hgx_bmc.py",
-                       "--vars", str(rc.files[HGX_VARS]), *(["--apply"] if apply else []))]
+                       "--vars", str(run_config(rc, HGX_VARS, HGX_UPLOADS)), *(["--apply"] if apply else []))]
     return build
 
 
@@ -484,10 +617,6 @@ def intersight_file(path: str, seed: str = "", optional: bool = True, note: str 
     """``examples/intersight/<path>`` saved as ``host_vars/intersight/<path>``; the label is the path below the page folder."""
     label = path.split("/", 1)[1] + (f" ({note})" if note else "")
     return FileSpec(f"examples/intersight/{path}", f"intersight/{path}", seed, label, optional)
-
-
-SYSTEM_FILE = FileSpec("examples/intersight/system/system.ezai.yaml", "intersight/system.ezai.yaml", "",
-                       "system.ezai.yaml (organizations, shared by UCS Domains and UCS Servers)")
 
 
 # ---------------------------------------------------------------------------------------------------- OpenShift
@@ -522,6 +651,16 @@ def cluster_status(rc: RunContext) -> list[list[str]]:
     return [["bash", "-c", "oc get clusterversion && oc get nodes -o wide && oc get co"]]
 
 
+def linked(fields: list[SecretField], source: str) -> list[SecretField]:
+    return [dataclasses.replace(item, source=source) for item in fields]
+
+
+def ocp_cluster_secrets(handle: PageHandle) -> list[SecretField]:
+    """The install YAML's own secrets, plus the Intersight and BMC credentials entered on the Compute pages."""
+    return (model_secrets(handle) + linked(hgx_secrets(handle), "Compute - HGX Servers")
+            + linked(registration_secrets(handle), "Compute - Intersight - Claim Targets"))
+
+
 PHASE2_SECRETS = lambda handle: model_secrets(handle) + list(OCP_API)  # noqa: E731
 
 SECTIONS = (
@@ -550,8 +689,7 @@ SECTIONS = (
                     "GPU backend (east-west) NX-OS fabric managed by Nexus Dashboard.", "backend",
                     ("Run backend fabric workflow uses the stage 02 playbook with the inventory generated from this "
                      "environment: backend_settings and the switch username / passwordRef / fabricLinkInterfaces / "
-                     "breakoutCommands fields feed it. Create fabrics and Add switches use the generic Nexus "
-                     "Dashboard role instead.",),
+                     "breakoutCommands fields feed it. The other actions run scripts/nd_fabric.py.",),
                     extra_actions=BACKEND_ACTIONS, page_secrets=backend_secrets),
         fabric_page("frontend-fabric", "Frontend Fabric", "router", "03-frontend-fabric-nxos",
                     "Frontend (north-south) NX-OS fabric.", "frontend"),
@@ -570,7 +708,11 @@ SECTIONS = (
                                  group="Pre-check", secrets=("*",)),
                           Action("deploy", "Deploy storage", "cloud_upload", deploy("everpure"), secrets=("*",),
                                  confirm="Configures the FlashArrays / FlashBlades in the saved file.")),
-                 secrets=model_secrets),
+                 secrets=everpure_secrets, secrets_header=custom_pages.policy_secrets_selector,
+                 hidden_secrets=INTERSIGHT_HIDDEN, upload_dirs=("everpure/uploads",),
+                 form=custom_pages.everpure_certificates_form,
+                 notes=("Use the upload button in Variables to add your own YAML files (listed as uploads/...); they "
+                        "are merged with everpure.ezai.yaml when Validate or Deploy runs.",)),
     )),
     Section("compute", "Compute", "memory", (
         PageSpec("intersight-registration", "Claim Targets", "app_registration", "05-mgmt-nodes-ucs",
@@ -578,48 +720,69 @@ SECTIONS = (
                  "CIMC / BMC addresses from DHCP to static. Targets start from the initial inventory.",
                  actions=REGISTRATION_ACTIONS, secrets=registration_secrets, form=custom_pages.registration_form,
                  group="Intersight", inline_secrets=True),
+        PageSpec("intersight-system", "System (Orgs)", "account_tree", "06-workload-nodes-ucs",
+                 "Intersight organizations and resource groups. Claimed targets start in the default organization / "
+                 "resource group; move them to another resource group here and add organizations that share it.",
+                 files=(FileSpec("examples/intersight/system/system.ezai.yaml", "intersight/system.ezai.yaml", "system",
+                                 "system.ezai.yaml (organizations and resource groups)"),),
+                 actions=intersight_actions("system", "system"), secrets=lambda handle: [INTERSIGHT_KEY_ID,
+                                                                                        INTERSIGHT_SECRET_KEY],
+                 upload_dirs=("intersight/system/uploads",),
+                 notes=("The default resource group is built in and always holds every target; it is not changed. A "
+                        "target listed under another resource group is left out of the regenerated default list.",
+                        "UCS Domains and UCS Servers deploy with these organizations, so deploy this page first.",
+                        "Use the upload button in Variables to add your own YAML files (listed as uploads/...); they are "
+                        "deployed with system.ezai.yaml from this page, UCS Domains, and UCS Servers."),
+                 group="Intersight"),
         PageSpec("intersight-domains", "UCS Domains", "view_module", "06-workload-nodes-ucs",
                  "UCS domain and chassis policies, templates, and profiles for X-Direct and Fabric Interconnect "
                  "domains. Profile names come from the inventory hostnames. X-Series blade server profiles are on the "
                  "UCS Servers page.",
-                 files=(intersight_file("domains/profiles.ezai.yaml", "domain_profiles", False),
-                        SYSTEM_FILE,
+                 files=(intersight_file("domains/policies.ezai.yaml"),
+                        intersight_file("domains/pools.ezai.yaml", note="IP pools for the Chassis IMC Access policy"),
                         intersight_file("domains/templates.ezai.yaml"),
-                        intersight_file("domains/policies/domain.ezai.yaml"),
-                        intersight_file("domains/policies/management.ezai.yaml"),
-                        intersight_file("domains/policies/environment.ezai.yaml"),
-                        intersight_file("domains/policies/vsan.ezai.yaml", note="Fibre Channel only")),
+                        intersight_file("domains/profiles.ezai.yaml", "domain_profiles", False)),
                  actions=intersight_actions("domains", "domain"), secrets=intersight_secrets,
-                 notes=("Deploy and Validate use only this page's files plus the shared system file. Files marked "
-                        "\"optional, not deployed\" are left out until saved; use the delete button to remove a saved "
-                        "optional file.",), group="Intersight"),
+                 secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
+                 upload_dirs=("intersight/domains/uploads",),
+                 notes=("Deploy and Validate use only this page's files plus the organizations from Intersight - System "
+                        "(Orgs). policies.ezai.yaml holds every domain and chassis policy; remove the ones you do not "
+                        "need. Files marked \"optional, not deployed\" are left out until saved; use the delete button "
+                        "to remove a saved optional file.",
+                        "Use the upload button in Variables to add your own YAML files (listed as uploads/...); they "
+                        "are deployed with this page's files.",), group="Intersight"),
         PageSpec("intersight-servers", "UCS Servers", "dns", "06-workload-nodes-ucs",
-                 "Server pools, policies, templates, and profiles for X-Series blades (x-series/), standalone "
-                 "C-Series 2XX / 8XX (standalone/), and C885A. Profile names come from inventory hostnames.",
-                 files=(intersight_file("servers/x-series/profiles.ezai.yaml", "xseries_profiles"),
-                        intersight_file("servers/standalone/profiles.ezai.yaml", "server_profiles"),
-                        SYSTEM_FILE,
-                        intersight_file("servers/x-series/pools/pools.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/compute.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/ethernet.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/lan_connectivity.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/management.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/environment.ezai.yaml"),
-                        intersight_file("servers/x-series/policies/storage.ezai.yaml"),
-                        intersight_file("servers/x-series/templates.ezai.yaml"),
-                        intersight_file("servers/x-series/pools/fibre_channel_pools.ezai.yaml", note="Fibre Channel only"),
-                        intersight_file("servers/x-series/policies/fibre_channel.ezai.yaml", note="Fibre Channel only"),
-                        intersight_file("servers/x-series/policies/san_connectivity.ezai.yaml", note="Fibre Channel only"),
-                        intersight_file("servers/standalone/policies/compute.ezai.yaml"),
-                        intersight_file("servers/standalone/policies/management.ezai.yaml"),
-                        intersight_file("servers/standalone/policies/environment.ezai.yaml"),
-                        intersight_file("servers/standalone/templates.ezai.yaml"),
-                        intersight_file("servers/C885A/profiles.ezai.yaml"),
-                        intersight_file("servers/C885A/policies.ezai.yaml")),
+                 "Server pools, policies, templates, and profiles for X-Series blades and standalone C-Series 2XX / "
+                 "8XX servers. Profile names come from inventory hostnames.",
+                 file_groups=(
+                     ("X-Series variables", (
+                         intersight_file("servers/x-series/pools/pools.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/compute.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/ethernet.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/lan_connectivity.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/management.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/environment.ezai.yaml"),
+                         intersight_file("servers/x-series/policies/storage.ezai.yaml"),
+                         intersight_file("servers/x-series/pools/fibre_channel_pools.ezai.yaml", note="Fibre Channel only"),
+                         intersight_file("servers/x-series/policies/fibre_channel.ezai.yaml", note="Fibre Channel only"),
+                         intersight_file("servers/x-series/policies/san_connectivity.ezai.yaml", note="Fibre Channel only"),
+                         intersight_file("servers/x-series/templates.ezai.yaml"),
+                         intersight_file("servers/x-series/profiles.ezai.yaml", "xseries_profiles"))),
+                     ("Standalone variables", (
+                         intersight_file("servers/standalone/policies/compute.ezai.yaml"),
+                         intersight_file("servers/standalone/policies/management.ezai.yaml"),
+                         intersight_file("servers/standalone/policies/environment.ezai.yaml"),
+                         intersight_file("servers/standalone/templates.ezai.yaml"),
+                         intersight_file("servers/standalone/profiles.ezai.yaml", "server_profiles")))),
                  actions=intersight_actions("servers", "server"), secrets=intersight_secrets,
-                 notes=("Deploy and Validate use only this page's files plus the shared system file. Save only the "
-                        "server types you deploy; files marked \"optional, not deployed\" are left out, and the delete "
-                        "button removes a saved optional file.",), group="Intersight"),
+                 secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
+                 upload_dirs=("intersight/servers/x-series/uploads", "intersight/servers/standalone/uploads"),
+                 notes=("Deploy and Validate use only this page's files plus the organizations from Intersight - System "
+                        "(Orgs). Pools are X-Series only. Save only the server types you deploy; files marked "
+                        "\"optional, not deployed\" are left out, and the delete button removes a saved optional "
+                        "file.",
+                        "Use the upload button in each Variables section to add your own YAML files (listed as "
+                        "uploads/...); they are deployed with this page's files.",), group="Intersight"),
         PageSpec("hgx-nodes", "HGX Servers", "developer_board", "06-workload-nodes-ucs",
                  "C845A / C880A HGX nodes managed through the BMC Redfish API (not Intersight). Collected MACs pre-fill "
                  "the OpenShift node inventory and the NVIDIA Network Operator rules. The variables set the BMC "
@@ -640,10 +803,10 @@ SECTIONS = (
                                  secrets=("*",), inventory=True, files=False),
                           Action("static-preview", "Static address plan", "preview", static_ip(False), group="Post-check",
                                  secrets=("*",), inventory=True, files=False)),
-                 secrets=hgx_secrets, form=custom_pages.macs_summary,
+                 secrets=hgx_secrets, form=custom_pages.macs_summary, upload_dirs=(HGX_UPLOADS,),
                  notes=("The HGX BMC password is entered here (C880A nodes cannot be claimed in Intersight). Hosts "
                         "and their addresses come from the HGX rows on Claim Targets; a target with overridden "
-                        "credentials there gets its own password field below.",)),
+                        "credentials there gets its own password field below.", UPLOAD_NOTE)),
     )),
     Section("kubernetes", "Kubernetes", "cloud", (
         PageSpec("ocp-console", "Console Registration", "key", "07-openshift-cluster",
@@ -670,25 +833,33 @@ SECTIONS = (
                           Action("status", "Cluster status", "monitor_heart", cluster_status, group="Post-check",
                                  env=ocp_env, files=False),
                           INTERSIGHT_MACS, REDFISH_MACS),
-                 secrets=lambda handle: model_secrets(handle) + [INTERSIGHT_KEY_ID, INTERSIGHT_SECRET_KEY]
-                 + hgx_secrets(handle),
-                 form=custom_pages.ocp_cluster_form, on_save=save_cluster_state, group="OpenShift"),
+                 secrets=ocp_cluster_secrets, form=custom_pages.ocp_cluster_form, on_save=save_cluster_state,
+                 upload_dirs=(OCP_UPLOADS["ocp-cluster"],), notes=(OPENSHIFT_UPLOAD_NOTE,), group="OpenShift"),
         PageSpec("ocp-certificates", "Certificates", "verified_user", "07-openshift-cluster",
                  "API and *.apps ingress certificates: generate keys and CSRs, upload the signed chains, then apply.",
                  actions=(Action("apply", "Apply certificates", "verified_user", apply_certificates,
                                  secrets=("*",), env=ocp_env, files=False,
                                  confirm="Replaces the API and ingress certificates. The API server restarts."),),
-                 secrets=lambda handle: list(OCP_API), form=custom_pages.certificates_form, group="OpenShift"),
+                 files=(FileSpec("examples/openshift/certificates.ezai.yaml", custom_pages.CERTIFICATES_VARS,
+                                 label="certificates.ezai.yaml (written from the generated keys and signed chains)",
+                                 optional=True),),
+                 upload_dirs=(OCP_UPLOADS["ocp-certificates"],),
+                 secrets=lambda handle: list(OCP_API), form=custom_pages.certificates_form,
+                 notes=("certificates.ezai.yaml is rewritten from the files above once the keys, signed chains, and CA "
+                        "bundle all exist. To use certificates created elsewhere, upload a YAML file with "
+                        "openshift.certificates (absolute paths on this server) instead.", OPENSHIFT_UPLOAD_NOTE),
+                 group="OpenShift"),
         PageSpec("ocp-ldap", "LDAP", "groups", "07-openshift-cluster",
                  "LDAP identity provider and group sync.",
                  files=(FileSpec("examples/openshift/ldap.ezai.yaml", "openshift/ldap.ezai.yaml", "ocp_ldap"),),
                  actions=(Action("apply", "Configure LDAP", "groups", phase2("auth"), secrets=("*",), env=ocp_env),),
                  secrets=lambda handle: [LDAP_BIND] + PHASE2_SECRETS(handle),
+                 upload_dirs=(OCP_UPLOADS["ocp-ldap"],),
                  notes=("The URL, base DNs, and bind DN pre-fill from Initial Inventory > Shared services > LDAP. Set the "
-                        "cluster admin groups and group mappings here.",), group="OpenShift"),
+                        "cluster admin groups and group mappings here.", OPENSHIFT_UPLOAD_NOTE), group="OpenShift"),
         PageSpec("ocp-gitops", "OpenShift GitOps", "account_tree", "08-mlops",
                  "OpenShift GitOps (Argo CD) operators: Cilium, NVIDIA AI Enterprise, and more.",
-                 files=(FileSpec("examples/openshift/operators.ezai.yaml", "openshift/operators.ezai.yaml",
+                 files=(FileSpec("examples/openshift/operators.ezai.yaml", OPERATORS_TARGET,
                                  "ocp_operators"),),
                  actions=(Action("isovalent-check", "Check Isovalent registry", "verified",
                                  iserver_setup("isovalent-check"), group="Pre-check", files=False),
@@ -696,10 +867,15 @@ SECTIONS = (
                                  group="Tools", secrets=(ISOVALENT_TOKEN.key,), files=False),
                           Action("gitops", "Deploy GitOps", "account_tree", phase2("gitea,argocd,gitops"),
                                  secrets=("*",), env=ocp_env,
-                                 confirm="Installs Gitea (when enabled) and OpenShift GitOps, renders the operator "
-                                         "applications, and pushes them to the GitOps repository."),
+                                 confirm="Installs Gitea (when enabled) and OpenShift GitOps, and renders the "
+                                         "operator applications into destination_directory. Then use Push to GitOps "
+                                         "repository."),
+                          Action("gitops-push", "Push to GitOps repository", "cloud_upload", gitops_push,
+                                 env=gitops_env,
+                                 confirm="Commits the rendered operator applications in destination_directory and "
+                                         "pushes them to the GitOps repository URL."),
                           INTERSIGHT_MACS, REDFISH_MACS),
-                 secrets=lambda handle: PHASE2_SECRETS(handle) + [ISOVALENT_TOKEN],
+                 secrets=lambda handle: PHASE2_SECRETS(handle) + [ISOVALENT_TOKEN, GITOPS_TOKEN],
                  form=custom_pages.gitops_form, group="OpenShift"),
     )),
     Section("observability", "Splunk Observability", "query_stats", (
@@ -712,7 +888,9 @@ SECTIONS = (
                                  group="Pre-check", secrets=("*",), env=ocp_env),
                           Action("deploy", "Deploy collector", "cloud_upload", deploy("observability"), secrets=("*",),
                                  env=ocp_env)),
-                 secrets=model_secrets),
+                 secrets=model_secrets, upload_dirs=("splunk_observability/uploads",),
+                 notes=("Use the upload button in Variables to add your own YAML files (listed as uploads/...); they "
+                        "are merged after splunk.ezai.yaml, so an uploaded key overrides it.",)),
     )),
 )
 
@@ -765,13 +943,17 @@ def stage_page(context: UiContext, spec: PageSpec) -> PageHandle:
     if spec.secrets:
         with ui.column().classes("w-full mt-5"):
             handle.credentials = CredentialsPanel(context, lambda: spec.secrets(handle), visible=not spec.inline_secrets,
-                                                  hide=spec.hidden_secrets)
-    if spec.files:
+                                                  hide=spec.hidden_secrets,
+                                                  header=(lambda: spec.secrets_header(handle)) if spec.secrets_header
+                                                  else None)
+    if spec.files or spec.file_groups:
         def saved(target: str, content: str) -> None:
             if spec.on_save:
                 spec.on_save(handle, target, content)
             handle.refresh_credentials()
-        handle.workbench = Workbench(context, spec.files, saved)
+        handle.workbench = (Workbenches(context, spec.file_groups, saved, spec.upload_dirs) if spec.file_groups
+                            else Workbench(context, spec.files, saved,
+                                           upload_dir=spec.upload_dirs[0] if spec.upload_dirs else ""))
         # Secrets found in the saved YAML are only known once the workbench exists.
         handle.refresh_credentials()
     if spec.form:
@@ -881,8 +1063,13 @@ def dhcp_page(context: UiContext) -> None:
             pool_start = ui.input("Dynamic pool start (optional)", value=saved.get("pool_start", "")).props("outlined dense").classes("w-full")
             pool_end = ui.input("Dynamic pool end (optional)", value=saved.get("pool_end", "")).props("outlined dense").classes("w-full")
             lease = ui.number("Lease time (seconds)", value=saved.get("lease_time", 3600), min=300, precision=0).props("outlined dense").classes("w-full")
-            tftp = ui.input("POAP / TFTP server (optional)", value=saved.get("tftp_server", "")).props("outlined dense").classes("w-full")
-            bootfile = ui.input("Boot file (optional)", value=saved.get("bootfile", "")).props("outlined dense").classes("w-full")
+            tftp = ui.input("POAP / TFTP server (optional)", value=saved.get("tftp_server", ""),
+                            placeholder="Nexus Dashboard address (switch POAP)").props("outlined dense").classes("w-full")
+            bootfile = ui.input("Boot file (optional)", value=saved.get("bootfile", ""),
+                                placeholder="poap_dcnm.py").props("outlined dense").classes("w-full")
+            ui.label("Switch POAP with Nexus Dashboard: option 66 is the Nexus Dashboard data / management address "
+                     "and option 67 is poap_dcnm.py. Enable POAP on the fabric (Create / update fabric) first.").classes(
+                "muted text-xs")
             deny_unknown = ui.switch("Only serve inventory devices", value=saved.get("deny_unknown_clients", True))
         with ui.row().classes("w-full justify-end gap-2"):
             ui.button("Fill from inventory", icon="auto_fix_high", on_click=lambda: fill()).props("outline").tooltip(

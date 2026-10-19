@@ -29,7 +29,7 @@ A Kubernetes Job runs as a non-root, capability-dropped container
 - `oc` CLI logged in to the target cluster (`oc login` / `oc whoami`).
 - A namespace you can create Jobs, BuildConfigs, and ImageStreams in.
 - At least one schedulable node with `nvidia.com/gpu` allocatable.
-- Python 3.9+ on the machine running `setup.py` (only used to shell out to
+- Python 3.12+ on the machine running `setup.py` (only used to shell out to
   `oc`; no extra Python packages required).
 
 ## Directory layout

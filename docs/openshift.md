@@ -222,6 +222,8 @@ Generate content for GitOps repositories (Helm charts and OLM catalogs for clust
    git add . && git commit -m "Generated OpenShift operators" && git push
    ```
 
+**Web UI:** on the **OpenShift GitOps** page, **Build from inputs** turns the Operators, NVIDIA AI Enterprise and OpenShift GitOps answers into the YAML. It also adds node MAC addresses from the inventory. When Gitea is not used, the **GitOps repository** section sets the working copy (`destination_directory`, default `<output>/gitops-repo`), branch and Git user. **Push to GitOps repository** commits the generated files and pushes them to `gitops_repo_url`. Files that exist only in the remote are kept, so operators you remove are not deleted from the repository. For HTTPS repositories, store the access token as `openshift.gitops_git_token` in the vault. Keep the repository private.
+
 For detailed instructions, see [roles/openshift_gitops/README.md](../roles/openshift_gitops/README.md).
 
 ---

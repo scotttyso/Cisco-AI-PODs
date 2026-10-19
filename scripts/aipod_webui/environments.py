@@ -9,6 +9,10 @@ Layout of the deployments repository::
                                             vault password. Never committed.
     <root>/environments/<name>/secrets.vault.yaml   optional copy of those secrets re-encrypted with the repository
                                             vault password chosen on the Git panel; committed only when enabled.
+    <root>/environments/<name>/certificates/   generated / uploaded certificates. Private keys are never committed in
+                                            PEM form (certificates/.gitignore lists them); with secrets enabled they
+                                            are committed encrypted in certificate-keys.vault.yaml.
+    <root>/environments/<name>/gitops-repo/  working copy of the OpenShift GitOps repository (not committed)
     <root>/environments/<name>/...          generated inventories, DHCP render, collected MACs
 
 Run history stays outside the repository under ``<app dir>/jobs/<name>``.
@@ -39,6 +43,9 @@ DEFAULT_ENVIRONMENT = "default"
 VAULT_NAME = "vault.yaml"
 REPO_VAULT_NAME = "secrets.vault.yaml"
 REPO_PASSWORD_ENV = "GIT_REPO_PASSWORD"
+KEYS_VAULT_NAME = "certificate-keys.vault.yaml"
+KEY_MAX_BYTES = 1024 * 1024
+PRIVATE_KEY_PATTERN = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")
 GIT_TOKEN = SecretField("vault_git_token", "Git access token (GitHub personal access token)",
                         ((TOP, "vault_git_token"),),
                         help="Used only for HTTPS push / pull. Stored in a local vault that is never committed.")
@@ -58,6 +65,7 @@ vault.yaml
 *id_ed25519*
 kubeconfig*
 **/auth/
+gitops-repo/
 *.part
 .*.tmp
 __pycache__/
@@ -227,7 +235,9 @@ class EnvironmentManager:
             self.ensure_repository()
             # Older repositories committed vault.yaml; untrack it so only the repository-password copy is shared.
             # A clean tree is not an error: report it instead of failing the job.
+            # Files now ignored (for example a private key saved as .pem) are untracked before staging.
             script = ("git rm -r -q --cached --ignore-unmatch -- ':(glob)environments/*/vault.yaml' && "
+                      "git ls-files -ci --exclude-standard -z | xargs -0 -r git rm -q --cached -- && "
                       'git add -A && git status --short && if git diff --cached --quiet; then echo "Nothing to commit"; '
                       'else git commit -m "$AIPOD_COMMIT_MESSAGE"; fi')
             commit = ["env", f"AIPOD_COMMIT_MESSAGE={message or 'Update deployment environments'}",
@@ -284,47 +294,110 @@ def _environment_dirs(root: Path) -> list[Path]:
     return sorted(path for path in folder.iterdir() if path.is_dir()) if folder.is_dir() else []
 
 
+def private_key_files(folder: Path) -> list[Path]:
+    """PEM private keys under an environment's certificates folder, whatever their file name."""
+    base = Path(folder) / "certificates"
+    found = []
+    for path in sorted(base.rglob("*")) if base.is_dir() else []:
+        if not path.is_file() or path.name == ".gitignore" or path.stat().st_size > KEY_MAX_BYTES:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if PRIVATE_KEY_PATTERN.search(text):
+            found.append(path)
+    return found
+
+
+def protect_private_keys(root: Path) -> int:
+    """Write certificates/.gitignore in each environment so no private key is committed in PEM form."""
+    total = 0
+    for folder in _environment_dirs(root):
+        base = folder / "certificates"
+        keys = private_key_files(folder)
+        ignore = base / ".gitignore"
+        if keys:
+            lines = sorted("/" + path.relative_to(base).as_posix() for path in keys)
+            ignore.write_text("# Managed by the Cisco AI PODs UI: private keys are committed only encrypted, in "
+                              f"../{KEYS_VAULT_NAME}.\n" + "\n".join(lines) + "\n", encoding="utf-8")
+        elif ignore.is_file():
+            ignore.unlink()
+        total += len(keys)
+    return total
+
+
 def export_secrets(root: Path, password_file: Path, repo_password: str) -> list[str]:
-    """Re-encrypt each environment's vault.yaml with the repository password into secrets.vault.yaml."""
+    """Re-encrypt each environment's vault.yaml with the repository password into secrets.vault.yaml, and its
+    certificate private keys into certificate-keys.vault.yaml."""
     if len(repo_password or "") < 12:
         raise EnvironmentProblem("Store a repository vault password (at least 12 characters) first")
     report = []
     with _PasswordFile(repo_password) as repo_file:
         for folder in _environment_dirs(root):
             local, target = folder / VAULT_NAME, folder / REPO_VAULT_NAME
-            if not local.is_file():
-                target.unlink(missing_ok=True)
-                continue
-            data = VaultStore(local, password_file).load()
             target.unlink(missing_ok=True)
-            VaultStore(target, repo_file).update(_flatten(data))
-            report.append(f"{folder.name}: {len(_flatten(data))} secrets")
+            if local.is_file():
+                data = VaultStore(local, password_file).load()
+                VaultStore(target, repo_file).update(_flatten(data))
+                report.append(f"{folder.name}: {len(_flatten(data))} secrets")
+            keys, keys_target = private_key_files(folder), folder / KEYS_VAULT_NAME
+            keys_target.unlink(missing_ok=True)
+            if keys:
+                VaultStore(keys_target, repo_file).update(
+                    {(TOP, path.relative_to(folder).as_posix()): path.read_text(encoding="utf-8") for path in keys})
+                report.append(f"{folder.name}: {len(keys)} certificate private keys")
     return report
 
 
 def remove_exported(root: Path) -> list[str]:
     removed = []
     for folder in _environment_dirs(root):
-        if (folder / REPO_VAULT_NAME).is_file():
-            (folder / REPO_VAULT_NAME).unlink()
+        found = False
+        for name in (REPO_VAULT_NAME, KEYS_VAULT_NAME):
+            if (folder / name).is_file():
+                (folder / name).unlink()
+                found = True
+        if found:
             removed.append(folder.name)
     return removed
 
 
+def _restore_keys(folder: Path, keys: dict) -> int:
+    restored = 0
+    base = (folder / "certificates").resolve()
+    for relative, text in keys.items():
+        path = (folder / str(relative)).resolve()
+        if not isinstance(text, str) or not path.is_relative_to(base) or not PRIVATE_KEY_PATTERN.search(text):
+            continue
+        if path.is_file() and path.read_text(encoding="utf-8") == text:
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
+        os.chmod(path, 0o600)
+        restored += 1
+    return restored
+
+
 def import_secrets(root: Path, password_file: Path, repo_password: str) -> list[str]:
-    """Merge each environment's secrets.vault.yaml into its local vault.yaml; repository values win."""
+    """Merge each environment's secrets.vault.yaml into its local vault.yaml (repository values win) and restore its
+    certificate private keys from certificate-keys.vault.yaml."""
     if len(repo_password or "") < 12:
         raise EnvironmentProblem("Store the repository vault password (at least 12 characters) first")
     report = []
     with _PasswordFile(repo_password) as repo_file:
         for folder in _environment_dirs(root):
             source = folder / REPO_VAULT_NAME
-            if not source.is_file():
-                continue
-            changes = _flatten(VaultStore(source, repo_file).load())
-            if changes:
-                VaultStore(folder / VAULT_NAME, password_file).update(changes)
-            report.append(f"{folder.name}: {len(changes)} secrets")
+            if source.is_file():
+                changes = _flatten(VaultStore(source, repo_file).load())
+                if changes:
+                    VaultStore(folder / VAULT_NAME, password_file).update(changes)
+                report.append(f"{folder.name}: {len(changes)} secrets")
+            if (folder / KEYS_VAULT_NAME).is_file():
+                keys = VaultStore(folder / KEYS_VAULT_NAME, repo_file).load()
+                report.append(f"{folder.name}: {_restore_keys(folder, keys)} certificate private keys restored")
     return report
 
 

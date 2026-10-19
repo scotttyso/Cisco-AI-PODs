@@ -10,7 +10,7 @@
       "ExistingKey": "{{ sensitive_vars['drive_security_current_security_key_passphrase_' ~ item.manual_key.current_security_key_passphrase] }}",
 {% endif %}
       "ObjectType": "storage.ManualKeySetting",
-      "NewKey": "{{ sensitive_vars[drive_security_new_security_key_passphrase_ ~ item.manual_key.new_security_key_passphrase] }}"
+      "NewKey": "{{ sensitive_vars['drive_security_new_security_key_passphrase_' ~ item.manual_key.new_security_key_passphrase] }}"
     },
 {% else %}
     "ManualKey": null,

@@ -9,7 +9,9 @@ ISERVER_OUTPUT_DEFAULT="assisted-installer"
 
 VENV_DIR="${VENV_DIR:-$VENV_DIR_DEFAULT}"
 ISERVER_OUTPUT="${ISERVER_OUTPUT:-$ISERVER_OUTPUT_DEFAULT}"
-PYTHON_BIN="${PYTHON_BIN:-python3.12}"
+# Empty means auto-detect: python3 when it is 3.12+ (Ubuntu 24.04/26.04,
+# EL 10), otherwise python3.12 (EL 9).
+PYTHON_BIN="${PYTHON_BIN:-}"
 GIT_USER_NAME="${GIT_USER_NAME:-}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 SKIP_APT="${SKIP_APT:-0}"
@@ -43,7 +45,7 @@ Options:
 
 Environment variable equivalents:
   GIT_USER_NAME, GIT_USER_EMAIL, VENV_DIR, ISERVER_OUTPUT, BIN_DIR,
-    PYTHON_BIN=python3.12, SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1,
+    PYTHON_BIN=python3.14, SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1,
     SKIP_CLI_TOOLS=1, OCP_CLIENT_CHANNEL=stable-4.21, VIRTCTL_VERSION=v1.7.4
 
 Optional GitHub authentication (to avoid rate limiting):
@@ -152,7 +154,8 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
         if command -v apt >/dev/null 2>&1; then
             log "Installing Git, Python, and tmux system packages with apt"
             sudo apt update
-            sudo apt install -y git python3.12 python3.12-venv tmux
+            # python3 is 3.12 on Ubuntu 24.04 and 3.14 on Ubuntu 26.04.
+            sudo apt install -y git python3 python3-venv tmux
         elif command -v dnf >/dev/null 2>&1; then
             log "Installing Git, Python, and tmux system packages with dnf"
             sudo dnf install -y git python3.12 python3.12-pip tmux
@@ -169,6 +172,13 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
     log "Validating Git, tmux, and Python availability"
     command -v git >/dev/null 2>&1 || die "git is not installed or not in PATH"
     command -v tmux >/dev/null 2>&1 || die "tmux is not installed or not in PATH"
+    if [[ -z "$PYTHON_BIN" ]]; then
+        if command -v python3 >/dev/null 2>&1 && python3 -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
+            PYTHON_BIN=python3
+        else
+            PYTHON_BIN=python3.12
+        fi
+    fi
     command -v "$PYTHON_BIN" >/dev/null 2>&1 || die "${PYTHON_BIN} is required for the pinned Ansible tooling; install Python 3.12 or set PYTHON_BIN to a compatible interpreter"
     "$PYTHON_BIN" -c 'import sys; sys.exit(sys.version_info < (3, 12))' || die "${PYTHON_BIN} must be Python 3.12 or newer for the pinned Ansible tooling"
 

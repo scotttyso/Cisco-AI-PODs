@@ -250,12 +250,91 @@ def seed_nd_cluster(data: CommentedMap, ctx: SeedContext) -> None:
     cluster["nodes"] = nodes
 
 
-FABRIC_TYPES = {"backend": ("aiVxlanEvpn", "aiRouted"), "frontend": ("vxlanEbgp", "vxlanIbgp"), "mgmt": ("classicLan",)}
+FABRIC_TYPES = {"backend": ("aiVxlanEvpn", "aiRouted"), "frontend": ("aiVxlanEvpn", "vxlanEbgp", "vxlanIbgp"),
+                "mgmt": ("classicLan",)}
+EXAMPLE_FABRIC_NAMES = ("production-classic", "production-vxlan", "ai-routed-fabric", "ai-vxlan-evpn")
+FABRIC_PAGES = {kind: f"{kind}-fabric" for kind in FABRIC_TYPES}
+SWITCH_FIELDS = ("hostname", "ip", "model", "serialNumber", "switchRole", "softwareVersion")
+PORT_ROLES = {"fabric": "fabricLinkInterfaces", "host": "hostInterfaces"}
+OOB_TELEMETRY = (("telemetryMode", "outofband"), ("telemetryVrf", "management"), ("telemetrySourceInterface", "mgmt0"))
+
+
+def inventory_switches(rows: list[dict], kind: str) -> list[dict]:
+    """Default switch list for a fabric page: the initial inventory rows with this fabric's switch role."""
+    role = next(role for role, name in SWITCH_ROLES.items() if name == kind)
+    return [{"id": host_key(row["hostname"]), "hostname": row["hostname"], "ip": row.get("ip", ""),
+             "model": row.get("pid", ""), "serialNumber": row.get("serial_number", ""),
+             "switchRole": _switch_role(row["hostname"], kind) or "", "softwareVersion": "", "source": "inventory"}
+            for row in by_role(rows, role)]
+
+
+def fabric_switches(rows: list[dict], state: dict, kind: str) -> list[dict]:
+    """The page's edited switch list when it has one, else the inventory switches."""
+    saved = state.get("switches")
+    return [dict(item) for item in saved if isinstance(item, dict)] if isinstance(saved, list) else inventory_switches(rows, kind)
+
+
+def port_rows(report: dict, switches: list[dict], assigned: dict, current: dict | None = None) -> list[dict]:
+    """Rows for the fabric page port table from an ``nd_fabric.py ports`` report.
+
+    The role is the saved assignment, else the interface list it is in within the YAML (``current``: hostname ->
+    switch), else a guess: an LLDP neighbor that is one of the fabric's switches means a fabric link, any other
+    neighbor a host port, no neighbor unused."""
+    names = {str(item.get("hostname", "")).lower().split(".")[0] for item in switches if item.get("hostname")}
+    current = current or {}
+    rows = []
+    for hostname, entry in sorted((report.get("switches") or {}).items()):
+        saved = assigned.get(host_key(hostname)) or {}
+        yaml_switch = current.get(hostname) or {}
+        for port in sorted(entry.get("ports") or [], key=lambda item: _interface_key(item.get("name", ""))):
+            name = port.get("name", "")
+            role = saved.get(name)
+            if role is None:
+                role = next((role for role, field_name in PORT_ROLES.items()
+                             if name in (yaml_switch.get(field_name) or [])), None)
+            if role is None:
+                neighbor = str(port.get("neighbor", "")).lower().split(".")[0]
+                role = "fabric" if neighbor in names else "host" if neighbor else "unused"
+            rows.append({"id": f"{hostname}|{name}", "switch": hostname, "name": name,
+                         "transceiver": port.get("transceiver", ""), "state": port.get("state", ""),
+                         "speed": port.get("speed", ""),
+                         "neighbor": " ".join(filter(None, (port.get("neighbor", ""), port.get("neighbor_port", "")))),
+                         "role": role})
+    return rows
+
+
+def port_assignments(rows: list[dict]) -> dict:
+    """``state["ports"]`` from the port table rows: {host_key(hostname): {interface: role}}."""
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        result.setdefault(host_key(row["switch"]), {})[row["name"]] = row["role"]
+    return result
+
+
+def _interface_key(name: str) -> tuple:
+    return tuple(int(part) if part.isdigit() else part for part in re.split(r"(\d+)", str(name)))
+
+
+def _poap_gateway(ctx: SeedContext, addresses: list[str]) -> str:
+    dhcp = ctx.state.get("dhcp") or {}
+    routers = dhcp.get("routers") or []
+    try:
+        network = ipaddress.ip_network(str(dhcp.get("network") or ""), strict=False)
+    except ValueError:
+        return ""
+    if routers and any(_inside(address, network) for address in addresses):
+        return f"{routers[0]}/{network.prefixlen}"
+    return ""
+
+
+def _inside(address: str, network) -> bool:
+    try:
+        return ipaddress.ip_address(str(address)) in network
+    except ValueError:
+        return False
 
 
 def seed_fabric(kind: str):
-    role = next(role for role, name in SWITCH_ROLES.items() if name == kind)
-
     def seeder(data: CommentedMap, ctx: SeedContext) -> None:
         root = ensure(data, "nexus_dashboard")
         fabrics = root.get("fabrics") if isinstance(root.get("fabrics"), CommentedSeq) else CommentedSeq()
@@ -263,16 +342,53 @@ def seed_fabric(kind: str):
         matching = sorted((fabric for fabric in fabrics if isinstance(fabric, dict) and fabric.get("type") in types),
                           key=lambda fabric: types.index(fabric["type"]))
         fabric = matching[0] if matching else cmap(name=f"aipod-{kind}", type=types[0])
-        rows = by_role(ctx.rows, role)
-        if rows:
-            switches = [cmap(ip=row.get("ip", ""), hostname=row["hostname"], model=row.get("pid", ""),
-                             serialNumber=row.get("serial_number", ""),
-                             softwareVersion=_existing_version(fabric, row["hostname"]),
-                             switchRole=_switch_role(row["hostname"], kind)) for row in rows]
+        if fabric.get("name") in EXAMPLE_FABRIC_NAMES:
+            fabric["name"] = f"aipod-{kind}"
+        if kind != "backend":
+            fabric.pop("backend_settings", None)
+        telemetry = fabric.get("telemetry") if isinstance(fabric.get("telemetry"), CommentedMap) else None
+        if telemetry is None:
+            fabric["telemetry"] = telemetry = cmap(telemetryCollection=True)
+        if telemetry.get("telemetryMode", "outofband") == "outofband":
+            for key, value in OOB_TELEMETRY:
+                telemetry.setdefault(key, value)
+        telemetry.pop("performanceMonitoring", None)
+        if isinstance(fabric.get("fabric_settings"), CommentedMap):
+            fabric["fabric_settings"].pop("performanceMonitoring", None)
+
+        state = ctx.state.get(FABRIC_PAGES[kind]) or {}
+        listed = fabric_switches(ctx.rows, state, kind)
+        if listed or isinstance(state.get("switches"), list):
+            switches = []
+            for item in listed:
+                if not item.get("hostname"):
+                    continue
+                version = item.get("softwareVersion") or _existing_version(fabric, item["hostname"])
+                switches.append(cmap(ip=item.get("ip", ""), hostname=item["hostname"], model=item.get("model", ""),
+                                     serialNumber=item.get("serialNumber", ""), softwareVersion=version or None,
+                                     switchRole=item.get("switchRole") or None))
             fabric["switches"] = merge_list(fabric.get("switches"), switches, "hostname")
             for switch in fabric["switches"]:
-                if not switch.get("switchRole"):
-                    switch.pop("switchRole", None)
+                for name in ("switchRole", "softwareVersion"):
+                    if not switch.get(name):
+                        switch.pop(name, None)
+        ports = state.get("ports") or {}
+        for switch in fabric.get("switches") or []:
+            assigned = ports.get(host_key(switch.get("hostname", ""))) if isinstance(switch, dict) else None
+            if not isinstance(assigned, dict):
+                continue
+            for role, field_name in PORT_ROLES.items():
+                names = sorted((name for name, value in assigned.items() if value == role), key=_interface_key)
+                if names:
+                    switch[field_name] = seq(names)
+                else:
+                    switch.pop(field_name, None)
+
+        poap = fabric.get("poap") if isinstance(fabric.get("poap"), CommentedMap) else None
+        if poap is None:
+            fabric["poap"] = poap = cmap(enabled=True, dhcp="external")
+        set_if(poap, "gateway", _poap_gateway(ctx, [switch.get("ip", "") for switch in fabric.get("switches") or []
+                                                    if isinstance(switch, dict)]))
         root["fabrics"] = seq([fabric])
 
     return seeder
@@ -315,6 +431,46 @@ def _domains(ctx: SeedContext) -> dict[str, list[str]]:
     for row in by_role(ctx.rows, "fabric-interconnect", "x-direct"):
         domains.setdefault(domain_name(row["hostname"]), []).append(row.get("serial_number", ""))
     return domains
+
+
+def seed_system(data: CommentedMap, ctx: SeedContext) -> None:
+    """Organizations and resource groups: every claimed target starts in the default resource group.
+
+    A target already listed under another resource group stays there, so moved targets survive a refresh."""
+    from .stage_inventory import registration_hosts
+
+    hosts = registration_hosts(ctx.rows, ctx.state.get("intersight-registration", {})).values()
+    claimed = list(dict.fromkeys(item["ucs"]["claim_target"] for item in hosts
+                                 if item["ucs"].get("intersight_claim_supported")))
+    if not claimed:
+        return
+    system = ensure(data, "intersight", "system")
+    organizations = system.get("organizations")
+    if not isinstance(organizations, list):
+        organizations = system["organizations"] = CommentedSeq()
+    default_org = next((item for item in organizations if isinstance(item, dict) and item.get("name") == "default"), None)
+    if default_org is None:
+        default_org = cmap(name="default")
+        organizations.insert(0, default_org)
+    groups = default_org.get("resource_groups")
+    if not isinstance(groups, list):
+        default_org["resource_groups"] = groups = CommentedSeq()
+    if "default" not in groups:
+        groups.insert(0, "default")
+    resource_groups = system.get("resource_groups")
+    if not isinstance(resource_groups, list):
+        resource_groups = system["resource_groups"] = CommentedSeq()
+    default_rg = next((item for item in resource_groups if isinstance(item, dict) and item.get("name") == "default"), None)
+    if default_rg is None:
+        default_rg = cmap(name="default")
+        resource_groups.insert(0, default_rg)
+    moved = {str(target) for item in resource_groups if isinstance(item, dict) and item is not default_rg
+             for target in ((item.get("resources") or {}).get("targets") or [])}
+    targets = [name for name in claimed if name not in moved]
+    if targets:
+        ensure(default_rg, "resources")["targets"] = seq(targets)
+    else:
+        default_rg.pop("resources", None)
 
 
 def seed_domain_profiles(data: CommentedMap, ctx: SeedContext) -> None:
@@ -599,6 +755,7 @@ SEEDERS = {
     "fabric_backend": seed_fabric("backend"),
     "fabric_frontend": seed_fabric("frontend"),
     "fabric_mgmt": seed_fabric("mgmt"),
+    "system": seed_system,
     "domain_profiles": seed_domain_profiles,
     "xseries_profiles": seed_xseries_profiles,
     "server_profiles": seed_server_profiles,
