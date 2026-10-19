@@ -112,7 +112,7 @@ REDFISH_ROLES = ("ucs-server", "hgx-node")
 TARGET_ROLES = DOMAIN_ROLES + REDFISH_ROLES
 FI_PASSWORD_REF = "UCS_FI_PASSWORD"
 CIMC_PASSWORD_REF = "UCS_CIMC_PASSWORD"
-# HGX nodes (C845A / C880A) have their own BMC password: the C880A cannot be claimed, so it is entered on the HGX page.
+# HGX nodes (C880A / C885A) use a separate BMC workflow and password, entered on the HGX page.
 HGX_PASSWORD_REF = "HGX_BMC_PASSWORD"
 DEFAULT_ORGANIZATION = {"organization": "default", "resource_group": "default"}
 FACTORY_PASSWORD_MIN = 12

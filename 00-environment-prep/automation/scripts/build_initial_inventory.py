@@ -125,25 +125,39 @@ def build_inventory_document(inventory: list[dict[str, str]], shared_services: d
     normalized = []
     macs = set()
     addresses = set()
+    hostnames = set()
     for position, row in enumerate(inventory, start=1):
         entry = {key: str(row.get(key, "")).strip() for key in ("hostname", "ip", "mac", "pid", "serial_number")}
-        if any(not value for value in entry.values()):
+        pool_ip = row.get("pool_ip", False)
+        if not isinstance(pool_ip, bool):
+            raise ValueError(f"Row {position}: Pool IP must be a boolean")
+        if pool_ip:
+            entry["ip"] = ""
+            entry["pool_ip"] = True
+        if any(not entry[key] for key in ("hostname", "mac", "pid", "serial_number")) or (
+                not pool_ip and not entry["ip"]):
             raise ValueError(f"Row {position}: all inventory fields are required")
         if len(entry["hostname"]) > 253 or not all(
             re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
             for label in entry["hostname"].split(".")):
             raise ValueError(f"Row {position}: invalid hostname")
         try:
-            entry["ip"] = str(ipaddress.ip_address(entry["ip"]))
+            if not pool_ip:
+                entry["ip"] = str(ipaddress.ip_address(entry["ip"]))
             entry["mac"] = normalize_mac(entry["mac"])
         except ValueError as error:
             raise ValueError(f"Row {position}: invalid IP or MAC address") from error
         if entry["mac"] in macs:
             raise ValueError(f"Row {position}: duplicate MAC address")
-        if entry["ip"] in addresses:
-            raise ValueError(f"Row {position}: duplicate IP address")
+        if not pool_ip and entry["ip"] in addresses:
+            raise ValueError(f"Row {position} ({entry['hostname']}): duplicate IP address {entry['ip']}")
+        hostname = entry["hostname"].lower()
+        if hostname != "unknown" and hostname in hostnames:
+            raise ValueError(f"Row {position}: duplicate hostname {entry['hostname']}")
+        hostnames.add(hostname)
         macs.add(entry["mac"])
-        addresses.add(entry["ip"])
+        if not pool_ip:
+            addresses.add(entry["ip"])
         role = str(row.get("role") or "").strip()
         if role:
             entry["role"] = role

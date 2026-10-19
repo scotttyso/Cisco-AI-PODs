@@ -298,6 +298,9 @@ class WorkspaceStore:
             entry = {key: str(row.get(key, "")) for key in keys}
             if row.get("role"):
                 entry["role"] = str(row["role"])
+            if row.get("pool_ip") is True:
+                entry["pool_ip"] = True
+                entry["ip"] = ""
             saved.append(entry)
         with SETTINGS_LOCK:
             write_json(self.inventory_path, saved)

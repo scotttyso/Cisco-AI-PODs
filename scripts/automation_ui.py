@@ -377,7 +377,52 @@ def new_inventory_row(rows: list[dict]) -> dict:
     used_ips = {row.get("ip", "") for row in rows}
     address = next((f"198.18.0.{position}" for position in range(1, 255)
                     if f"198.18.0.{position}" not in used_ips), "")
-    return dict(id=uuid4().hex, hostname="unknown", ip=address, mac="", pid="", serial_number="")
+    return dict(id=uuid4().hex, hostname="unknown", ip=address, mac="", pid="", serial_number="", pool_ip=False)
+
+
+def bulk_inventory_rows(rows: list[dict], selected_ids: list[str], hostname: str = "",
+                        ip: str = "", role: str = "", pool_ip: bool | None = None) -> list[dict]:
+    """Build an atomic update for checked rows, in the supplied display order."""
+    hostname, ip, role = hostname.strip(), ip.strip(), role.strip()
+    if not selected_ids:
+        raise ValueError("Check at least one inventory row")
+    if not (hostname or ip or role or pool_ip is not None):
+        raise ValueError("Enter a starting hostname, starting IP address, Role, or Pool IP setting")
+    if pool_ip is True and ip:
+        raise ValueError("Leave the starting IP blank when applying Pool IP")
+    if role and role not in seeds.ROLES:
+        raise ValueError("Choose a valid Role")
+    by_id = {row["id"]: dict(row) for row in rows}
+    if len(set(selected_ids)) != len(selected_ids) or any(key not in by_id for key in selected_ids):
+        raise ValueError("Inventory selection changed; select the rows again")
+    host_label, separator, domain = hostname.partition(".")
+    hostname_match = re.fullmatch(r"(.*?)([0-9]+)([^0-9]*)", host_label) if hostname else None
+    if hostname and not hostname_match and len(selected_ids) > 1:
+        raise ValueError("For multiple rows, include a number in the starting hostname, for example node01")
+    address = ipaddress.ip_address(ip) if ip else None
+    ip_index = 0
+    for index, key in enumerate(selected_ids):
+        row = by_id[key]
+        if hostname:
+            value = hostname
+            if hostname_match:
+                prefix, number, suffix = hostname_match.groups()
+                value = f"{prefix}{int(number) + index:0{len(number)}d}{suffix}{separator}{domain}"
+            if len(value) > 253 or any(
+                    not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+                    for label in value.split(".")):
+                raise ValueError(f"Invalid hostname: {value}")
+            row["hostname"] = value
+        if pool_ip is not None:
+            row["pool_ip"] = pool_ip
+        if row.get("pool_ip"):
+            row["ip"] = ""
+        elif address is not None:
+            row["ip"] = str(address + ip_index)
+            ip_index += 1
+        if role:
+            row["role"] = role
+    return [by_id[row["id"]] for row in rows]
 
 
 class ArrayInput:
@@ -597,7 +642,8 @@ def workspace_page():
     app.storage.user["environment"] = environment
     context = replace(ENVIRONMENTS.context(environment), media_url=media_url())
     STORE, VAULT = context.store, context.vault
-    state = {"rows": [dict(row, id=uuid4().hex, role=seeds.row_role(row)) for row in STORE.inventory()], "files": set()}
+    state = {"rows": [dict(row, id=uuid4().hex, role=seeds.row_role(row), pool_ip=row.get("pool_ip", False))
+                      for row in STORE.inventory()], "files": set()}
     settings_now = STORE.shared_services()
     detected_now, rejected_defaults = STORE.detected()
     section_of = {page.key: section.key for section in pages.SECTIONS for page in section.pages}
@@ -699,7 +745,8 @@ def workspace_page():
             for row in imported:
                 if row["mac"] in known_macs:
                     continue
-                row["ip"] = next(available_ips, None)
+                row["pool_ip"] = seeds.row_role(row) == "ucs-blade"
+                row["ip"] = "" if row["pool_ip"] else next(available_ips, None)
                 if row["ip"] is None:
                     raise ValueError("The default 198.18.0.X pool is exhausted")
                 row["id"] = uuid4().hex
@@ -724,6 +771,28 @@ def workspace_page():
         state["rows"] = [row for row in state["rows"] if row["id"] not in ids]
         update_grid()
         errors.clear()
+
+    async def bulk_apply():
+        await current_rows()
+        selected = await grid.get_selected_rows()
+        selected_ids = {row["id"] for row in selected}
+        displayed = await grid.get_client_data(timeout=5, method="filtered_sorted")
+        ordered_ids = [row["id"] for row in displayed if row["id"] in selected_ids]
+        try:
+            if len(ordered_ids) != len(selected_ids):
+                raise ValueError("Clear inventory filters before applying to checked rows hidden by a filter")
+            updated = bulk_inventory_rows(state["rows"], ordered_ids, bulk_hostname.value or "",
+                                          bulk_ip.value or "", bulk_role.value or "",
+                                          {"keep": None, "pool": True, "manual": False}[bulk_pool.value])
+        except ValueError as error:
+            ui.notify(str(error), type="negative")
+            return
+        state["rows"] = updated
+        grid.options["rowData"] = updated
+        grid.run_grid_method("applyTransaction", {"update": [
+            row for row in updated if row["id"] in selected_ids]})
+        errors.clear()
+        ui.notify(f"Updated {len(selected_ids)} checked rows. Validate and Save to keep changes.", type="positive")
 
     def shared_services():
         settings = {}
@@ -928,6 +997,18 @@ def workspace_page():
                         workbook_upload = ui.upload(label="Order spreadsheets", multiple=True, auto_upload=True,
                                                     max_files=25, max_file_size=25 * 1024 ** 2,
                                                     on_multi_upload=import_workbooks).props("accept=.xlsx").classes("w-full mb-5")
+                        with ui.row().classes("w-full items-center gap-2 mb-2"):
+                            bulk_hostname = ui.input("Starting hostname", placeholder="node01").props("outlined dense")
+                            bulk_ip = ui.input("Starting IP address", placeholder="192.0.2.10").props("outlined dense")
+                            bulk_role = ui.select(seeds.ROLES, label="Role", clearable=True).props("outlined dense").classes("min-w-52")
+                            bulk_pool = ui.select({"keep": "Leave unchanged", "pool": "Pool IP (no DHCP reservation)",
+                                                   "manual": "Manual / DHCP reservation"},
+                                                  value="keep", label="IP assignment").props("outlined dense").classes("min-w-52")
+                            ui.button("Apply to checked rows", icon="playlist_add_check", on_click=bulk_apply).props("outline")
+                        ui.label("Checked rows are numbered from top to bottom (+1). Blank inputs leave fields unchanged; "
+                                 "provided values replace existing ones. Drag the hostname handle to reorder rows "
+                                 "(clear sorting and filters first). Pool IP rows keep a blank IP and do not consume an "
+                                 "IP sequence number. Duplicates are checked on Validate / Save.").classes("muted text-xs mb-2")
                         with ui.row().classes("toolbar justify-end"):
                             with ui.row().classes("items-center"):
                                 search = ui.input(placeholder="Search inventory").props("dense outlined clearable").style("width:210px;max-width:100%")
@@ -935,8 +1016,12 @@ def workspace_page():
                                 ui.button(icon="delete", color="negative", on_click=remove_rows).props("outline round dense").tooltip("Delete selected rows")
                         grid = ui.aggrid({
                             "defaultColDef": {"editable": True, "resizable": True, "sortable": True, "filter": True, "minWidth": 145},
-                            "columnDefs": [dict(headerName="Hostname", field="hostname", width=220),
-                                           dict(headerName="IP address", field="ip", width=165),
+                            "columnDefs": [dict(headerName="Hostname", field="hostname", width=250, rowDrag=True),
+                                           dict(headerName="IP address", field="ip", width=165,
+                                                **{":editable": "p => !p.data.pool_ip"}),
+                                           dict(headerName="Pool IP", field="pool_ip", width=110, minWidth=110,
+                                                cellDataType="boolean", cellRenderer="agCheckboxCellRenderer",
+                                                cellEditor="agCheckboxCellEditor"),
                                            dict(headerName="MAC address", field="mac", width=185),
                                            dict(headerName="Product ID", field="pid", width=170),
                                            dict(headerName="Serial number", field="serial_number", width=170),
@@ -947,11 +1032,16 @@ def workspace_page():
                             "selectionColumnDef": {"width": 44, "pinned": "left"}, "rowHeight": 36, "headerHeight": 38,
                             "stopEditingWhenCellsLoseFocus": True, "singleClickEdit": True,
                             ":getRowId": "params => params.data.id",
+                            "rowDragManaged": True,
+                            "rowDragMultiRow": True,
                         }, theme="balham").classes("inventory-grid")
                         search.on_value_change(lambda event: grid.run_grid_method("setGridOption", "quickFilterText", event.value or ""))
 
                         def cell_changed(event):
                             data = event.args.get("data", {})
+                            if data.get("pool_ip") and data.get("ip"):
+                                data["ip"] = ""
+                                grid.run_grid_method("applyTransaction", {"update": [data]})
                             if not str(data.get("mac", "")).strip():
                                 return
                             try:
@@ -984,19 +1074,6 @@ def workspace_page():
                             shared_inputs["domain_name"] = ui.input("Domain name", value=settings_now.get("domain_name", ""), placeholder="example.com").props("outlined dense").classes("w-full")
                             zones = schema["definitions"]["timezone"]["enum"]
                             shared_inputs["timezone"] = ui.select(zones, value=settings_now.get("timezone", "UTC") if settings_now.get("timezone", "UTC") in zones else "UTC", label="Timezone", with_input=True, clearable=True).props("outlined dense").classes("w-full")
-                        proxy_now = settings_now.get("proxy_servers", {})
-                        with ui.expansion("Proxy settings", icon="settings_ethernet", value=bool(proxy_now)).classes("w-full mt-4"):
-                            with ui.element("div").classes("proxy-grid"):
-                                for name, label in (("http_proxy", "HTTP proxy"), ("https_proxy", "HTTPS proxy"), ("username", "Proxy username")):
-                                    proxy_inputs[name] = ui.input(label, value=proxy_now.get(name, "")).props("outlined dense").classes("w-full")
-                                proxy_inputs["password"] = ui.input("Proxy password", password=True, password_toggle_button=True).props("outlined dense autocomplete=new-password").classes("w-full")
-                                proxy_inputs["reference"] = ui.number("Password reference", min=1, max=64, precision=0, value=proxy_now.get("password")).props("outlined dense").classes("w-full")
-                                proxy_schema = schema["definitions"]["proxy_servers"]["allOf"][0]["properties"]
-                                proxy_inputs["no_proxy"] = ArrayInput("Proxy bypass list", "localhost", proxy_schema["no_proxy"]["maxItems"],
-                                                                      proxy_now.get("no_proxy", []))
-                            with ui.row().classes("w-full items-center gap-2 mt-2"):
-                                ui.button("Add recommended bypass entries", icon="playlist_add", on_click=suggest_no_proxy).props("outline dense")
-                                ui.label("When a proxy is set, bypass the cluster, service, bootstrap, and site domains.").classes("muted text-xs")
                         ldap_now = settings_now.get("ldap", {})
                         with ui.expansion("LDAP / Active Directory", icon="groups", value=bool(ldap_now)).classes("w-full mt-2"):
                             ui.label("Used by OpenShift - LDAP (identity provider and group sync). The bind password is "
@@ -1017,6 +1094,19 @@ def workspace_page():
                                          "Bind password not stored yet.").classes("muted text-xs")
 
                             ldap_status()
+                        proxy_now = settings_now.get("proxy_servers", {})
+                        with ui.expansion("Proxy settings", icon="settings_ethernet", value=bool(proxy_now)).classes("w-full mt-2"):
+                            with ui.element("div").classes("proxy-grid"):
+                                for name, label in (("http_proxy", "HTTP proxy"), ("https_proxy", "HTTPS proxy"), ("username", "Proxy username")):
+                                    proxy_inputs[name] = ui.input(label, value=proxy_now.get(name, "")).props("outlined dense").classes("w-full")
+                                proxy_inputs["password"] = ui.input("Proxy password", password=True, password_toggle_button=True).props("outlined dense autocomplete=new-password").classes("w-full")
+                                proxy_inputs["reference"] = ui.number("Password reference", min=1, max=64, precision=0, value=proxy_now.get("password")).props("outlined dense").classes("w-full")
+                                proxy_schema = schema["definitions"]["proxy_servers"]["allOf"][0]["properties"]
+                                proxy_inputs["no_proxy"] = ArrayInput("Proxy bypass list", "localhost", proxy_schema["no_proxy"]["maxItems"],
+                                                                      proxy_now.get("no_proxy", []))
+                            with ui.row().classes("w-full items-center gap-2 mt-2"):
+                                ui.button("Add recommended bypass entries", icon="playlist_add", on_click=suggest_no_proxy).props("outline dense")
+                                ui.label("When a proxy is set, bypass the cluster, service, bootstrap, and site domains.").classes("muted text-xs")
                 errors = ui.column().classes("w-full mt-4")
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Validate", icon="fact_check", on_click=validate_click).props("outline")

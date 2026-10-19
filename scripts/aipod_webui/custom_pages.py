@@ -761,7 +761,7 @@ def ocp_cluster_form(handle) -> None:
             ui.button("Download private key", icon="download", on_click=download).props("flat")
 
     with card("Node MAC addresses", "Run Collect MACs from Intersight (domain and standalone servers) and Collect MACs "
-                                    "from BMC Redfish (HGX C845A / C880A) in Tools, then Refresh from inventory.", icon="settings_ethernet"):
+                                    "from BMC Redfish (HGX C880A / C885A) in Tools, then Refresh from inventory.", icon="settings_ethernet"):
         macs = context.collected_macs()
         nodes = seeds.by_role(context.store.inventory(), *seeds.COMPUTE_ROLES)
         found = sum(1 for row in nodes if macs.get(seeds.host_key(row["hostname"])))

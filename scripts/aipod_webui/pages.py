@@ -596,8 +596,8 @@ def hgx_secrets(handle: PageHandle) -> list[SecretField]:
             if bmc.get("password_ref"):
                 references.setdefault(str(bmc["password_ref"]), f"{server.get('hostname', 'server')} BMC password")
     return [secret(stage_inventory.vault_key(reference), label, min_length=stage_inventory.FACTORY_PASSWORD_MIN,
-                   help=f"Exported to the automation as {reference}. Used to configure the BMC, collect MACs, and "
-                        "claim C845A nodes (the C880A cannot be claimed in Intersight).")
+                   help=f"Exported to the automation as {reference}. Used to configure the BMC and collect MACs. "
+                        "C880A and C885A nodes use the separate HGX workflow, not Intersight claiming.")
             for reference, label in references.items()]
 
 
@@ -784,7 +784,7 @@ SECTIONS = (
                         "Use the upload button in each Variables section to add your own YAML files (listed as "
                         "uploads/...); they are deployed with this page's files.",), group="Intersight"),
         PageSpec("hgx-nodes", "HGX Servers", "developer_board", "06-workload-nodes-ucs",
-                 "C845A / C880A HGX nodes managed through the BMC Redfish API (not Intersight). Collected MACs pre-fill "
+                 "C880A / C885A HGX nodes managed through the BMC Redfish API (not Intersight). Collected MACs pre-fill "
                  "the OpenShift node inventory and the NVIDIA Network Operator rules. The variables set the BMC "
                  "host name, DNS, NTP, and time-zone offset.",
                  files=(HGX_FILE,),
@@ -804,7 +804,7 @@ SECTIONS = (
                           Action("static-preview", "Static address plan", "preview", static_ip(False), group="Post-check",
                                  secrets=("*",), inventory=True, files=False)),
                  secrets=hgx_secrets, form=custom_pages.macs_summary, upload_dirs=(HGX_UPLOADS,),
-                 notes=("The HGX BMC password is entered here (C880A nodes cannot be claimed in Intersight). Hosts "
+                 notes=("The HGX BMC password is entered here. C880A and C885A nodes are excluded from Intersight claiming. Hosts "
                         "and their addresses come from the HGX rows on Claim Targets; a target with overridden "
                         "credentials there gets its own password field below.", UPLOAD_NOTE)),
     )),

@@ -24,7 +24,7 @@ ROLES = {
     "chassis": "UCS X9508 chassis",
     "ucs-blade": "UCS X-Series compute node",
     "ucs-server": "UCS C-Series standalone server",
-    "hgx-node": "UCS HGX node (C845A / C880A)",
+    "hgx-node": "UCS HGX node (C880A / C885A)",
     "storage": "Storage array",
     "other": "Other",
 }
@@ -57,8 +57,10 @@ def guess_role(row: dict) -> str:
         return "x-direct"
     if pid.startswith("UCSX") and "9508" in pid:
         return "chassis"
-    if re.search(r"C?8[48][05]A", pid) and not re.search(r"885A", pid):
+    if hgx_model(pid):
         return "hgx-node"
+    if re.search(r"C?845A", pid):
+        return "ucs-server"
     if pid.startswith("UCSX"):
         return "ucs-blade"
     if pid.startswith(("UCSC", "UCS-C", "HX")):
@@ -88,8 +90,8 @@ def domain_name(hostname: str) -> str:
 
 def is_claimable(row: dict) -> bool:
     role = row_role(row)
-    if role == "hgx-node":
-        return "C880" not in str(row.get("pid", "")).upper()
+    if role == "hgx-node" or hgx_model(row.get("pid", "")):
+        return False
     return role in REGISTRATION_ROLES
 
 
@@ -527,17 +529,39 @@ def seed_xseries_profiles(data: CommentedMap, ctx: SeedContext) -> None:
 
 def seed_server_profiles(data: CommentedMap, ctx: SeedContext) -> None:
     rows = [row for row in by_role(ctx.rows, "ucs-server", "hgx-node") if is_claimable(row)]
-    if not rows:
+    excluded = {row["hostname"] for row in ctx.rows if row.get("hostname") and (
+        row_role(row) == "hgx-node" or hgx_model(row.get("pid", "")))}
+    if not rows and not excluded:
         return
     profiles = _profiles(data)
     existing = [item for item in profiles.get("server") or [] if isinstance(item, dict)]
-    standalone = next((item for item in existing if item.get("target_platform") == "Standalone"), None)
-    if standalone is None:
-        standalone = cmap(action="No-op", attach_template=True, server_family="UCSC2XX/4XX",
-                          target_platform="Standalone", ucs_server_profile_template="AIOptimized")
-        existing.append(standalone)
-    standalone["targets"] = merge_list(standalone.get("targets"), [
-        cmap(name=row["hostname"], serial_number=row.get("serial_number", "")) for row in rows], "name")
+    families: dict[str, list[dict]] = {}
+    for row in rows:
+        pid = str(row.get("pid", "")).upper()
+        family = "UCSC845A" if re.search(r"C?845A", pid) else "UCSC2XX/4XX"
+        families.setdefault(family, []).append(row)
+    assigned = {row["hostname"]: family for family, members in families.items() for row in members}
+    previous_targets = []
+    for item in existing:
+        if item.get("target_platform") != "Standalone":
+            continue
+        targets = item.get("targets") or []
+        previous_targets.extend(target for target in targets if isinstance(target, dict))
+        item["targets"] = seq([
+            target for target in targets if not isinstance(target, dict) or (
+                target.get("name") not in excluded and (
+                    target.get("name") not in assigned or assigned[target["name"]] == item.get("server_family")))])
+    for family, members in families.items():
+        standalone = next((item for item in existing if item.get("target_platform") == "Standalone"
+                           and item.get("server_family") == family), None)
+        if standalone is None:
+            standalone = cmap(action="No-op", attach_template=family == "UCSC2XX/4XX",
+                              server_family=family, target_platform="Standalone")
+            if family == "UCSC2XX/4XX":
+                standalone["ucs_server_profile_template"] = "AIOptimized"
+            existing.append(standalone)
+        standalone["targets"] = merge_list(previous_targets, [
+            cmap(name=row["hostname"], serial_number=row.get("serial_number", "")) for row in members], "name")
     profiles["server"] = seq(existing)
 
 
@@ -642,7 +666,7 @@ def seed_ocp_ldap(data: CommentedMap, ctx: SeedContext) -> None:
 
 def hgx_model(pid: str) -> str:
     text = str(pid or "").upper()
-    return "C845A" if re.search(r"C?845", text) else "C880A" if re.search(r"C?880", text) else ""
+    return "C880A" if re.search(r"C?880A", text) else "C885A" if re.search(r"C?885A", text) else ""
 
 
 def seed_hgx(data: CommentedMap, ctx: SeedContext) -> None:

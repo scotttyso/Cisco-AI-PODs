@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Configure HGX server BMCs (Cisco UCS C845A / C880A) through Redfish from an ``hgx_servers`` variables file.
+"""Configure HGX server BMCs (Cisco UCS C880A / C885A) through Redfish from an ``hgx_servers`` variables file.
 
 Sets, per server and as enabled in ``hgx_servers.bmc_settings.configure``:
 

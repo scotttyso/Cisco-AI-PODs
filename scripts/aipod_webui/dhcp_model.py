@@ -143,6 +143,8 @@ def build_dhcp_model(inventory: list[dict], shared_services: dict, options: dict
 
     reservations, macs, addresses = [], set(), set()
     for row in inventory:
+        if row.get("pool_ip"):
+            continue
         mac, address = str(row.get("mac", "")).strip().lower(), str(row.get("ip", "")).strip()
         hostname = str(row.get("hostname", "")).strip()
         label = hostname if hostname and hostname != "unknown" else mac

@@ -1,5 +1,5 @@
 ---
-# HGX servers (Cisco UCS C845A / C880A) configured through the BMC Redfish API.
+# HGX servers (Cisco UCS C880A / C885A) configured through the BMC Redfish API.
 # The web UI pre-fills bmc_settings from Initial Inventory > Shared services and the
 # servers from the inventory rows with the HGX node role (BMC address = Claim Targets static address).
 hgx_servers:
@@ -25,6 +25,6 @@ hgx_servers:
       bmc:
         ip: 192.0.2.11
     - hostname: hgx-node-2
-      model: C845A
+      model: C885A
       bmc:
         ip: 192.0.2.12

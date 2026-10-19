@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.2] - 2026-10-19
+
+### Added
+- Initial Inventory: drag-and-drop ordering for imported and manually added nodes.
+- Initial Inventory: bulk assignment of incrementing hostnames/IP addresses and roles to checked rows in displayed order.
+- Initial Inventory: per-row and bulk Pool IP settings, persisted with blank addresses and excluded from DHCP reservations; imported X-Series compute nodes default to Pool IP.
+
+### Changed
+- Shared Services displays LDAP / Active Directory before Proxy settings.
+- Bulk inventory edits allow temporary duplicate addresses while editing; Validate and Save identify conflicts before persisting.
+- C845A nodes use the standalone UCS C-Series workflow with `target_platform: Standalone` and `server_family: UCSC845A`.
+- C880A and C885A use the separate HGX Servers workflow and are excluded from generated Intersight claim inventory and profiles.
+- Updated HGX examples, source and bundled schemas, help text, and inventory regression tests.
+
 ## [0.1.1] - 2026-10-19
 
 ### Added

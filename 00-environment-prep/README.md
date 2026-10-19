@@ -24,6 +24,33 @@ shared by every subsystem; subsystems do not maintain local inventories.
    (DNS, domain, search domains, NTP, timezone, proxy). Host defaults are detected from the
    deployment server; only overrides are saved. Shared services are validated against
    `schemas/source/cisco-ai-pods.json#/definitions/shared_services` and reused by later stages.
+   In the WebUI, drag rows using the handle beside the hostname to arrange imported or
+   manually added nodes (clear sorting and filters before dragging). Check the rows to
+   update, enter a starting hostname and/or IP address, optionally choose a Role, and
+   select **Apply to checked rows**. Hostnames increment the last number in the first DNS
+   label, preserving zero padding (`node09` becomes `node10`); IP addresses increment by
+   one. Assignment follows the checked rows' displayed order, top to bottom. Blank inputs
+   leave fields unchanged; supplied values overwrite existing ones. Clear filters if any
+   checked rows are hidden. Bulk edits reject invalid values without partially applying changes.
+   Temporary duplicate hostnames/IPs are allowed while editing; **Validate** and **Save** report
+   duplicates until you resolve them, and persist the edits and row order only when valid.
+   **Pool IP** leaves the address blank and excludes the device from DHCP reservations
+   (for example, UCS X-Series compute nodes using an Intersight IP pool). Imported
+   X-Series compute nodes default to Pool IP. Toggle the per-row checkbox or use the
+   bulk **IP assignment** selector to change it. Pool IP rows can receive bulk hostnames
+   and roles but do not consume an IP sequence number. Selecting manual addressing
+   again requires entering an IP before saving. This flag does not create the
+   Intersight pool; configure the pool in the Intersight policies and profiles.
+   C880A and C885A models are detected as **UCS HGX node (C880A / C885A)**; C845A
+   models use **UCS C-Series standalone server**. Explicitly saved role choices are
+   preserved; change any previously assigned C845A HGX roles to standalone and Save.
+   Standalone Intersight profiles are grouped by server family: C845A uses
+   `target_platform: Standalone` and `server_family: UCSC845A`, while ordinary C-Series
+   uses `UCSC2XX/4XX`. Both C880A and C885A stay in the separate HGX Servers workflow
+   and are excluded from Intersight claiming, registration inventory, and generated profiles.
+   New model-specific groups default to `No-op` without attaching the generic C-Series
+   template. Configure their policies or a matching template before deployment;
+   existing group settings are preserved.
 2. **DHCP bootstrap.** Generate the `dhcp` data model from the inventory
    (*Environment Preparation → DHCP Bootstrap*). **Render and validate** writes the Kea files
    only. **Install and start Kea** requires `dhcp.interfaces` to list interfaces

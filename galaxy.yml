@@ -1,7 +1,7 @@
 ---
 namespace: cisco
 name: ai_pods
-version: 0.1.1
+version: 0.1.2
 readme: README.md
 authors:
   - Tyson Scott <tyscott@cisco.com>

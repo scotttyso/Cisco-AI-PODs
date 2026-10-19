@@ -61,6 +61,70 @@ class AutomationUiTests(unittest.TestCase):
                         SimpleNamespace(value="  "), SimpleNamespace(value="192.0.2.2")]
         self.assertEqual(field.value, ["192.0.2.1", "192.0.2.2"])
 
+    def test_bulk_inventory_display_order_and_optional_fields(self):
+        rows = [dict(id=str(index), hostname=f"old{index}", ip=f"192.0.2.{index}", role="",
+                     mac=f"00:00:00:00:00:0{index}") for index in range(1, 5)]
+        role = next(iter(web.seeds.ROLES))
+        result = web.bulk_inventory_rows(rows, ["3", "1"], "node09.lab2.example.com", "192.0.2.254", role)
+        self.assertEqual([row["id"] for row in result], ["1", "2", "3", "4"])
+        self.assertEqual(result[2]["hostname"], "node09.lab2.example.com")
+        self.assertEqual(result[0]["hostname"], "node10.lab2.example.com")
+        self.assertEqual(result[2]["ip"], "192.0.2.254")
+        self.assertEqual(result[0]["ip"], "192.0.2.255")
+        self.assertEqual(result[0]["role"], role)
+        self.assertEqual(result[1], rows[1])
+        self.assertEqual(result[0]["mac"], rows[0]["mac"])
+        self.assertEqual(rows[0]["hostname"], "old1")
+        role_only = web.bulk_inventory_rows(rows, ["2", "4"], role=role)
+        self.assertEqual(role_only[1], dict(rows[1], role=role))
+        ip_only = web.bulk_inventory_rows(rows, ["2", "4"], ip="2001:db8::ff")
+        self.assertEqual(ip_only[3]["ip"], "2001:db8::100")
+        self.assertEqual(ip_only[3]["hostname"], "old4")
+        host_only = web.bulk_inventory_rows(rows, ["1", "2"], hostname="node099")
+        self.assertEqual(host_only[1]["hostname"], "node100")
+        self.assertEqual(host_only[1]["ip"], rows[1]["ip"])
+
+    def test_bulk_inventory_rejects_invalid_changes_atomically(self):
+        rows = [dict(id="a", hostname="original", ip="192.0.2.1"),
+                dict(id="b", hostname="node02", ip="192.0.2.2")]
+        for selected, fields in (
+                ([], {"role": next(iter(web.seeds.ROLES))}),
+                (["a"], {}),
+                (["missing"], {"hostname": "node01"}),
+                (["a", "a"], {"hostname": "node01"}),
+                (["a", "b"], {"hostname": "node"}),
+                (["a", "b"], {"hostname": "node.lab2.example.com"}),
+                (["a"], {"hostname": "bad_name"}),
+                (["a"], {"pool_ip": True, "ip": "192.0.2.2"}),
+                (["a"], {"ip": "not an IP"}),
+                (["a", "b"], {"ip": "255.255.255.255"}),
+                (["a"], {"role": "invalid-role"})):
+            with self.subTest(selected=selected, fields=fields), self.assertRaises(ValueError):
+                web.bulk_inventory_rows(rows, selected, **fields)
+            self.assertEqual(rows[0]["hostname"], "original")
+            self.assertEqual(rows[0]["ip"], "192.0.2.1")
+
+    def test_bulk_allows_temporary_duplicates_for_later_validation(self):
+        rows = [dict(id=str(index), hostname="unknown", ip=f"198.18.0.{index}")
+                for index in range(1, 7)]
+        result = web.bulk_inventory_rows(rows, ["1", "2"], hostname="ucsai-1", ip="198.18.0.5")
+        self.assertEqual([(row["hostname"], row["ip"]) for row in result[:2]],
+                         [("ucsai-1", "198.18.0.5"), ("ucsai-2", "198.18.0.6")])
+        self.assertEqual(result[2:], rows[2:])
+
+    def test_pool_bulk_clear_and_skip_ip_sequence(self):
+        rows = [dict(id="a", hostname="node1", ip="198.18.0.1"),
+                dict(id="b", hostname="blade1", ip="", pool_ip=True),
+                dict(id="c", hostname="node2", ip="198.18.0.3")]
+        result = web.bulk_inventory_rows(rows, ["a", "b", "c"], "ucsai-1", "198.18.0.5")
+        self.assertEqual([row["ip"] for row in result], ["198.18.0.5", "", "198.18.0.6"])
+        self.assertEqual([row["hostname"] for row in result], ["ucsai-1", "ucsai-2", "ucsai-3"])
+        pooled = web.bulk_inventory_rows(rows, ["a", "c"], pool_ip=True)
+        self.assertTrue(all(row["pool_ip"] for row in pooled))
+        self.assertTrue(all(row["ip"] == "" for row in pooled))
+        manual = web.bulk_inventory_rows(pooled, ["a", "c"], ip="198.18.0.5", pool_ip=False)
+        self.assertEqual([row["ip"] for row in manual], ["198.18.0.5", "", "198.18.0.6"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -100,6 +100,18 @@ class SharedServicesTests(unittest.TestCase):
 
 
 class DhcpModelTests(unittest.TestCase):
+    def test_pool_ip_skips_dhcp_even_with_stale_address(self):
+        rows = [dict(hostname="fi-a", ip="198.18.0.10", mac="00:25:b5:00:00:01"),
+                dict(hostname="blade1", ip="198.18.0.10", mac="00:25:b5:00:00:02", pool_ip=True),
+                dict(hostname="blade2", ip="", mac="00:25:b5:00:00:03", pool_ip=True)]
+        model, _ = dhcp_model.build_dhcp_model(rows, {}, {})
+        self.assertEqual([row["hostname"] for row in model["dhcp"]["reservations"]], ["fi-a"])
+        with tempfile.TemporaryDirectory() as folder:
+            store = site_settings.WorkspaceStore(Path(folder), validate, detect=lambda: {})
+            store.save_inventory(rows)
+            self.assertTrue(store.inventory()[1]["pool_ip"])
+            self.assertEqual(store.inventory()[1]["ip"], "")
+
     INVENTORY = [
         {"hostname": "fi-a", "ip": "198.18.0.10", "mac": "00:25:B5:00:00:01"},
         {"hostname": "unknown", "ip": "198.18.0.11", "mac": "00:25:b5:00:00:02"},

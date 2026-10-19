@@ -8,7 +8,7 @@ Schema: [`schemas/workload-nodes-ucs.schema.json`](../schemas/workload-nodes-ucs
 
 ## HGX server BMC settings
 
-C845A and C880A BMCs are configured over Redfish by
+C880A and C885A BMCs are configured over Redfish by
 [`automation/scripts/configure_hgx_bmc.py`](automation/scripts/configure_hgx_bmc.py)
 from an `hgx_servers` variables file (schema: `hgx` namespace in
 [`schema/cisco-ai-pods.json`](../schema/cisco-ai-pods.json); example:

@@ -3554,7 +3554,7 @@
         },
         "hgx.hgx_servers": {
             "title": "HGX Servers",
-            "description": "Cisco UCS HGX servers (C845A / C880A) managed through the BMC Redfish API.\n\nRequired fields are:\n  * `bmc_settings`\n  * `servers`",
+            "description": "Cisco UCS HGX servers (C880A / C885A) managed through the BMC Redfish API.\n\nRequired fields are:\n  * `bmc_settings`\n  * `servers`",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -3629,10 +3629,11 @@
                     "type": "string"
                 },
                 "model": {
-                    "description": "Server model.",
+                    "description": "Server model. C845A is accepted for existing files; configure new C845A nodes as standalone UCS C-Series servers.",
                     "enum": [
                         "C845A",
-                        "C880A"
+                        "C880A",
+                        "C885A"
                     ],
                     "title": "Model",
                     "type": "string"

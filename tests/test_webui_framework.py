@@ -130,7 +130,7 @@ class SeedTest(unittest.TestCase):
         {"hostname": "be-leaf-1", "ip": "198.18.0.21", "pid": "N9K-C9364D-GX2A", "serial_number": "B"},
         {"hostname": "oob-1", "ip": "198.18.0.22", "pid": "N9K-C93108TC-FX3", "serial_number": "C"},
         {"hostname": "fi-a", "ip": "198.18.0.31", "pid": "UCS-FI-6536", "serial_number": "D"},
-        {"hostname": "c845-1", "ip": "198.18.0.41", "pid": "UCSC-845A-M8", "serial_number": "E"},
+        {"hostname": "c885-1", "ip": "198.18.0.41", "pid": "UCSC-885A-M8", "serial_number": "E"},
         {"hostname": "c240-1", "ip": "198.18.0.42", "pid": "UCSC-C240-M8", "serial_number": "F",
          "role": "ucs-server"},
     ]
@@ -139,15 +139,117 @@ class SeedTest(unittest.TestCase):
         self.assertEqual([seeds.row_role(row) for row in self.ROWS],
                          ["nd-node", "switch-backend", "switch-mgmt", "fabric-interconnect", "hgx-node", "ucs-server"])
 
+    def test_gpu_server_roles(self):
+        for pid in ("UCSC-845A-M8", "UCSC-C845A-M8", "C845A"):
+            with self.subTest(pid=pid):
+                row = {"hostname": "gpu-1", "pid": pid}
+                self.assertEqual(seeds.guess_role(row), "ucs-server")
+                self.assertEqual(seeds.hgx_model(pid), "")
+                self.assertTrue(seeds.is_claimable(row))
+                hosts = stage_inventory.registration_hosts([row], {})
+                self.assertEqual(hosts["gpu-1"]["ucs"]["cimc"]["pass_ref"], "UCS_CIMC_PASSWORD")
+        for model in ("C880A", "C885A"):
+            with self.subTest(model=model):
+                row = {"hostname": "gpu-1", "pid": f"UCSC-{model}-M8"}
+                self.assertEqual(seeds.guess_role(row), "hgx-node")
+                self.assertEqual(seeds.hgx_model(row["pid"]), model)
+                self.assertFalse(seeds.is_claimable(row))
+                hosts = stage_inventory.registration_hosts([row], {})
+                self.assertFalse(hosts["gpu-1"]["ucs"]["intersight_claim_supported"])
+
     def test_hgx_seed_from_inventory(self):
         context = seeds.SeedContext(self.ROWS, {"dns_servers": ["192.0.2.53"], "ntp_servers": ["192.0.2.123"],
                                                 "domain_name": "example.com", "timezone": "UTC"},
-                                    {"intersight-registration": {"devices": {"c845-1": {"ip": "10.0.0.41"}}}})
+                                    {"intersight-registration": {"devices": {"c885-1": {"ip": "10.0.0.41"}}}})
         example = (REPOSITORY / "examples/hgx/hgx.ezai.yaml").read_text(encoding="utf-8")
         data = yaml.safe_load(seeds.apply_seed("hgx", example, context))["hgx_servers"]
         self.assertEqual(data["bmc_settings"]["dns_servers"], ["192.0.2.53"])
-        self.assertEqual(data["servers"], [{"hostname": "c845-1", "model": "C845A", "serial_number": "E",
+        self.assertEqual(data["servers"], [{"hostname": "c885-1", "model": "C885A", "serial_number": "E",
                                             "bmc": {"ip": "10.0.0.41"}}])
+
+    def test_standalone_profiles_use_model_specific_families(self):
+        rows = [
+            {"hostname": "c845-1", "pid": "UCSC-845A-M8", "serial_number": "A"},
+            {"hostname": "c240-1", "pid": "UCSC-C240-M8", "serial_number": "B"},
+            {"hostname": "c885-1", "pid": "UCSC-C885A-M8", "serial_number": "C"},
+            {"hostname": "c880-1", "pid": "UCSC-C880A-M8", "serial_number": "D"},
+        ]
+        text = (REPOSITORY / "examples/intersight/servers/standalone/profiles.ezai.yaml").read_text()
+        context = seeds.SeedContext(rows, {})
+        result = seeds.apply_seed("server_profiles", text, context)
+        profiles = yaml.safe_load(result)["intersight"]["configure"]["default"]["profiles"]["server"]
+        groups = {profile["server_family"]: profile for profile in profiles}
+        self.assertEqual(set(groups), {"UCSC2XX/4XX", "UCSC845A"})
+        for family, name in (("UCSC845A", "c845-1"), ("UCSC2XX/4XX", "c240-1")):
+            self.assertEqual(groups[family]["target_platform"], "Standalone")
+            self.assertEqual(groups[family]["targets"], [{"name": name, "serial_number": {
+                "c845-1": "A", "c240-1": "B", "c885-1": "C"}[name]}])
+        self.assertTrue(groups["UCSC2XX/4XX"]["attach_template"])
+        self.assertFalse(groups["UCSC845A"]["attach_template"])
+        self.assertNotIn("ucs_server_profile_template", groups["UCSC845A"])
+        again = yaml.safe_load(seeds.apply_seed("server_profiles", result, context))
+        self.assertEqual(again["intersight"]["configure"]["default"]["profiles"]["server"], profiles)
+
+    def test_hgx_models_are_separate_from_intersight(self):
+        rows = [{"hostname": "hgx-1", "pid": "UCSC-C880A-M8", "ip": "192.0.2.10"},
+                {"hostname": "hgx-2", "pid": "UCSC-C885A-M8", "ip": "192.0.2.11"},
+                {"hostname": "c845-1", "pid": "UCSC-C845A-M8", "ip": "192.0.2.12"}]
+        context = seeds.SeedContext(rows, {})
+        example = (REPOSITORY / "examples/hgx/hgx.ezai.yaml").read_text()
+        hgx = yaml.safe_load(seeds.apply_seed("hgx", example, context))["hgx_servers"]["servers"]
+        self.assertEqual([(server["hostname"], server["model"]) for server in hgx],
+                         [("hgx-1", "C880A"), ("hgx-2", "C885A")])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inventory = yaml.safe_load(stage_inventory.build(root, root / "vars", rows, {}, {}).read_text())
+            groups = inventory["all"]["children"]
+            self.assertEqual(set(groups["ucs_registration"]["hosts"]), {"c845-1"})
+            self.assertEqual(set(groups["ucs_endpoints"]["hosts"]), {"hgx-1", "hgx-2", "c845-1"})
+        text = """intersight:
+  configure:
+    default:
+      profiles:
+        server:
+          - target_platform: Standalone
+            server_family: UCSC885A
+            targets:
+              - name: hgx-2
+"""
+        updated = yaml.safe_load(seeds.apply_seed("server_profiles", text, context))
+        profiles = updated["intersight"]["configure"]["default"]["profiles"]["server"]
+        self.assertEqual(profiles[0]["targets"], [])
+        self.assertEqual(profiles[1]["server_family"], "UCSC845A")
+        self.assertEqual([target["name"] for target in profiles[1]["targets"]], ["c845-1"])
+
+    def test_standalone_refresh_moves_misgrouped_targets_and_keeps_custom_fields(self):
+        text = """intersight:
+  configure:
+    default:
+      profiles:
+        server:
+          - target_platform: Standalone
+            server_family: UCSC2XX/4XX
+            targets:
+              - name: c845-1
+                serial_number: old
+                description: Keep this
+              - name: c240-1
+          - target_platform: Standalone
+            server_family: UCSC845A
+            action: Deploy
+            attach_template: true
+            ucs_server_profile_template: Custom845
+            targets: []
+"""
+        rows = [{"hostname": "c845-1", "pid": "UCSC-845A-M8", "serial_number": "A"},
+                {"hostname": "c240-1", "pid": "UCSC-C240-M8", "serial_number": "B"}]
+        result = yaml.safe_load(seeds.apply_seed("server_profiles", text, seeds.SeedContext(rows, {})))
+        profiles = result["intersight"]["configure"]["default"]["profiles"]["server"]
+        self.assertEqual([target["name"] for target in profiles[0]["targets"]], ["c240-1"])
+        self.assertEqual(profiles[1]["targets"], [{"name": "c845-1", "serial_number": "A",
+                                                "description": "Keep this"}])
+        self.assertEqual(profiles[1]["action"], "Deploy")
+        self.assertEqual(profiles[1]["ucs_server_profile_template"], "Custom845")
 
     def test_domain_and_xseries_seeds_are_split(self):
         rows = [{"hostname": "ucsai-1-a", "pid": "UCSX-S9108-100G", "serial_number": "FDO29100001", "role": "x-direct"},
@@ -169,13 +271,13 @@ class SeedTest(unittest.TestCase):
         example = (REPOSITORY / "examples/intersight/system/system.ezai.yaml").read_text(encoding="utf-8")
         system = yaml.safe_load(seeds.apply_seed("system", example, seeds.SeedContext(self.ROWS, {})))["intersight"]["system"]
         default = next(item for item in system["resource_groups"] if item["name"] == "default")
-        self.assertEqual(default["resources"]["targets"], ["fi-a", "c845-1", "c240-1"])
+        self.assertEqual(default["resources"]["targets"], ["fi-a", "c240-1"])
         self.assertIn("default", next(item for item in system["organizations"] if item["name"] == "default")["resource_groups"])
         system["resource_groups"].append({"name": "AI", "resources": {"targets": ["c240-1"]}})
         again = yaml.safe_load(seeds.apply_seed("system", yaml.safe_dump({"intersight": {"system": system}}),
                                                 seeds.SeedContext(self.ROWS, {})))["intersight"]["system"]
         default = next(item for item in again["resource_groups"] if item["name"] == "default")
-        self.assertEqual(default["resources"]["targets"], ["fi-a", "c845-1"])
+        self.assertEqual(default["resources"]["targets"], ["fi-a"])
 
     def test_intersight_policy_secret_fields(self):
         state = {intersight_policies.STATE_KEY: {"snmp": 2, "ldap": 1, "mac_sec": 1, "firmware_authenticate": 1}}
@@ -287,7 +389,7 @@ class SeedTest(unittest.TestCase):
     def test_registration_hosts_and_secrets(self):
         legacy = {"devices": {"c240-1": {"ip": "10.0.0.42", "netmask": "255.255.255.0"}}}
         hosts = stage_inventory.registration_hosts(self.ROWS, legacy)
-        self.assertEqual(set(hosts), {"fi-a", "c845-1", "c240-1"})
+        self.assertEqual(set(hosts), {"fi-a", "c885-1", "c240-1"})
         cimc = hosts["c240-1"]["ucs"]["cimc"]
         self.assertEqual((cimc["ip"], cimc["dhcp_ip"], cimc["netmask"]), ("10.0.0.42", "198.18.0.42", "255.255.255.0"))
         self.assertEqual(cimc["pass_ref"], "UCS_CIMC_PASSWORD")
@@ -299,7 +401,7 @@ class SeedTest(unittest.TestCase):
         self.assertEqual(set(secrets), {"vault_intersight_api_key_id", "vault_intersight_api_private_key",
                                         "vault_ucs_fi_password", "vault_ucs_cimc_password",
                                         "vault_hgx_bmc_password"})
-        self.assertEqual(hosts["c845-1"]["ucs"]["cimc"]["pass_ref"], "HGX_BMC_PASSWORD")
+        self.assertEqual(hosts["c885-1"]["ucs"]["cimc"]["pass_ref"], "HGX_BMC_PASSWORD")
 
     def test_registration_targets_override_default_org(self):
         state = {"cimc_username": "ops",
@@ -315,7 +417,7 @@ class SeedTest(unittest.TestCase):
                          ("default", "default", True))
         self.assertEqual((second["cimc"]["user"], second["organization"]), ("ops", "default"))
         missing = stage_inventory.missing_targets(self.ROWS, stage_inventory.registration_targets(self.ROWS, state))
-        self.assertEqual({item["hostname"] for item in missing}, {"fi-a", "c845-1"})
+        self.assertEqual({item["hostname"] for item in missing}, {"fi-a", "c885-1"})
 
     def test_backend_fabric_inventory(self):
         fabric = {"nexus_dashboard": {"fabrics": [{

@@ -60,6 +60,27 @@ class InitialInventoryTests(unittest.TestCase):
                 builder.write_inventory([row, row], {}, output)
             self.assertEqual(yaml.safe_load(output.read_text()), document)
 
+    def test_pool_ip_rows_validate_and_round_trip(self):
+        base = dict(hostname="blade-1", ip="", mac="abc123", pid="UCSX-TEST", serial_number="SERIAL-1",
+                    role="ucs-blade", pool_ip=True)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "inventory.yaml"
+            document = builder.write_inventory([base], {}, path)
+            self.assertEqual(document["initial_inventory"], [dict(base, mac="00:00:00:ab:c1:23")])
+            self.assertEqual(yaml.safe_load(path.read_text()), document)
+            self.assertEqual(builder.build_inventory_document([dict(base, ip="198.18.0.5")])[
+                "initial_inventory"][0]["ip"], "")
+            with self.assertRaises(ValueError):
+                builder.build_inventory_document([dict(base, pool_ip=False)])
+            with self.assertRaises(ValueError):
+                builder.build_inventory_document([dict(base, pool_ip="true")])
+
+    def test_duplicate_ips_reported_on_validation(self):
+        rows = [dict(hostname=f"ucsai-{i}", ip="198.18.0.5", mac=f"abc12{i}", pid="UCS-TEST",
+                     serial_number=f"SERIAL-{i}") for i in (1, 2)]
+        with self.assertRaisesRegex(ValueError, "ucsai-2.*duplicate IP address 198.18.0.5"):
+            builder.build_inventory_document(rows)
+
 
 if __name__ == "__main__":
     unittest.main()
