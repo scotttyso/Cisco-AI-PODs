@@ -1,0 +1,59 @@
+---
+be_template_name: Easy_Fabric_eBGP
+be_template_path: /appcenter/cisco/ndfc/api/v1/configtemplate/rest/config/templates/Easy_Fabric_eBGP
+be_fabrics_path: /appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics
+be_manage_fabrics_path: /api/v1/manage/fabrics
+be_fabric_ready_poll_interval: 30
+be_fabric_ready_poll_retries: 20
+be_manage_update_request_timeout: 120
+be_manage_update_observe_interval: 30
+be_manage_update_observe_retries: 20
+be_onboard_switches: true
+# Mandatory read-only physical gate. Supply optional per-fabric cabling plans on the
+# Ansible controller; otherwise LLDP and inventory link interfaces are checked.
+be_core_inventory_dir: "{{ inventory_dir }}"
+be_core_sg2_plan: ""
+be_core_cabling_plans: {}
+# Deploy all inventory-defined fabrics by default. Operators may select keys
+# from be_fabrics with be_target_fabric_keys.
+be_target_fabric_keys: "{{ be_fabrics | map(attribute='key') | list }}"
+# Only active fabric-address pools are rewritten. Disabled-feature defaults
+# (for example per-VRF loopbacks and Hypershield HA) must retain NDFC defaults.
+be_ndfc_pool_keys:
+  - LOOPBACK0_IP_RANGE
+  - LOOPBACK1_IP_RANGE
+  - SUBNET_RANGE
+  - ANYCAST_RP_IP_RANGE
+  - DCI_SUBNET_RANGE
+be_manage_pool_keys:
+  - bgpLoopbackIpRange
+  - nveLoopbackIpRange
+  - intraFabricSubnetRange
+  - anycastRendezvousPointIpRange
+  - vrfLiteSubnetRange
+# Defaults emitted by the ND 4.3.1 Manage > Fabrics workflow when telemetry is
+# enabled for the first time. Existing telemetry settings are always preserved.
+be_default_telemetry_settings:
+  analysisSettings:
+    isEnabled: true
+  energyManagement:
+    cost: 0.1
+  flowCollection:
+    flowCollectionModes:
+      flowTelemetry: false
+      netFlow: false
+      sFlow: false
+    flowRules:
+      interfaceFlowRules: []
+      l3OutFlowRules: []
+      vrfFlowRules: []
+    trafficAnalytics: disabled
+    trafficAnalyticsRules:
+      enabled: false
+      interfaceRules: []
+    trafficAnalyticsScope: interFabric
+    udpCategorization: disabled
+  microburst:
+    microburst: false
+    sensitivity: medium
+be_switch_inventory_hosts: "{{ groups['backend_fabric_switches'] | default([]) }}"

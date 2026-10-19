@@ -1,0 +1,61 @@
+---
+# =========================================================
+#   Profiles
+# =========================================================
+intersight:
+  configure:
+    default:
+      profiles:
+        server:
+          - action: No-op
+            attach_template: true
+            domain_name: ucsai-1
+            target_platform: FIAttached
+            targets:
+              - name: ucsai-1-1
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 1
+              - name: ucsai-1-3
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 4
+              - name: ucsai-1-5
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 5
+              - name: ucsai-1-7
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 8
+            ucs_server_profile_template: AIOptimized
+          - action: No-op
+            attach_template: true
+            domain_name: ucsai-2
+            target_platform: FIAttached
+            targets:
+              - name: ucsai-2-1
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 1
+              - name: ucsai-2-3
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 4
+              - name: ucsai-2-5
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 5
+              - name: ucsai-2-7
+                pre_assign:
+                  chassis_id: 1
+                  initial_auto_deploy_when_server_is_available: true
+                  slot_id: 8
+            ucs_server_profile_template: AIOptimized

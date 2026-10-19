@@ -1,0 +1,23 @@
+[Unit]
+Description=Cisco AI PODs NiceGUI Automation Web Interface
+Wants=network-online.target
+After=network-online.target aipod-firstboot.service
+
+[Service]
+Type=simple
+User=automation-ui
+WorkingDirectory=/home/automation-ui/Cisco-AI-PODs
+ExecStart=/home/automation-ui/Cisco-AI-PODs/.venv/bin/python3 /home/automation-ui/Cisco-AI-PODs/scripts/automation_ui.py --host 127.0.0.1 --port 8080
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=AI_PODS_APP_DIR=/home/automation-ui/.automation-ui
+Environment=AI_PODS_DEPLOYMENTS_DIR=/home/automation-ui/deployments
+# Pre-environment output folder; copied once into the "default" environment.
+Environment=AI_PODS_OUTPUT_DIR=/home/automation-ui/playbooks/vars
+Environment=AI_PODS_MEDIA_DIR=/var/www/html/os-images
+Environment=VIRTUAL_ENV=/home/automation-ui/Cisco-AI-PODs/.venv
+Environment=PATH=/home/automation-ui/Cisco-AI-PODs/.venv/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+
+[Install]
+WantedBy=multi-user.target

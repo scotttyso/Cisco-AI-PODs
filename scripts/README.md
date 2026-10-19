@@ -17,6 +17,9 @@ and related packages). Activate your virtual environment first.
 | [deploy_ai_pod.py](#deploy_ai_podpy) | Run the AI POD deployment roles in order. |
 | [validate_sensitive_variables.py](#validate_sensitive_variablespy) | Validate required sensitive environment variables. |
 | [update_nexus_switch_inventory.py](#update_nexus_switch_inventorypy) | Read MAC, model, and serial from Nexus switches and update the YAML. |
+| [nxos_bootflash_stage.py](#nxos_bootflash_stagepy) | Prepare switch bootflash and copy NX-OS images from SCP. |
+| [nd_switch_fabric_lookup.py](#nd_switch_fabric_lookuppy) | Look up the ND fabric name for a list of switch IPs. |
+| [nd_stage_nexus_updates.py](#nd_stage_nexus_updatespy) | Configure per-device ND update groups, report checks, and image staging. |
 | [ucs_imc_firmware.py](#ucs_imc_firmwarepy) | Report running firmware on standalone UCS C-Series servers. |
 | [merge_schemas.py](#merge_schemaspy) | Bundle the split JSON schemas. |
 | [check_schema_refs.py](#check_schema_refspy) | Check JSON schemas for broken `$ref` targets. |
@@ -27,7 +30,8 @@ and related packages). Activate your virtual environment first.
 
 ## build_initial_inventory.py
 
-Read all `.xlsx` files in a folder and write rows with a MAC address to
+The builder lives in `00-environment-prep/automation/scripts/`; this path is a
+compatibility wrapper. Read all `.xlsx` files in a folder and write rows with a MAC address to
 `host_vars/initial_inventory.ezai.yaml`. The script prompts for the folder;
 press Enter to use `~/orders`. Each entry has a placeholder hostname, a
 sequential `198.18.0.X` address, MAC, PID, and serial number.
@@ -83,6 +87,7 @@ python3 scripts/deploy_ai_pod.py \
 | `--vault-file VAULT_FILE` | Encrypted Ansible Vault file. Defaults to `vault-ai-pod.yaml`. |
 | `--vault-password-file VAULT_PASSWORD_FILE` | File containing the Ansible Vault password. Defaults to `~/.config/cisco-ai-pods/vault-password`. If missing, the script tells you to create it there. |
 | `--check` | Pass check mode where supported. |
+| `--intersight-scope {all,domains,servers}` | Deploy every file under `host_vars/intersight` (default), or only the shared top-level `intersight/*.ezai.yaml` files plus the `domains/` or `servers/` subfolder. The UI's Intersight Domains and Servers pages use this so each page deploys only its own files. |
 | `--openshift-stage {phase1,iserver,phase2}` | Start the OpenShift role at this stage and continue through the rest. Defaults to `phase1`. |
 | `--openshift-only-stage {phase1,iserver,phase2}` | Run a single OpenShift stage and stop. |
 
@@ -194,6 +199,165 @@ the SSH command line or sent as an SSH environment variable.
 | `--fabric-file PATH` | Fabric variables file. Defaults to `host_vars/nexus_dashboard/fabrics.ezai.yaml`. |
 | `--connect-timeout SECONDS` | Per-connection timeout. Defaults to 10 seconds. |
 | `--dry-run` | Query all switches and display values without writing YAML. |
+
+---
+
+## nxos_bootflash_stage.py
+
+Prepares switch bootflash and copies images from an SCP server using the model-specific
+upgrade paths in the input sheet. Connects through Nexus Dashboard or directly over SSH
+with `--direct`. Start from
+[nxos_bootflash_stage.example.yaml](../examples/nexus_dashboard/nxos_bootflash_stage.example.yaml)
+and set the ND login, switches, SCP server, image catalog, and upgrade paths for your environment.
+
+Passwords come from `NEXUS_DASHBOARD_PASSWORD` (when using ND), `NEXUS_PASSWORD`
+(switches), and `SCP_SERVER_PASSWORD`. Set them securely in the shell running the script;
+do not put passwords in the YAML or command-line arguments.
+
+```bash
+# Inspect the plan without deleting or copying files
+python3 scripts/nxos_bootflash_stage.py \
+  --config examples/nexus_dashboard/nxos_bootflash_stage.example.yaml --dry-run
+
+# Prepare bootflash and copy the required images
+python3 scripts/nxos_bootflash_stage.py \
+  --config examples/nexus_dashboard/nxos_bootflash_stage.example.yaml
+```
+
+**File deletion:** Without `--dry-run`, images not protected by the configured catalog,
+upgrade paths, running release, or boot variable can be deleted from bootflash. Review the
+input sheet and dry-run output first. This script prepares images; it does not install them.
+
+| Option | Description |
+| --- | --- |
+| `--config PATH` | Required YAML input sheet. |
+| `--dry-run` | Report the plan without deleting or copying files. |
+| `--direct` | Connect directly to switches instead of through ND. |
+| `--only IP` | Limit execution to a configured switch IP; repeatable. |
+| `--workers N` | Limit parallel sessions. |
+| `--stagger SECONDS` | Delay between session starts; defaults to 2 seconds. |
+| `--log-dir PATH` | Override the default timestamped directory under `LOGS/nxos_stage_logs/`. |
+
+---
+
+## nd_switch_fabric_lookup.py
+
+Logs in to the Nexus Dashboard API and prints the hostname and fabric name for each IP in
+`switches.hosts`. Start from
+[nd_switch_fabric_lookup.example.yaml](../examples/nexus_dashboard/nd_switch_fabric_lookup.example.yaml);
+an `nxos_bootflash_stage.yaml` sheet also works if its ND username can log in to the API.
+The password comes from `NEXUS_DASHBOARD_PASSWORD` (prompted when unset). Exits with 2 if any IP
+is not found.
+
+```bash
+python3 scripts/nd_switch_fabric_lookup.py \
+  --config examples/nexus_dashboard/nd_switch_fabric_lookup.example.yaml
+```
+
+| Option | Description |
+| --- | --- |
+| `--config PATH` | Required YAML input sheet. |
+| `--domain NAME` | ND login domain; overrides `nexus_dashboard.domain` (default `local`). |
+| `--yaml` | Print results as YAML instead of a table. |
+
+---
+
+## nd_stage_nexus_updates.py
+
+Uses the Nexus Dashboard Manage API to select switches, create or reuse update groups,
+configure report checks, and stage an image already uploaded to ND.
+Start from
+[nxos_update_groups.example.yaml](../examples/nexus_dashboard/nxos_update_groups.example.yaml).
+The sheet configures ND host, username, authentication domain, TLS verification, timeout,
+credential source, and either named `update_groups` (each with a `hosts` list) or
+`switches.hosts` for one group per switch. Hosts are switch names, management IPs, or
+serials. Switches in a named group must share a fabric, target image, and check set, so
+keep vPC pairs and standalone switches in separate groups. With neither section set, the
+script prompts for device selection. CLI settings override YAML values; `--device`
+overrides `update_groups`.
+
+Target selection is restricted to N9K devices. Without `upgrade_rules`, the defaults are:
+
+| Running Release / Model | Target |
+| --- | --- |
+| Any N9K running 9.3 | 9.3.16 |
+| 93180YC-EX or 93108TC-EX running 10.3 | 10.3.10 |
+| Other N9K running 10.3 | 10.6.4 |
+
+Add a top-level `upgrade_rules` list to the input sheet to **replace all defaults**.
+Rules are evaluated in order; the first match wins. Each rule requires `models`
+(a nonempty list of case-insensitive shell-style patterns, such as `N9K*` or an
+exact model), `source_version` (a quoted dotted version prefix), and `target_version`
+(a quoted dotted release). Source `"10.6"` matches `10.6(3)` or `10.6.3`, but not `10.60`.
+For example, to allow only the following rule:
+
+```yaml
+upgrade_rules:
+  - models: ["N9K-C93240YC-FX2"]
+    source_version: "10.6"
+    target_version: "10.6.4"
+```
+
+Verify the supported upgrade path and desired target before using this example.
+To retain the original rules as well, include them explicitly as shown in the
+example sheet. Empty or malformed rule lists are rejected.
+
+The exact filename is resolved from ND's uploaded-image catalog. Missing or ambiguous
+matches stop execution. Switches not matching any rule are skipped.
+
+```bash
+# Read-only plan
+python3 scripts/nd_stage_nexus_updates.py \
+  --config examples/nexus_dashboard/nxos_update_groups.example.yaml
+
+# Configure groups, request pre-reports, and stage images; no software upgrade
+python3 scripts/nd_stage_nexus_updates.py \
+  --config examples/nexus_dashboard/nxos_update_groups.example.yaml \
+  --apply --run-pre-report
+```
+
+Passwords come from the configured `password_env` variable (default `NEXUS_PASSWORD`
+when no sheet is supplied), an interactive prompt, or an encrypted Ansible Vault.
+Vaults must contain `nexus_dashboard.nexus_dashboard_password`. The vault-password file
+must have mode `0600`; keep it outside the repository. Relative vault paths in YAML resolve
+from the sheet's directory; `~` paths are supported.
+
+```bash
+python3 scripts/nd_stage_nexus_updates.py \
+  --config examples/nexus_dashboard/nxos_update_groups.example.yaml \
+  --vault-file ~/.config/cisco-ai-pods/nd-vault.yaml \
+  --vault-password-file ~/.config/cisco-ai-pods/vault-password
+```
+
+On apply, the script creates or reuses 18 `nxos_` custom replacements from ND's
+existing report definitions, plus three new custom checks (`nxos_Running_config`:
+`show running-config`, `nxos_Default_route`: `show ip route 0.0.0.0 vrf all`, and
+`nxos_mac_address`: `show mac address dynamic | sort`), and sets
+their post-update delays to 360 seconds. Original
+catalog entries remain unchanged; an existing `mac_address` check is not required.
+Checks created with the previous prefix are not renamed or deleted.
+Each group selects only applicable replacements, excluding
+overlapping default checks. Standalone switches omit vPC checks; dual-supervisor redundancy
+is selected only for 9508s. Custom checks copy visible commands and filters, but equivalence
+to ND's built-in validators is not guaranteed.
+
+Existing groups containing only the planned switches can be reused after a partial run. The script
+reads back the saved report selection before submitting report or staging requests.
+Acceptance of a request does not establish completion or a passing report; inspect results
+in ND. **The script never starts the NX-OS upgrade.**
+
+| Option | Description |
+| --- | --- |
+| `--config PATH` | YAML environment input sheet. |
+| `--nd-url URL`, `--username USER`, `--domain DOMAIN` | Override the ND endpoint and login settings. |
+| `--device NAME_OR_IP_OR_SERIAL` | Per-device group selection; overrides YAML `update_groups`/`switches`; repeatable. |
+| `--password-env NAME` | Override the password environment variable. |
+| `--vault-file PATH`, `--vault-password-file PATH` | Load encrypted ND credentials locally. |
+| `--apply` | Configure checks and groups and request image staging; default is plan-only. |
+| `--run-pre-report` | With `--apply`, request pre-report execution before staging. |
+| `--request-timeout SECONDS` | Per-request read timeout; defaults to 600 seconds. |
+| `--insecure` | Disable TLS verification and suppress its warning; use only for trusted lab endpoints. |
+| `--verify-tls` | Require TLS verification even when disabled in YAML. |
 
 ---
 

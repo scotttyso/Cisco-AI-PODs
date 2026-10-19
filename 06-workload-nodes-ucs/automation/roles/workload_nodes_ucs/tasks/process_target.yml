@@ -1,0 +1,196 @@
+---
+- name: "UCS/Intersight: select current claim target"
+  ansible.builtin.set_fact:
+    ucs_claim_target_name: "{{ ucs_claim_target_item.key }}"
+    ucs_claim_target: "{{ ucs_claim_target_item.value }}"
+    ucs_endpoint_results: []
+  no_log: true
+
+- name: "UCS/Intersight: discover connector state on every target endpoint"
+  ansible.builtin.include_tasks: discover_endpoint.yml
+  loop: "{{ ucs_claim_target.endpoints }}"
+  loop_control:
+    loop_var: ucs_claim_endpoint
+    label: "{{ ucs_claim_endpoint.inventory_host }}"
+
+- name: "UCS/Intersight: require a supported connector API and runtime identity"
+  ansible.builtin.assert:
+    that:
+      - ucs_endpoint_results | map(attribute='connector_supported') | select('equalto', false) | list | length == 0
+      - ucs_endpoint_results | map(attribute='device_id') | select('equalto', '') | list | length == 0
+      - ucs_endpoint_results | map(attribute='device_id') | unique | list | length == 1
+      - ucs_endpoint_results | map(attribute='ownership_state') | unique | list | length == 1
+      - ucs_claim_target.platform != 'domain' or ucs_claim_target.endpoints | length == 2
+    fail_msg: >-
+      {{ ucs_claim_target_name }} did not expose a consistent supported Device
+      Connector identity on every canonical endpoint. No claim or reclaim was
+      attempted. UCS C880 does not support Intersight claim and must set
+      ucs.intersight_claim_supported: false in host_vars; do not use a Device ID
+      or Claim Code workaround.
+  no_log: true
+
+- name: "UCS/Intersight: normalize target ownership"
+  ansible.builtin.set_fact:
+    ucs_target_device_id: "{{ ucs_endpoint_results[0].device_id }}"
+    ucs_target_ownership_state: "{{ ucs_endpoint_results[0].ownership_state }}"
+    ucs_target_registration_moid: "{{ ucs_endpoint_results[0].registration_moid }}"
+  no_log: true
+
+- name: "UCS/Intersight: reject unknown connector ownership state"
+  ansible.builtin.assert:
+    that:
+      - ucs_target_ownership_state in ['claimed', 'unclaimed', 'not claimed']
+    fail_msg: >-
+      {{ ucs_claim_target_name }} returned an unknown Device Connector
+      ownership state. No claim action was attempted.
+  no_log: true
+
+- name: "UCS/Intersight: verify an existing claim belongs to the selected account"
+  ansible.builtin.assert:
+    that:
+      - ucs_endpoint_results | map(attribute='ownership_account') | unique | list | length == 1
+      - ucs_endpoint_results[0].ownership_account == intersight_account_name
+      - ucs_target_registration_moid | length > 0
+    fail_msg: >-
+      {{ ucs_claim_target_name }} is already claimed by a different Intersight
+      account or did not return a usable registration. The normal path never
+      moves a target between accounts.
+  when: ucs_target_ownership_state == 'claimed'
+  no_log: true
+
+- name: "UCS/Intersight: require connector readiness before a claim or reclaim"
+  ansible.builtin.assert:
+    that:
+      - ucs_endpoint_results | map(attribute='admin_state') | select('equalto', false) | list | length == 0
+      - ucs_endpoint_results | map(attribute='connection_state') | map('lower') | unique | list == ['connected']
+    fail_msg: >-
+      {{ ucs_claim_target_name }} is not ready for claim/reclaim. Configure
+      Device Connector DNS, NTP, proxy (if required), and outbound access until
+      every endpoint reports Connected; no Intersight state was changed.
+  when: ucs_target_ownership_state != 'claimed' or ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight reclaim: unclaim selected target"
+  cisco.intersight.intersight_target_claim:
+    api_uri: "{{ ucs_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    device_id: "{{ ucs_target_device_id }}"
+    state: absent
+  when: ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight reclaim: wait for connector to become unclaimed"
+  ansible.builtin.include_tasks: poll_connector_safe.yml
+  vars:
+    ucs_poll_expected_state: unclaimed
+  when: ucs_intersight_reclaim_mode | bool
+
+- name: "UCS/Intersight reclaim: refresh one-time Claim Code"
+  ansible.builtin.set_fact:
+    ucs_endpoint_results: []
+  when: ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight reclaim: rediscover target after unclaim"
+  ansible.builtin.include_tasks: discover_endpoint.yml
+  loop: "{{ ucs_claim_target.endpoints }}"
+  loop_control:
+    loop_var: ucs_claim_endpoint
+    label: "{{ ucs_claim_endpoint.inventory_host }}"
+  when: ucs_intersight_reclaim_mode | bool
+
+- name: "UCS/Intersight: require a runtime one-time Claim Code"
+  ansible.builtin.assert:
+    that:
+      - ucs_endpoint_results[0].claim_code | default('') | length > 0
+      - >-
+        ucs_endpoint_results[0].claim_code_duration | default(0) | int >=
+        ucs_claim_code_minimum_duration_seconds | int
+    fail_msg: >-
+      {{ ucs_claim_target_name }} did not return a one-time Claim Code with at
+      least {{ ucs_claim_code_minimum_duration_seconds }} seconds remaining.
+      Do not copy one into inventory; rediscover a fresh code and retry.
+  when: ucs_target_ownership_state != 'claimed' or ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight: submit unclaimed target Device Claim"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ ucs_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /asset/DeviceClaims
+    api_body:
+      SecurityToken: "{{ ucs_endpoint_results[0].claim_code }}"
+      SerialNumber: "{{ ucs_target_device_id }}"
+    state: present
+  when: ucs_target_ownership_state != 'claimed' or ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight: wait for connector to report claimed"
+  ansible.builtin.include_tasks: poll_connector_safe.yml
+  vars:
+    ucs_poll_expected_state: claimed
+  when: ucs_target_ownership_state != 'claimed' or ucs_intersight_reclaim_mode | bool
+
+- name: "UCS/Intersight: use refreshed registration after claim"
+  ansible.builtin.set_fact:
+    ucs_target_registration_moid: "{{ ucs_polled_connector.DeviceRegistrationMoid | default('') }}"
+  when: ucs_target_ownership_state != 'claimed' or ucs_intersight_reclaim_mode | bool
+  no_log: true
+
+- name: "UCS/Intersight: read selected resource group"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ ucs_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+  register: ucs_resource_group_before
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: require selected resource group and registration"
+  ansible.builtin.assert:
+    that:
+      - ucs_resource_group_before.api_response.Moid | default('') | length > 0
+      - ucs_target_registration_moid | default('') | length > 0
+    fail_msg: >-
+      The selected resource group or the claimed target registration could not
+      be resolved. No resource-group selector was changed.
+  no_log: true
+
+- name: "UCS/Intersight: prepare registration selector"
+  ansible.builtin.set_fact:
+    ucs_registration_selector: >-
+      /api/v1/asset/DeviceRegistrations?$filter=(Moid eq '{{ ucs_target_registration_moid }}')
+    ucs_existing_selectors: "{{ ucs_resource_group_before.api_response.Selectors | default([]) }}"
+  no_log: true
+
+- name: "UCS/Intersight: append registration to selected resource group"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ ucs_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+    api_body:
+      Name: "{{ intersight_resource_group_name }}"
+      Qualifier: "{{ ucs_resource_group_before.api_response.Qualifier | default('Allow-Selectors') }}"
+      Selectors: "{{ ucs_existing_selectors + [{'Selector': ucs_registration_selector}] }}"
+    state: present
+  when: >-
+    ucs_existing_selectors | selectattr('Selector', 'search', ucs_target_registration_moid) | list | length == 0
+  no_log: true
+
+- name: "UCS/Intersight: report verified target"
+  ansible.builtin.debug:
+    msg: >-
+      Verified {{ ucs_claim_target_name }} is claimed by the selected
+      Intersight account and assigned to {{ intersight_resource_group_name }}.

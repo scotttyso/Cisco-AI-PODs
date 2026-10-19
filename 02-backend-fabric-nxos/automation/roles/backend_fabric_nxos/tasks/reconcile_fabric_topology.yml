@@ -1,0 +1,99 @@
+---
+- name: "BE fabric: select intended topology for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_topology_desired: >-
+      {{ be_fabric_topology_configs
+         | selectattr('FABRIC_NAME', 'equalto', be_fabric.name)
+         | first }}
+  no_log: true
+
+- name: "BE fabric: read live topology for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_topology_before
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: initialize selective topology update for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_topology_updates:
+      FABRIC_NAME: "{{ be_fabric.name }}"
+      FABRIC_TYPE: BGP
+      BGP_AS: "{{ be_fabric.bgp_as | string }}"
+  no_log: true
+
+- name: "BE fabric: collect changed topology settings for {{ be_fabric.name }}"
+  ansible.builtin.include_tasks: collect_topology_update.yml
+  loop: "{{ be_topology_desired | dict2items }}"
+  loop_control:
+    loop_var: be_topology_item
+    label: "{{ be_topology_item.key }}"
+  when: be_topology_item.key not in ['FABRIC_NAME', 'FABRIC_TYPE', 'BGP_AS', 'DEPLOY']
+  no_log: true
+
+- name: "BE fabric: apply selective topology update for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name
+      }}/{{ be_topology_before.json.templateName }}
+    method: PUT
+    headers: "{{ be_platform_headers }}"
+    body_format: json
+    body: "{{ be_topology_updates }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 120
+  delegate_to: localhost
+  register: be_topology_update_result
+  when: be_topology_updates | length > 3
+  no_log: true
+
+- name: "BE fabric: read topology after reconciliation for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_topology_after
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: initialize topology verification for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_topology_mismatches: []
+  no_log: true
+
+- name: "BE fabric: verify intended topology settings for {{ be_fabric.name }}"
+  ansible.builtin.include_tasks: collect_topology_mismatch.yml
+  loop: "{{ be_topology_desired | dict2items }}"
+  loop_control:
+    loop_var: be_topology_item
+    label: "{{ be_topology_item.key }}"
+  when: be_topology_item.key not in ['FABRIC_NAME', 'FABRIC_TYPE', 'BGP_AS', 'DEPLOY']
+  no_log: true
+
+- name: "BE fabric: require intended topology for {{ be_fabric.name }}"
+  ansible.builtin.assert:
+    that:
+      - be_topology_mismatches | length == 0
+    fail_msg: >-
+      Nexus Dashboard did not retain every intended topology setting for
+      {{ be_fabric.name }}. Mismatched keys: {{ be_topology_mismatches }}.
+  no_log: true

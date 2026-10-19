@@ -1,0 +1,5 @@
+---
+# Tier 3 — AI Workload domain (subsystem 09 ai-workloads)
+
+- name: "Tier 3 — AI Workload / subsystem 09"
+  ansible.builtin.import_playbook: ../../09-ai-workloads/automation/playbooks/09_ai_workloads.yml

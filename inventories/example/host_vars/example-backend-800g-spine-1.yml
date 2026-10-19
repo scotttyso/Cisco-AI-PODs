@@ -1,0 +1,19 @@
+---
+be_switch:
+  fabric_key: backend_800g
+  hostname: EXAMPLE-BE-800G-SPINE-1
+  role: spine
+  mgmt_ip: 203.0.113.65
+  username: admin
+  pass_ref: EXAMPLE_BE_800G_SPINE_1_PASSWORD
+  breakout_commands:
+    - interface breakout module 1 port 1-64 map 400g-2x
+  fabric_link_interfaces:
+    - Ethernet1/1/1
+    - Ethernet1/1/2
+    - Ethernet1/2/1
+    - Ethernet1/2/2
+    - Ethernet1/3/1
+    - Ethernet1/3/2
+    - Ethernet1/4/1
+    - Ethernet1/4/2

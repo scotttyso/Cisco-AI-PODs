@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/openshift-cluster/v1",
+  "title": "AI POD subsystem 07 - OpenShift cluster",
+  "description": "Stub schema for the OpenShift install spanning mgmt-nodes-ucs (subsystem 05) and workload-nodes-ucs (subsystem 06). Owns role assignment (control-plane / compact / worker), install topology (compact-then-expand), and the operator stack: NVIDIA GPU operator, NVIDIA Network operator, NFD, GPUDirect RDMA / Storage. The 06-nvidia-operators subsystem from the original layout was absorbed here per D17/N3 (NVIDIA operators are deployed via OCP OperatorHub, not as a separate provisioning step).\n\nReplace with the real shape when automation lands; until then, any object is accepted. When fleshed out, this schema cross-references mgmt-nodes-ucs and workload-nodes-ucs by subsystem name (e.g. control_plane.nodes_from: mgmt-nodes-ucs).",
+  "type": "object",
+  "additionalProperties": true
+}

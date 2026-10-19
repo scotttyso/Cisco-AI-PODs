@@ -1,0 +1,103 @@
+{
+  "artifacts": {
+    "raw_log": "/opt/aipod/06-workload-nodes-ucs/automation/run-logs/20261007T200457.123456Z-ucs-c880-4-plan/raw.log",
+    "run_dir": "/opt/aipod/06-workload-nodes-ucs/automation/run-logs/20261007T200457.123456Z-ucs-c880-4-plan",
+    "run_id": "20261007T200457.123456Z-ucs-c880-4-plan",
+    "status_file": "/opt/aipod/06-workload-nodes-ucs/automation/run-logs/20261007T200457.123456Z-ucs-c880-4-plan/status.json",
+    "telemetry_file": "/opt/aipod/06-workload-nodes-ucs/automation/run-logs/20261007T200457.123456Z-ucs-c880-4-plan/telemetry.json"
+  },
+  "components_table": [
+    {
+      "action": "PLANNED",
+      "badge": {
+        "label": "Target Baseline",
+        "variant": "info"
+      },
+      "component": "BIOS",
+      "critical": true,
+      "running_version": "Planned",
+      "status": "OFFLINE_PLANNED",
+      "target_version": "4.0.2.67"
+    },
+    {
+      "action": "PLANNED",
+      "badge": {
+        "label": "Target Baseline",
+        "variant": "info"
+      },
+      "component": "BMC",
+      "critical": true,
+      "running_version": "Planned",
+      "status": "OFFLINE_PLANNED",
+      "target_version": "4.0(2.260022)"
+    },
+    {
+      "action": "PLANNED",
+      "badge": {
+        "label": "Target Baseline",
+        "variant": "info"
+      },
+      "component": "GPU",
+      "critical": true,
+      "running_version": "Planned",
+      "status": "OFFLINE_PLANNED",
+      "target_version": "97.10.7E.00.03-G540.0216.00.03"
+    },
+    {
+      "action": "PLANNED",
+      "badge": {
+        "label": "Target Baseline",
+        "variant": "info"
+      },
+      "component": "CPLD",
+      "critical": false,
+      "running_version": "Planned",
+      "status": "OFFLINE_PLANNED",
+      "target_version": "0.1.0.1"
+    },
+    {
+      "action": "PLANNED",
+      "badge": {
+        "label": "Target Baseline",
+        "variant": "info"
+      },
+      "component": "EROT",
+      "critical": false,
+      "running_version": "Planned",
+      "status": "OFFLINE_PLANNED",
+      "target_version": "4.0.15"
+    }
+  ],
+  "console_drawer": {
+    "collapsible": true,
+    "default_expanded": false,
+    "lines": [
+      "Generated offline deployment plan for ucs-c880-4",
+      "Procedures planned: 7",
+      "Core health components required: BMC, BIOS, GPU"
+    ],
+    "title": "Raw Orchestrator & Vendor Logs",
+    "total_lines": 3
+  },
+  "host": "ucs-c880-4",
+  "phase": "offline_plan",
+  "schema_version": "1.0",
+  "settings_persistence": null,
+  "summary": {
+    "badge": {
+      "label": "Planned Baseline",
+      "variant": "info"
+    },
+    "blocked_count": 0,
+    "decision": "OFFLINE_PLAN",
+    "post_health": null,
+    "power_cycle_required": false,
+    "pre_health": null,
+    "reason": "Offline deployment plan generated; zero live network probes or credentials used.",
+    "total_components": 5,
+    "up_to_date_count": 0,
+    "upgradable_count": 0
+  },
+  "telemetry_type": "c880_upgrade_telemetry",
+  "timestamp_utc": "2026-10-07T20:04:57.784336+00:00"
+}

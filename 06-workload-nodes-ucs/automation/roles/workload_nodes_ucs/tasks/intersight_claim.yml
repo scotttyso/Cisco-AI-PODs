@@ -1,0 +1,93 @@
+---
+# Normal claim is idempotent and non-destructive. Device ID and Claim Code are
+# discovered from the target connector at run time and are never persisted.
+
+- name: "UCS/Intersight: require the canonical workload inventory group"
+  ansible.builtin.assert:
+    that:
+      - groups[ucs_claim_inventory_group] | default([]) | length > 0
+    fail_msg: "UCS Intersight processing requires hosts in the subsystem's canonical inventory group."
+
+- name: "UCS/Intersight: initialize selected targets and unsupported results"
+  ansible.builtin.set_fact:
+    ucs_claim_targets: {}
+    ucs_claim_failures: []
+    ucs_intersight_skipped_targets: []
+
+- name: "UCS/Intersight: report selected unsupported workload nodes"
+  ansible.builtin.set_fact:
+    ucs_intersight_skipped_targets: >-
+      {{ ucs_intersight_skipped_targets + [{
+          'inventory_host': ucs_inventory_host,
+          'outcome': 'not_supported',
+          'message': 'Not supported on UCS C880.'
+        }] }}
+  loop: "{{ groups[ucs_claim_inventory_group] }}"
+  loop_control:
+    loop_var: ucs_inventory_host
+    label: "{{ ucs_inventory_host }}"
+  when:
+    - not (hostvars[ucs_inventory_host].ucs.intersight_claim_supported | default(true) | bool)
+    - >-
+      ucs_intersight_target_filter | length == 0 or
+      (hostvars[ucs_inventory_host].ucs.claim_target | default(ucs_inventory_host)) in ucs_intersight_target_filter
+
+- name: "UCS/Intersight: display unsupported results for the operator console"
+  ansible.builtin.debug:
+    msg: "{{ ucs_intersight_skipped_targets }}"
+  when: ucs_intersight_skipped_targets | length > 0
+
+- name: "UCS/Intersight: assemble supported selected targets from canonical host_vars"
+  ansible.builtin.include_tasks: build_target.yml
+  loop: "{{ groups[ucs_claim_inventory_group] }}"
+  loop_control:
+    loop_var: ucs_inventory_host
+    label: "{{ ucs_inventory_host }}"
+  when:
+    - hostvars[ucs_inventory_host].ucs.intersight_claim_supported | default(true) | bool
+    - >-
+      ucs_intersight_target_filter | length == 0 or
+      (hostvars[ucs_inventory_host].ucs.claim_target | default(ucs_inventory_host)) in ucs_intersight_target_filter
+
+- name: "UCS/Intersight: require shared site claim inputs"
+  ansible.builtin.assert:
+    that:
+      - intersight_api_uri | default('') | length > 0
+      - intersight_account_name | default('') | length > 0
+      - intersight_resource_group_name | default('') | length > 0
+      - vault_intersight_api_key_id | default('') | length > 0
+      - vault_intersight_api_private_key | default('') | length > 0
+    fail_msg: >-
+      UCS Intersight claim requires the shared intersight_* site values, the
+      Intersight API key pair in vault.yml, and hosts in the subsystem's
+      canonical inventory group.
+  no_log: true
+  when: ucs_claim_targets | length > 0
+
+- name: "UCS/Intersight: normalize the Cisco Intersight API base URI"
+  ansible.builtin.set_fact:
+    ucs_intersight_api_uri: >-
+      {{ intersight_api_uri | regex_replace('/+$', '') ~
+         ('' if (intersight_api_uri | regex_replace('/+$', '')) is match('.*/api/v1$') else '/api/v1') }}
+  no_log: true
+  when: ucs_claim_targets | length > 0
+
+- name: "UCS/Intersight: claim or verify each selected target"
+  ansible.builtin.include_tasks: process_target_safe.yml
+  loop: "{{ ucs_claim_targets | dict2items }}"
+  loop_control:
+    loop_var: ucs_claim_target_item
+    label: "{{ ucs_claim_target_item.key }}"
+  when: >-
+    ucs_intersight_target_filter | length == 0 or
+    ucs_claim_target_item.key in ucs_intersight_target_filter
+
+- name: "UCS/Intersight: require every selected target to complete"
+  ansible.builtin.assert:
+    that:
+      - ucs_claim_failures | length == 0
+    fail_msg: >-
+      UCS Intersight processing failed for these independent targets:
+      {{ ucs_claim_failures | join(', ') }}. Other selected targets were still
+      processed; review the target-specific failure without persisting runtime
+      Device IDs, Claim Codes, or credentials.

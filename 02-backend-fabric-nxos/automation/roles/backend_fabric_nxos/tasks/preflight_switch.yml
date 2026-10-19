@@ -1,0 +1,10 @@
+---
+- name: "BE fabric: require SSH reachability for {{ be_switch_host }}"
+  ansible.builtin.wait_for:
+    host: "{{ hostvars[be_switch_host].be_switch.mgmt_ip }}"
+    port: 22
+    state: started
+    connect_timeout: 3
+    timeout: 5
+  delegate_to: localhost
+  changed_when: false

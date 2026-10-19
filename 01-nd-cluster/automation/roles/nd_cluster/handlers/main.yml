@@ -1,0 +1,4 @@
+---
+# No notify-driven handlers in the wedge. ND service restarts are owned
+# by ND itself; the Python automation calls `acs reboot` directly when
+# needed. Phase 3 native modules may grow handlers here.

@@ -1,0 +1,13 @@
+---
+- name: "BE fabric: retain one live template default"
+  ansible.builtin.set_fact:
+    be_template_defaults: >-
+      {{
+        be_template_defaults | combine(
+          {
+            be_template_parameter.name:
+              (be_template_parameter.metaProperties.defaultValue | default(None))
+          }
+        )
+      }}
+  no_log: true

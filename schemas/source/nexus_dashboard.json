@@ -4,7 +4,7 @@
     "definitions": {
         "cluster": {
             "additionalProperties": false,
-            "description": "Settings applied to the ND cluster as a whole.\n\nRequired Attributes:\n  * `dns`\n  * `iso`\n  * `name`\n  * `network`\n  * `ntp`\n  * `persistent_ips`\n\nOptional Attributes:\n  * `implementation_type` - Default is `LAN`.\n  * `proxy`\n  * `timezone`",
+            "description": "Settings applied to the ND cluster as a whole.\n\nRequired Attributes:\n  * `dns`\n  * `iso`\n  * `name`\n  * `network`\n  * `ntp`\n  * `persistent_ips`\n\nOptional Attributes:\n  * `implementation_type` - Default is `LAN`.\n  * `nodes`\n  * `proxy`\n  * `timezone`",
             "properties": {
                 "dns": {
                     "$ref": "#/definitions/cluster.dns",
@@ -33,6 +33,10 @@
                 "network": {
                     "$ref": "#/definitions/cluster.network",
                     "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array."
+                },
+                "nodes": {
+                    "$ref": "#/definitions/cluster.nodes",
+                    "description": "The three Nexus Dashboard nodes with their CIMC, ND-MGMT, and ND-DATA addressing."
                 },
                 "ntp": {
                     "$ref": "#/definitions/cluster.ntp",
@@ -460,8 +464,11 @@
                     }
                 }
             ],
-            "description": "Configuration for Nexus Dashboard fabric deployment.\n\nRequired Attributes:\n  * `type`\n\nOptional Attributes:\n  * `fabric_settings`\n  * `licenseTier` - Default is `essentials`.\n  * `name`\n  * `switches`\n  * `telemetry`",
+            "description": "Configuration for Nexus Dashboard fabric deployment.\n\nRequired Attributes:\n  * `type`\n\nOptional Attributes:\n  * `backend_settings`\n  * `fabric_settings`\n  * `licenseTier` - Default is `essentials`.\n  * `name`\n  * `switches`\n  * `telemetry`",
             "properties": {
+                "backend_settings": {
+                    "$ref": "#/definitions/fabrics.backend_settings"
+                },
                 "fabric_settings": {
                     "description": "Fabric-specific settings for four fabric types. The parent fabric `type` selects which settings definition is used. Omitted optional settings use their declared defaults.\n\n`classicLan` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `cdp` - Default is `false`.\n  * `coppPolicy` - Default is `manual`.\n  * `inbandManagement` - Default is `false`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `monitoredMode` - Default is `true`.\n  * `mplsHandoff` - Default is `false`.\n  * `mplsLoopbackIdentifier` - Default is `101`.\n  * `nxapi` - Default is `false`.\n  * `performanceMonitoring` - Default is `false`.\n  * `realTimeInterfaceStatisticsCollection` - Default is `false`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`vxlanIbgp` and `vxlanEbgp` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `firstHopRedundancyProtocol` - Default is `hsrp`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `intraFabricSubnetRange` - Default is `10.4.0.0/16`.\n  * `l2VniRange`\n  * `l3VniRange`\n  * `networkVlanRange` - Default is `2300-2999`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n\n`aiRouted` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `coppPolicy` - Default is `strict`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`aiVxlanEvpn` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.",
                     "type": "object"
@@ -577,6 +584,129 @@
                 }
             },
             "title": "AI Routed Fabric Settings",
+            "type": "object"
+        },
+        "fabrics.backend_settings": {
+            "additionalProperties": false,
+            "description": "AI backend-fabric workflow settings (stage 02). These values are not sent to the Nexus Dashboard fabric API directly; the workflow translates them into the AI fabric template. Feature flags (`addSwitchesWithoutReload`, `bfd`, `enableAiMlQosPolicy`, `realTimeBackup`, `useRobotPassword`) are read from the first backend fabric.\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `addSwitchesWithoutReload` - Default is `true`.\n  * `bfd` - Default is `true`.\n  * `enableAiMlQosPolicy` - Default is `true`.\n  * `key`\n  * `location`\n  * `ptp` - Default is `true`.\n  * `ptpDomainId` - Default is `0`.\n  * `ptpSourceLoopbackId` - Default is `0`.\n  * `qosPolicy` - Default is `AI_Fabric_QOS_400G`.\n  * `realTimeBackup` - Default is `true`.\n  * `replicationMode` - Default is `Multicast`.\n  * `underlayFirstOctet` - Default is `20`.\n  * `useRobotPassword` - Default is `true`.",
+            "properties": {
+                "addSwitchesWithoutReload": {
+                    "default": true,
+                    "description": "Add switches to the fabric without a reload.",
+                    "title": "Add Switches Without Reload",
+                    "type": "boolean"
+                },
+                "bfd": {
+                    "default": true,
+                    "description": "Enable BFD for the fabric underlay.",
+                    "title": "BFD",
+                    "type": "boolean"
+                },
+                "enableAiMlQosPolicy": {
+                    "default": true,
+                    "description": "Apply the AI/ML QoS policy to the fabric.",
+                    "title": "Enable AI/ML QoS Policy",
+                    "type": "boolean"
+                },
+                "key": {
+                    "description": "Short identifier for the fabric used in generated inventory group names (`backend_fabric_<key>`). Defaults to the fabric name in lower case with non-alphanumeric characters replaced by `_`.",
+                    "example": "backend",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "title": "Fabric Key",
+                    "type": "string"
+                },
+                "location": {
+                    "additionalProperties": false,
+                    "description": "Fabric location shown in Nexus Dashboard.",
+                    "properties": {
+                        "latitude": {
+                            "maximum": 90,
+                            "minimum": -90,
+                            "title": "Latitude",
+                            "type": "number"
+                        },
+                        "longitude": {
+                            "maximum": 180,
+                            "minimum": -180,
+                            "title": "Longitude",
+                            "type": "number"
+                        },
+                        "name": {
+                            "example": "San Jose, US",
+                            "minLength": 1,
+                            "title": "Location Name",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name"
+                    ],
+                    "title": "Location",
+                    "type": "object"
+                },
+                "ptp": {
+                    "default": true,
+                    "description": "Enable Precision Time Protocol. Some switch models (for example N9364E-SG2) reject PTP in the fabric template.",
+                    "title": "PTP",
+                    "type": "boolean"
+                },
+                "ptpDomainId": {
+                    "default": 0,
+                    "maximum": 127,
+                    "minimum": 0,
+                    "title": "PTP Domain ID",
+                    "type": "integer"
+                },
+                "ptpSourceLoopbackId": {
+                    "default": 0,
+                    "maximum": 1023,
+                    "minimum": 0,
+                    "title": "PTP Source Loopback ID",
+                    "type": "integer"
+                },
+                "qosPolicy": {
+                    "default": "AI_Fabric_QOS_400G",
+                    "description": "AI fabric QoS template.",
+                    "examples": [
+                        "AI_Fabric_QOS_400G",
+                        "AI_Fabric_QOS_800G"
+                    ],
+                    "minLength": 1,
+                    "title": "QoS Policy",
+                    "type": "string"
+                },
+                "realTimeBackup": {
+                    "default": true,
+                    "description": "Enable real-time fabric configuration backup.",
+                    "title": "Real-Time Backup",
+                    "type": "boolean"
+                },
+                "replicationMode": {
+                    "default": "Multicast",
+                    "description": "Underlay BUM replication mode. Use `Ingress` for models without multicast underlay support (for example N9364E-SG2).",
+                    "enum": [
+                        "Ingress",
+                        "Multicast"
+                    ],
+                    "title": "Replication Mode",
+                    "type": "string"
+                },
+                "underlayFirstOctet": {
+                    "default": 20,
+                    "description": "First octet of the generated underlay address pools. Use a different value for each backend fabric.",
+                    "maximum": 223,
+                    "minimum": 1,
+                    "title": "Underlay First Octet",
+                    "type": "integer"
+                },
+                "useRobotPassword": {
+                    "default": true,
+                    "description": "Let the fabric designer use the shared switch password when provisioning switches.",
+                    "title": "Use Robot Password",
+                    "type": "boolean"
+                }
+            },
+            "title": "Backend Fabric Workflow Settings",
             "type": "object"
         },
         "fabrics.fabric_settings.ai_vxlan_evpn_fabric_settings": {
@@ -864,7 +994,7 @@
             "type": "object"
         },
         "fabrics.switches": {
-            "description": "List of switches to add to a fabric. At least one switch is required.\n\nRequired item attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional item attributes:\n  * `switchRole`",
+            "description": "List of switches to add to a fabric. At least one switch is required.\n\nRequired item attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional item attributes:\n  * `breakoutCommands`\n  * `fabricLinkInterfaces`\n  * `passwordRef`\n  * `switchRole`\n  * `username`",
             "items": {
                 "$ref": "#/definitions/fabrics.switches.switch"
             },
@@ -875,8 +1005,38 @@
         },
         "fabrics.switches.switch": {
             "additionalProperties": false,
-            "description": "Configuration for a single switch to be added to a fabric.\n\nRequired Attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional Attributes:\n  * `switchRole`",
+            "description": "Configuration for a single switch to be added to a fabric.\n\nRequired Attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional Attributes:\n  * `breakoutCommands`\n  * `fabricLinkInterfaces`\n  * `passwordRef`\n  * `switchRole`\n  * `username` - Default is `admin`.",
             "properties": {
+                "breakoutCommands": {
+                    "description": "NX-OS breakout commands the backend-fabric workflow applies before discovery (stage 02).",
+                    "examples": [
+                        [
+                            "interface breakout module 1 port 1-32 map 400g-2x"
+                        ]
+                    ],
+                    "items": {
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "title": "Breakout Commands",
+                    "type": "array"
+                },
+                "fabricLinkInterfaces": {
+                    "description": "Spine/leaf fabric link interfaces the backend-fabric pre-check expects to see LLDP neighbors on (stage 02).",
+                    "examples": [
+                        [
+                            "Ethernet1/1",
+                            "Ethernet1/2"
+                        ]
+                    ],
+                    "items": {
+                        "pattern": "^[A-Za-z][A-Za-z-]*[0-9][0-9/.]*$",
+                        "type": "string"
+                    },
+                    "title": "Fabric Link Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                },
                 "hostname": {
                     "description": "Hostname of the switch",
                     "example": "leaf1",
@@ -890,6 +1050,13 @@
                     "example": "10.1.1.10",
                     "format": "ipv4",
                     "title": "IP Address",
+                    "type": "string"
+                },
+                "passwordRef": {
+                    "description": "Vault reference for this switch's local password. The vault variable is `vault_` plus the lower-case reference. When omitted, the shared fabric switch password (`vault_switch_password`) is used.",
+                    "example": "BE_LF1_PASSWORD",
+                    "pattern": "^[A-Z][A-Z0-9_]*$",
+                    "title": "Password Reference",
                     "type": "string"
                 },
                 "model": {
@@ -920,6 +1087,14 @@
                     ],
                     "example": "leaf",
                     "title": "Switch Role",
+                    "type": "string"
+                },
+                "username": {
+                    "default": "admin",
+                    "description": "Local switch user the backend-fabric workflow uses for SSH pre-checks.",
+                    "example": "admin",
+                    "minLength": 1,
+                    "title": "Username",
                     "type": "string"
                 }
             },

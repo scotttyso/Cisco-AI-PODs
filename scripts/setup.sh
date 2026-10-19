@@ -15,6 +15,10 @@ GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 SKIP_APT="${SKIP_APT:-0}"
 SKIP_ENV_SETUP="${SKIP_ENV_SETUP:-0}"
 SKIP_ISERVER="${SKIP_ISERVER:-0}"
+SKIP_CLI_TOOLS="${SKIP_CLI_TOOLS:-0}"
+BIN_DIR="${BIN_DIR:-/usr/local/bin}"
+OCP_CLIENT_CHANNEL="${OCP_CLIENT_CHANNEL:-stable}"
+VIRTCTL_VERSION="${VIRTCTL_VERSION:-latest}"
 
 GITHUB_API="https://api.github.com/repos/datacenter/iserver/releases/latest"
 
@@ -33,11 +37,14 @@ Options:
   --skip-apt                Skip apt-based package installation
   --skip-env-setup          Skip environment preparation (venv, ansible, dependencies)
   --skip-iserver            Skip iServer download
+  --skip-cli-tools          Skip installing oc, kubectl, virtctl and isctl
+  --bin-dir <path>          Install directory for CLI tools (default: ${BIN_DIR})
   -h, --help                Show this help
 
 Environment variable equivalents:
-  GIT_USER_NAME, GIT_USER_EMAIL, VENV_DIR, ISERVER_OUTPUT,
-    PYTHON_BIN=python3.12, SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1
+  GIT_USER_NAME, GIT_USER_EMAIL, VENV_DIR, ISERVER_OUTPUT, BIN_DIR,
+    PYTHON_BIN=python3.12, SKIP_APT=1, SKIP_ENV_SETUP=1, SKIP_ISERVER=1,
+    SKIP_CLI_TOOLS=1, OCP_CLIENT_CHANNEL=stable-4.21, VIRTCTL_VERSION=v1.7.4
 
 Optional GitHub authentication (to avoid rate limiting):
   GITHUB_TOKEN=<your-pat>   Personal Access Token for higher GitHub API rate limits
@@ -67,6 +74,23 @@ create_virtual_environment() {
     rm -rf "$VENV_DIR"
     "$PYTHON_BIN" -m pip install --user virtualenv || "$PYTHON_BIN" -m pip install virtualenv
     "$PYTHON_BIN" -m virtualenv "$VENV_DIR"
+}
+
+install_binary() {
+    local source="$1" name="$2" runner=()
+    mkdir -p "$BIN_DIR" 2>/dev/null || sudo mkdir -p "$BIN_DIR"
+    [[ -w "$BIN_DIR" ]] || runner=(sudo)
+    "${runner[@]}" install -m 0755 "$source" "${BIN_DIR}/${name}"
+    log "Installed ${name} to ${BIN_DIR}/${name}"
+}
+
+github_latest_tag() {
+    local headers=(-H "Accept: application/vnd.github+json")
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        headers+=(-H "Authorization: token ${GITHUB_TOKEN}")
+    fi
+    curl -fsSL "${headers[@]}" "https://api.github.com/repos/$1/releases/latest" \
+        | python3 -c 'import json, sys; print(json.load(sys.stdin)["tag_name"])'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -99,6 +123,14 @@ while [[ $# -gt 0 ]]; do
             SKIP_ISERVER=1
             shift
             ;;
+        --skip-cli-tools)
+            SKIP_CLI_TOOLS=1
+            shift
+            ;;
+        --bin-dir)
+            BIN_DIR="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -118,15 +150,15 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
 
     if [[ "$SKIP_APT" != "1" ]]; then
         if command -v apt >/dev/null 2>&1; then
-            log "Installing Git and Python system packages with apt"
+            log "Installing Git, Python, and tmux system packages with apt"
             sudo apt update
-            sudo apt install -y git python3.12 python3.12-venv
+            sudo apt install -y git python3.12 python3.12-venv tmux
         elif command -v dnf >/dev/null 2>&1; then
-            log "Installing Git and Python system packages with dnf"
-            sudo dnf install -y git python3.12 python3.12-pip
+            log "Installing Git, Python, and tmux system packages with dnf"
+            sudo dnf install -y git python3.12 python3.12-pip tmux
         elif command -v yum >/dev/null 2>&1; then
-            log "Installing Git and Python system packages with yum"
-            sudo yum install -y git python3.12 python3.12-pip
+            log "Installing Git, Python, and tmux system packages with yum"
+            sudo yum install -y git python3.12 python3.12-pip tmux
         else
             warn "No supported package manager found (apt, dnf, or yum); skipping OS package install"
         fi
@@ -134,8 +166,9 @@ if [[ "$SKIP_ENV_SETUP" != "1" ]]; then
         log "Skipping package manager installation"
     fi
 
-    log "Validating Git and Python availability"
+    log "Validating Git, tmux, and Python availability"
     command -v git >/dev/null 2>&1 || die "git is not installed or not in PATH"
+    command -v tmux >/dev/null 2>&1 || die "tmux is not installed or not in PATH"
     command -v "$PYTHON_BIN" >/dev/null 2>&1 || die "${PYTHON_BIN} is required for the pinned Ansible tooling; install Python 3.12 or set PYTHON_BIN to a compatible interpreter"
     "$PYTHON_BIN" -c 'import sys; sys.exit(sys.version_info < (3, 12))' || die "${PYTHON_BIN} must be Python 3.12 or newer for the pinned Ansible tooling"
 
@@ -407,6 +440,10 @@ PYSCRIPT
         die "Failed to extract ${archive_path}"
     fi
 
+    if [[ -f "${ISERVER_OUTPUT}/iserver" ]]; then
+        install_binary "${ISERVER_OUTPUT}/iserver" iserver
+    fi
+
     log "iServer setup complete!"
     log "Output directory: ${ISERVER_OUTPUT}"
     log ""
@@ -414,6 +451,54 @@ PYSCRIPT
     log "1. Review the iServer documentation: https://github.com/datacenter/iserver/blob/main/doc/ocp/Console.md"
     log "2. Configure iServer for OpenShift assisted installer deployment"
 
+fi
+
+# ============================================================================
+# CLI TOOLS: oc, kubectl, virtctl, isctl
+# ============================================================================
+
+if [[ "$SKIP_CLI_TOOLS" != "1" ]]; then
+    log "=== CLI TOOLS ==="
+    tool_dir="$(mktemp -d)"
+    trap 'rm -rf "$tool_dir"' EXIT
+
+    if command -v oc >/dev/null 2>&1 && command -v kubectl >/dev/null 2>&1; then
+        log "oc and kubectl already installed: $(command -v oc), $(command -v kubectl)"
+    else
+        oc_url="https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/${OCP_CLIENT_CHANNEL}/openshift-client-linux.tar.gz"
+        log "Downloading OpenShift client from ${oc_url}"
+        curl -fsSL -o "${tool_dir}/oc.tar.gz" "$oc_url" || die "Failed to download the OpenShift client"
+        # The archive stores kubectl as a hard link to oc.
+        tar -xzf "${tool_dir}/oc.tar.gz" -C "$tool_dir" oc
+        install_binary "${tool_dir}/oc" oc
+        install_binary "${tool_dir}/oc" kubectl
+    fi
+
+    if command -v virtctl >/dev/null 2>&1; then
+        log "virtctl already installed: $(command -v virtctl)"
+    else
+        version="$VIRTCTL_VERSION"
+        [[ "$version" != "latest" ]] || version="$(github_latest_tag kubevirt/kubevirt)"
+        log "Downloading virtctl ${version}"
+        curl -fsSL -o "${tool_dir}/virtctl" \
+            "https://github.com/kubevirt/kubevirt/releases/download/${version}/virtctl-${version}-linux-amd64" \
+            || die "Failed to download virtctl ${version}"
+        install_binary "${tool_dir}/virtctl" virtctl
+    fi
+
+    if command -v isctl >/dev/null 2>&1; then
+        log "isctl already installed: $(command -v isctl)"
+    else
+        version="$(github_latest_tag cgascoig/isctl)"
+        log "Downloading isctl ${version} (required by iServer Intersight commands)"
+        curl -fsSL "https://github.com/cgascoig/isctl/releases/download/${version}/isctl_${version#v}_Linux_x86_64.tar.gz" \
+            | tar -xz -C "$tool_dir" isctl || die "Failed to download isctl ${version}"
+        install_binary "${tool_dir}/isctl" isctl
+    fi
+
+    for tool in oc kubectl virtctl isctl iserver; do
+        command -v "$tool" >/dev/null 2>&1 || warn "${tool} is not on PATH; add ${BIN_DIR} to PATH"
+    done
 fi
 
 # ============================================================================
@@ -431,6 +516,9 @@ Virtual environment (if enabled):
 
 iServer directory (if enabled):
   ${ISERVER_OUTPUT}/
+
+CLI tools (if enabled) in ${BIN_DIR}:
+  iserver, isctl, oc, kubectl, virtctl
 
 Environment preparation is complete.
 

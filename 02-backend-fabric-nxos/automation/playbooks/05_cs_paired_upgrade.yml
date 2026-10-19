@@ -1,0 +1,85 @@
+---
+# Cloud-scale fabric only. Two guarded waves, each one spine and one leaf.
+# Never overlaps another install in this fabric or retries an ambiguous write.
+- name: "Subsystem 02 - Paired cloud-scale fabric software upgrade"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    nd_paired_phase: plan
+    nd_paired_controller: "{{ hostvars[groups['nd_bootstrap'][0]] }}"
+    nd_paired_helper: >-
+      {{ lookup('ansible.builtin.first_found', [
+           playbook_dir ~ '/../scripts/sg2_nd_paired_upgrade.py',
+           playbook_dir ~ '/../roles/backend_fabric_nxos/files/automation/scripts/sg2_nd_paired_upgrade.py'
+         ]) }}
+    nd_upload_helper: >-
+      {{ lookup('ansible.builtin.first_found', [
+           playbook_dir ~ '/../scripts/sg2_nd_upload.py',
+           playbook_dir ~ '/../roles/backend_fabric_nxos/files/automation/scripts/sg2_nd_upload.py'
+         ]) }}
+    nd_upgrade_image_path: ""
+
+  tasks:
+    - name: Require an explicit phase and ND credentials
+      ansible.builtin.assert:
+        that:
+          - nd_paired_phase in ['upload', 'plan', 'groups', 'stage', 'stage-left', 'install', 'install-left', 'verify', 'rehearsal']
+          - vault_nd_admin_password | default('') | length > 0
+          - nd_paired_phase != 'upload' or nd_upgrade_image_path | length > 0
+        fail_msg: Cloud-scale upgrade phase or ND credentials are unavailable.
+      no_log: true
+
+    - name: Verify Cisco checksum and upload cloud-scale image once
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python,
+              nd_upload_helper,
+              '--profile', 'cs',
+              '--image', nd_upgrade_image_path,
+              '--vault', aipod_vault_file | default(inventory_dir ~ '/group_vars/vault.yml'),
+              '--nd-host', nd_paired_controller.nd_node.mgmt.ip]
+             + (['--verify-tls'] if nd_paired_controller.nd_runtime.verify_tls | bool else []) }}
+      when: nd_paired_phase == 'upload'
+      register: nd_upload_result
+      changed_when: false
+      no_log: true
+
+    - name: Execute guarded cloud-scale phase through ND
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python,
+              nd_paired_helper,
+              '--profile', 'cs',
+              '--phase', nd_paired_phase,
+              '--vault', aipod_vault_file | default(inventory_dir ~ '/group_vars/vault.yml'),
+              '--nd-host', nd_paired_controller.nd_node.mgmt.ip]
+             + (['--verify-tls'] if nd_paired_controller.nd_runtime.verify_tls | bool else []) }}
+      register: nd_paired_result
+      when: nd_paired_phase != 'upload'
+      changed_when: false
+      no_log: true
+
+    - name: Return sanitized switch result for the frontend
+      ansible.builtin.debug:
+        msg: >-
+          {{ nd_paired_result.stdout_lines
+             | select('match', '^\{')
+             | map('from_json')
+             | list }}
+      when:
+        - nd_paired_phase in ['install', 'install-left']
+        - nd_paired_result.stdout_lines | select('match', '^\{') | list | length > 0
+
+    - name: Report phase completion without revealing ND runtime data
+      ansible.builtin.debug:
+        msg: >-
+          Cloud-scale paired {{ nd_paired_phase }} phase completed.
+          Verify primary fabric links, reciprocal LLDP and underlay after install.

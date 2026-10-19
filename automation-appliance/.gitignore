@@ -1,0 +1,7 @@
+output/
+packer_cache/
+*.auto.pkrvars.hcl
+appliance.pkrvars.hcl
+# Downloaded OpenShift CLI tooling
+/virtctl
+virtctl.tar.gz

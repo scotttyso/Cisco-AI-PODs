@@ -1,0 +1,191 @@
+---
+- name: "UCS/Intersight: require canonical UCS-X DNS and NTP inputs"
+  ansible.builtin.assert:
+    that:
+      - aipod is defined
+      - aipod is mapping
+      - aipod.dns_servers is sequence and aipod.dns_servers is not string
+      - aipod.ntp_servers is sequence and aipod.ntp_servers is not string
+      - aipod.dns_servers | default([]) | length > 0
+      - aipod.ntp_servers | default([]) | length > 0
+    fail_msg: >-
+      UCS-X Direct Device Connector preparation requires
+      aipod.dns_servers and .ntp_servers in canonical site
+      inventory.
+
+- name: "UCS/Intersight: read UCS-X connector communication configuration"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/CommConfigs"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_domain_comm_configs_raw
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: normalize UCS-X connector communication configuration"
+  ansible.builtin.set_fact:
+    ucs_domain_comm_configs: >-
+      {{
+        ((ucs_domain_comm_configs_raw.content | from_json) | first)
+        if ((ucs_domain_comm_configs_raw.content | from_json) is sequence and
+            (ucs_domain_comm_configs_raw.content | from_json) is not mapping)
+        else (ucs_domain_comm_configs_raw.content | from_json)
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: require writable UCS-X DNS and NTP settings"
+  ansible.builtin.assert:
+    that:
+      - "'DnsReadWrite' in (ucs_domain_comm_configs.PlatformCapabilities | default([]))"
+      - "'NtpReadWrite' in (ucs_domain_comm_configs.PlatformCapabilities | default([]))"
+      - >-
+        aipod.dns_servers | length <=
+        (ucs_domain_comm_configs.Status.MaxDnsServers | default(0) | int)
+      - >-
+        aipod.ntp_servers | length <=
+        (ucs_domain_comm_configs.Status.MaxNtpServers | default(0) | int)
+    fail_msg: >-
+      {{ ucs_claim_endpoint.inventory_host }} does not expose writable Device
+      Connector DNS/NTP settings or cannot accept the canonical server count.
+
+- name: "UCS/Intersight: determine UCS-X connector prerequisite drift"
+  ansible.builtin.set_fact:
+    ucs_domain_dns_drift: >-
+      {{
+        (aipod.dns_servers |
+         difference(ucs_domain_comm_configs.NameServers | default([])) |
+         length > 0) or
+        (aipod.domain_name is defined and
+         (ucs_domain_comm_configs.DomainName | default('')) !=
+         aipod.domain_name)
+      }}
+    ucs_domain_ntp_drift: >-
+      {{
+        aipod.ntp_servers |
+        difference(ucs_domain_comm_configs.NtpServers | default([])) |
+        length > 0
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: reconcile UCS-X connector DNS settings"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/CommConfigs"
+    method: PUT
+    headers: "{{ ucs_connector_headers }}"
+    body_format: json
+    body:
+      DomainName: >-
+        {{ aipod.domain_name |
+           default(ucs_domain_comm_configs.DomainName | default('')) }}
+      NameServers: >-
+        {{ (ucs_domain_comm_configs.NameServers | default([])) |
+           union(aipod.dns_servers) | list }}
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_domain_dns_update
+  until: ucs_domain_dns_update.status == 200
+  retries: 30
+  delay: 5
+  when: ucs_domain_dns_drift | bool
+  no_log: true
+
+- name: "UCS/Intersight: reconcile UCS-X connector NTP settings"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/CommConfigs"
+    method: PUT
+    headers: "{{ ucs_connector_headers }}"
+    body_format: json
+    body:
+      NtpServers: >-
+        {{ (ucs_domain_comm_configs.NtpServers | default([])) |
+           union(aipod.ntp_servers) | list }}
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_domain_ntp_update
+  until: ucs_domain_ntp_update.status == 200
+  retries: 30
+  delay: 5
+  when: ucs_domain_ntp_drift | bool
+  no_log: true
+
+- name: "UCS/Intersight: re-authenticate after UCS-X connector restart"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/Login"
+    method: POST
+    body_format: json
+    body:
+      User: "{{ ucs_claim_endpoint.user }}"
+      Password: "{{ lookup('vars', ucs_claim_endpoint.password_var) }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_domain_relogin
+  until: ucs_domain_relogin.status == 200
+  retries: 90
+  delay: 5
+  when: ucs_domain_dns_drift | bool or ucs_domain_ntp_drift | bool
+  no_log: true
+
+- name: "UCS/Intersight: refresh authentication header after restart"
+  ansible.builtin.set_fact:
+    ucs_connector_headers:
+      Cookie: >-
+        sessionId={{ (ucs_domain_relogin.content | from_json).SessionId }}
+      X-Csrf-Token: "{{ ucs_domain_relogin.x_csrf_token }}"
+  when: ucs_domain_dns_drift | bool or ucs_domain_ntp_drift | bool
+  no_log: true
+
+- name: "UCS/Intersight: verify UCS-X connector DNS and NTP settings"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/CommConfigs"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_domain_comm_configs_after_raw
+  until: >-
+    ucs_domain_comm_configs_after_raw.status == 200 and
+    ((aipod.dns_servers |
+      difference(((ucs_domain_comm_configs_after_raw.content | from_json) | first).NameServers | default([])) |
+      length) == 0) and
+    ((aipod.ntp_servers |
+      difference(((ucs_domain_comm_configs_after_raw.content | from_json) | first).NtpServers | default([])) |
+      length) == 0) and
+    (aipod.domain_name is not defined or
+     (((ucs_domain_comm_configs_after_raw.content | from_json) | first).DomainName | default('')) ==
+     aipod.domain_name)
+  retries: 90
+  delay: 5
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: wait for UCS-X connector after prerequisite reconciliation"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/Systems"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_domain_connector_after_prereqs
+  until: >-
+    ucs_domain_connector_after_prereqs.status == 200 and
+    ((((ucs_domain_connector_after_prereqs.content | from_json) | first).ConnectionState |
+      default('') | lower | trim) == 'connected')
+  retries: 90
+  delay: 5
+  when: ucs_domain_dns_drift | bool or ucs_domain_ntp_drift | bool
+  changed_when: false
+  no_log: true

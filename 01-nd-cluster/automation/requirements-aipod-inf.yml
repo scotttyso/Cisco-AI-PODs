@@ -1,0 +1,12 @@
+---
+# Ansible Galaxy dependencies for the ND 4.3.x validation environment.
+collections:
+  - name: ansible.netcommon
+    version: 8.7.0
+  - name: cisco.nd
+    version: 1.5.0
+  # Used by the ND-owned post-install Intersight claim workflow. Keep this
+  # reproducible in the subsystem collection path; do not rely on a user's
+  # global ~/.ansible collection cache.
+  - name: cisco.intersight
+    version: 2.2.0

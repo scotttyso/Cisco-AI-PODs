@@ -90,7 +90,7 @@ ansible-playbook playbooks/deploy_nexus_dashboard.yaml \
 - `fabric_name`: Name of the fabric
 - `fabric_type`: Type of fabric (classicLan, vxlanIbgp, vxlanEbgp)
 - `config_file`: Path to YAML configuration file
-- `nd_url`: Nexus Dashboard URL (default: https://nd-lan.rich.ciscolabs.com)
+- `nd_url`: Nexus Dashboard URL (default: https://nd.example.com)
 - `nd_username`: Nexus Dashboard username (default: admin)
 - `vault_file`: Path to vault-ai-pod.yaml
 
@@ -137,7 +137,7 @@ ansible-playbook playbooks/nexus_dashboard_list_switches.yaml \
 You can set these environment variables instead of passing them as arguments:
 
 ```bash
-export ND_URL="https://nd-lan.rich.ciscolabs.com"
+export ND_URL="https://nd.example.com"
 export ND_USERNAME="admin"
 
 ansible-playbook playbooks/deploy_nexus_dashboard.yaml \

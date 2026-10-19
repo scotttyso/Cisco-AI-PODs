@@ -1,0 +1,7 @@
+---
+ucs_claim_inventory_group: ucs_mgmt_nodes
+ucs_connector_validate_certs: false
+ucs_intersight_target_filter: []
+ucs_connector_poll_retries: 60
+ucs_connector_poll_delay_seconds: 10
+ucs_claim_code_minimum_duration_seconds: 60

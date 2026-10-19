@@ -1,0 +1,46 @@
+# Input for scripts/nd_stage_nexus_updates.py --config <file>
+# No plaintext passwords: use password_env or an encrypted vault.
+nexus_dashboard:
+  host: nd.example.com
+  username: admin
+  domain: local
+  verify_ssl: true
+  timeout: 600
+  password_env: NEXUS_DASHBOARD_PASSWORD
+  # Vault paths can use ~; relative paths are resolved from this sheet's directory.
+  # vault_file: ~/.config/cisco-ai-pods/nd-vault.yaml
+  # vault_password_file: ~/.config/cisco-ai-pods/vault-password
+
+# Optional: replaces ALL built-in rules. First matching rule wins; N9K devices only.
+# Omit this section to use the defaults shown here. Quote all versions.
+upgrade_rules:
+  - models: ["*"]
+    source_version: "9.3"
+    target_version: "9.3.16"
+  - models: ["*93180YC-EX*", "*93108TC-EX*"]
+    source_version: "10.3"
+    target_version: "10.3.10"
+  - models: ["*"]
+    source_version: "10.3"
+    target_version: "10.6.4"
+  # Example additional rule; verify the supported upgrade path before enabling.
+  # - models: ["N9K-C93240YC-FX2"]
+  #   source_version: "10.6"
+  #   target_version: "10.6.4"
+
+# Named update groups: each group's switches must share a fabric, target image, and check set
+# (e.g. keep vPC pairs and standalone switches in separate groups). Names: letters, digits, _ or -, max 48.
+update_groups:
+  leaf-fx-10_6_4:
+    hosts:
+      - leaf101
+      - leaf102
+  border-ex-10_3_10:
+    hosts:
+      - 192.0.2.21
+      - 192.0.2.22
+
+# Alternative to update_groups: one group per switch. Switch names, management IPs, or serials.
+# Leave both empty for interactive selection.
+# switches:
+#   hosts: []

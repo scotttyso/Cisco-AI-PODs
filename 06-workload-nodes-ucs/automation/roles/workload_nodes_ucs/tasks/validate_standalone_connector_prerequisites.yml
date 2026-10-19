@@ -1,0 +1,119 @@
+---
+- name: "UCS/Intersight: require canonical standalone DNS and NTP inputs"
+  ansible.builtin.assert:
+    that:
+      - aipod is defined
+      - aipod is mapping
+      - aipod.dns_servers is sequence and aipod.dns_servers is not string
+      - aipod.ntp_servers is sequence and aipod.ntp_servers is not string
+      - aipod.dns_servers | default([]) | length > 0
+      - aipod.ntp_servers | default([]) | length > 0
+    fail_msg: >-
+      Supported standalone Device Connector preparation requires
+      aipod.dns_servers and .ntp_servers in canonical site
+      inventory.
+
+- name: "UCS/Intersight: read standalone Redfish manager collection"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/redfish/v1/Managers"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_redfish_managers
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: select standalone Redfish manager"
+  ansible.builtin.set_fact:
+    ucs_redfish_manager_uri: >-
+      {{ (ucs_redfish_managers.json.Members | first)['@odata.id'] }}
+  no_log: true
+
+- name: "UCS/Intersight: read standalone Redfish manager"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}{{ ucs_redfish_manager_uri }}"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_redfish_manager
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: select standalone service endpoints"
+  ansible.builtin.set_fact:
+    ucs_redfish_network_protocol_uri: "{{ ucs_redfish_manager.json.NetworkProtocol['@odata.id'] }}"
+    ucs_redfish_ethernet_collection_uri: "{{ ucs_redfish_manager.json.EthernetInterfaces['@odata.id'] }}"
+  no_log: true
+
+- name: "UCS/Intersight: read standalone network services"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}{{ ucs_redfish_network_protocol_uri }}"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_redfish_network_protocol
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: read standalone management interfaces"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}{{ ucs_redfish_ethernet_collection_uri }}"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_redfish_ethernet_collection
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: select standalone management interface"
+  ansible.builtin.set_fact:
+    ucs_redfish_ethernet_uri: >-
+      {{ (ucs_redfish_ethernet_collection.json.Members | first)['@odata.id'] }}
+  no_log: true
+
+- name: "UCS/Intersight: read standalone DNS configuration"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}{{ ucs_redfish_ethernet_uri }}"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_redfish_ethernet
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: validate standalone DNS and NTP prerequisites"
+  ansible.builtin.assert:
+    that:
+      - ucs_redfish_network_protocol.json.NTP.ProtocolEnabled | default(false) | bool
+      - >-
+        aipod.ntp_servers |
+        difference(ucs_redfish_network_protocol.json.NTP.NTPServers | default([])) |
+        length == 0
+      - >-
+        aipod.dns_servers |
+        difference(
+          (ucs_redfish_ethernet.json.StaticNameServers | default([])) +
+          (ucs_redfish_ethernet.json.NameServers | default([]))
+        ) |
+        length == 0
+    fail_msg: >-
+      {{ ucs_claim_endpoint.inventory_host }} does not report the canonical
+      DNS and NTP services required by its Device Connector. Configure the
+      management-controller services, verify reachability, and rerun; claim
+      automation does not change management-controller network settings.
+  no_log: true

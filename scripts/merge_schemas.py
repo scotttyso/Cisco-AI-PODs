@@ -11,7 +11,9 @@ ROOT_FILE = "cisco-ai-pods.json"
 INTERSIGHT_ROOT = "intersight.json"
 NAMESPACE_BY_FILE = {
     "shared.json": "abstract",
+    "dhcp.json": "dhcp",
     "everpure.json": "everpure",
+    "hgx.json": "hgx",
     "intersight.json": "intersight",
     "notifications.json": "notifications",
     "openshift.json": "openshift",

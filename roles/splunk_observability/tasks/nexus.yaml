@@ -9,7 +9,7 @@
 
 - name: Set Nexus Device Password Fact
   ansible.builtin.set_fact:
-    nexus_device_password: "{{ lookup('ansible.builtin.env', 'splunk_observability_nexus_password_' + splunk_observability.nexus.password) }}"
+    nexus_device_password: "{{ lookup('ansible.builtin.env', 'splunk_observability_nexus_password_' ~ (splunk_observability.nexus.password | string)) }}"
 
 - name: Configure Nexus Exporter
   kubernetes.core.k8s:

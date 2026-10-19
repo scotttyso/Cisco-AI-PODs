@@ -1,0 +1,76 @@
+---
+# Subsystem 02 - Backend fabric (NX-OS / NDFC)
+#
+# Tier 2 playbook in the four-tier model (aipod-architecture skill):
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/network.yml
+#   Tier 2: this file
+#   Tier 1: roles/backend_fabric_nxos
+
+- name: "Subsystem 02 - Prepare backend switches for secure NDFC discovery"
+  hosts: backend_fabric_switches
+  gather_facts: false
+  connection: ansible.netcommon.network_cli
+  any_errors_fatal: true
+
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    ansible_connection: ansible.netcommon.network_cli
+    ansible_network_os: cisco.nxos.nxos
+    ansible_host: "{{ be_switch.mgmt_ip }}"
+    ansible_user: "{{ be_switch.username }}"
+    ansible_password: >-
+      {{ lookup('vars', 'vault_' ~ (be_switch.pass_ref | lower)) }}
+    ansible_command_timeout: 60
+    ansible_connect_timeout: 30
+
+  pre_tasks:
+    - name: Hold switch preparation until the read-only cable gate passes
+      ansible.builtin.include_role:
+        name: cisco.aipod.backend_fabric_nxos
+        tasks_from: preflight_core_connectivity.yml
+        public: true
+      run_once: true
+
+  tasks:
+    - name: Configure and verify SHA/AES discovery access
+      ansible.builtin.include_role:
+        name: cisco.aipod.backend_fabric_nxos
+        tasks_from: configure_switch_access.yml
+      when: be_switch.fabric_key in be_target_fabric_keys
+
+- name: "Subsystem 02 - Deploy backend fabrics through NDFC"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: ansible.netcommon.httpapi
+  any_errors_fatal: true
+
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+    - "{{ be_fabric_vars_file | default(inventory_dir ~ '/group_vars/backend_fabric_switches.yml') }}"
+
+  vars:
+    ansible_connection: ansible.netcommon.httpapi
+    ansible_host: "{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}"
+    ansible_network_os: cisco.nd.nd
+    ansible_user: "{{ hostvars[inventory_hostname].nd_admin_username }}"
+    ansible_password: "{{ vault_nd_admin_password }}"
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    ansible_httpapi_use_proxy: false
+    ansible_httpapi_login_domain: DefaultAuth
+    # cisco.dcnm.dcnm_inventory enforces >=1000 seconds because discovery,
+    # onboarding, save, and deploy can span multiple NDFC operations.
+    ansible_command_timeout: 1000
+    ansible_connect_timeout: 1000
+
+  roles:
+    - role: cisco.aipod.backend_fabric_nxos

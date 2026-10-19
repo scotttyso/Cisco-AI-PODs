@@ -92,7 +92,7 @@
 
 - name: Set Fact for Proxy Password if provided
   ansible.builtin.set_fact:
-    proxy_password: "{{ lookup('ansible.builtin.env', 'proxy_password_' + splunk_observability.otel_collector.proxy.password) }}"
+    proxy_password: "{{ lookup('ansible.builtin.env', 'proxy_password_' ~ (splunk_observability.otel_collector.proxy.password | string)) }}"
   when: |-
     splunk_observability.otel_collector is defined and
     splunk_observability.otel_collector.proxy is defined and

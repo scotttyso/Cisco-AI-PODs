@@ -1,0 +1,97 @@
+{#- Managed by the dhcp_server Ansible role - local changes will be overwritten. -#}
+{%- macro ip_int(address) -%}
+{%- set o = address.split('.') | map('int') | list -%}
+{{ ((o[0] * 16777216) + (o[1] * 65536) + (o[2] * 256) + o[3]) | int }}
+{%- endmacro -%}
+{%- macro list_of(value) -%}
+{{ (value if value is sequence and value is not string else [value]) | join(', ') }}
+{%- endmacro -%}
+{%- macro option_list(items) -%}
+{%- set out = [] -%}
+{%- for opt in items | default([]) -%}
+{%- set entry = {'name': opt.name, 'data': (opt.data | default(opt.value) | string | trim('"'))} -%}
+{%- for key in ['code', 'space', 'csv-format', 'always-send'] if opt[key] is defined -%}
+{%- set _ = entry.update({key: opt[key]}) -%}
+{%- endfor -%}
+{%- set _ = out.append(entry) -%}
+{%- endfor -%}
+{{ out | to_json }}
+{%- endmacro -%}
+{%- macro boot_options(tftp, boot) -%}
+{%- set out = [] -%}
+{%- if tftp -%}
+{%- set _ = out.append({'name': 'tftp-server-name', 'data': tftp}) -%}
+{%- set _ = out.append({'name': 'tftp-server-address', 'code': 150, 'data': tftp}) -%}
+{%- endif -%}
+{%- if boot -%}
+{%- set _ = out.append({'name': 'boot-file-name', 'data': boot}) -%}
+{%- endif -%}
+{{ out | to_json }}
+{%- endmacro -%}
+{%- set global_options = [] -%}
+{%- if dhcp.domain_name is defined -%}{%- set _ = global_options.append({'name': 'domain-name', 'data': dhcp.domain_name}) -%}{%- endif -%}
+{%- if dhcp.domain_name_servers is defined -%}{%- set _ = global_options.append({'name': 'domain-name-servers', 'data': list_of(dhcp.domain_name_servers)}) -%}{%- endif -%}
+{%- if dhcp.ntp_servers is defined -%}{%- set _ = global_options.append({'name': 'ntp-servers', 'data': list_of(dhcp.ntp_servers)}) -%}{%- endif -%}
+{%- set global_options = global_options + (option_list(dhcp.global_options) | from_json) -%}
+{%- set subnets = [] -%}
+{%- for subnet in dhcp.subnets -%}
+{%- set net = ip_int(subnet.network) | int -%}
+{%- set size = 4294967296 - (ip_int(subnet.netmask) | int) -%}
+{%- set options = [] -%}
+{%- if subnet.routers is defined -%}{%- set _ = options.append({'name': 'routers', 'data': list_of(subnet.routers)}) -%}{%- endif -%}
+{%- if subnet.domain_name is defined -%}{%- set _ = options.append({'name': 'domain-name', 'data': subnet.domain_name}) -%}{%- endif -%}
+{%- if subnet.domain_name_servers is defined -%}{%- set _ = options.append({'name': 'domain-name-servers', 'data': list_of(subnet.domain_name_servers)}) -%}{%- endif -%}
+{%- if subnet.ntp_servers is defined -%}{%- set _ = options.append({'name': 'ntp-servers', 'data': list_of(subnet.ntp_servers)}) -%}{%- endif -%}
+{%- if subnet.broadcast_address is defined -%}{%- set _ = options.append({'name': 'broadcast-address', 'data': subnet.broadcast_address}) -%}{%- endif -%}
+{%- if subnet.mtu is defined -%}{%- set _ = options.append({'name': 'interface-mtu', 'data': subnet.mtu | string}) -%}{%- endif -%}
+{%- set options = options + (boot_options(subnet.tftp_server | default(None), subnet.bootfile | default(None)) | from_json) + (option_list(subnet.options) | from_json) -%}
+{%- set pools = [] -%}
+{%- for pool in subnet.ranges | default([]) -%}
+{%- set entry = {'pool': pool.start ~ ' - ' ~ pool.end} -%}
+{%- if subnet.deny_unknown_clients | default(false) -%}{%- if dhcp_kea_version is version('2.7.4', '>=') -%}{%- set _ = entry.update({'client-classes': ['KNOWN']}) -%}{%- else -%}{%- set _ = entry.update({'client-class': 'KNOWN'}) -%}{%- endif -%}{%- endif -%}
+{%- set _ = pools.append(entry) -%}
+{%- endfor -%}
+{%- set reservations = [] -%}
+{%- for host in dhcp.reservations | default([]) -%}
+{%- set in_subnet = (host.subnet == subnet.name) if host.subnet is defined else ((ip_int(host.ip) | int) // size == net // size) -%}
+{%- if in_subnet -%}
+{%- set entry = {'hw-address': host.mac | lower, 'ip-address': host.ip} -%}
+{%- if host.hostname is defined -%}{%- set _ = entry.update({'hostname': host.hostname}) -%}{%- endif -%}
+{%- set host_options = [] -%}
+{%- if host.domain_name_servers is defined -%}{%- set _ = host_options.append({'name': 'domain-name-servers', 'data': list_of(host.domain_name_servers)}) -%}{%- endif -%}
+{%- if host.routers is defined -%}{%- set _ = host_options.append({'name': 'routers', 'data': list_of(host.routers)}) -%}{%- endif -%}
+{%- set tftp = host.tftp_server | default(None) -%}
+{%- set boot = host.bootfile | default(None) -%}
+{%- set host_options = host_options + (boot_options(tftp, boot) | from_json) + (option_list(host.options) | from_json) -%}
+{%- if tftp -%}{%- set _ = entry.update({'next-server': tftp}) -%}{%- endif -%}
+{%- if boot -%}{%- set _ = entry.update({'boot-file-name': boot}) -%}{%- endif -%}
+{%- if host_options -%}{%- set _ = entry.update({'option-data': host_options}) -%}{%- endif -%}
+{%- set _ = reservations.append(entry) -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set entry = {'id': loop.index, 'subnet': subnet.network, 'pools': pools, 'option-data': options, 'reservations': reservations, 'user-context': {'name': subnet.name}} -%}
+{%- set prefix = namespace(bits=0) -%}
+{%- for octet in subnet.netmask.split('.') | map('int') -%}
+{%- for bit in [128, 64, 32, 16, 8, 4, 2, 1] -%}{%- if (octet // bit) % 2 == 1 -%}{%- set prefix.bits = prefix.bits + 1 -%}{%- endif -%}{%- endfor -%}
+{%- endfor -%}
+{%- set _ = entry.update({'subnet': subnet.network ~ '/' ~ prefix.bits}) -%}
+{%- if subnet.tftp_server is defined -%}{%- set _ = entry.update({'next-server': subnet.tftp_server}) -%}{%- endif -%}
+{%- if subnet.bootfile is defined -%}{%- set _ = entry.update({'boot-file-name': subnet.bootfile}) -%}{%- endif -%}
+{%- if subnet.default_lease_time is defined -%}{%- set _ = entry.update({'valid-lifetime': subnet.default_lease_time | int}) -%}{%- endif -%}
+{%- if subnet.max_lease_time is defined -%}{%- set _ = entry.update({'max-valid-lifetime': subnet.max_lease_time | int}) -%}{%- endif -%}
+{%- set _ = subnets.append(entry) -%}
+{%- endfor -%}
+{%- set config = {
+  'Dhcp4': {
+    'interfaces-config': {'interfaces': dhcp.interfaces | default(['*'], true)},
+    'authoritative': dhcp.authoritative | default(true) | bool,
+    'valid-lifetime': dhcp.default_lease_time | default(3600) | int,
+    'max-valid-lifetime': dhcp.max_lease_time | default(86400) | int,
+    'lease-database': {'type': 'memfile', 'persist': true, 'name': dhcp_lease_file, 'lfc-interval': 3600},
+    'option-def': [{'name': 'tftp-server-address', 'code': 150, 'space': 'dhcp4', 'type': 'ipv4-address', 'array': true}],
+    'option-data': global_options,
+    'subnet4': subnets,
+    'loggers': [{'name': 'kea-dhcp4', 'output_options': [{'output': 'syslog'}], 'severity': 'INFO'}]
+  }
+} -%}
+{{ config | to_nice_json(indent=2) }}

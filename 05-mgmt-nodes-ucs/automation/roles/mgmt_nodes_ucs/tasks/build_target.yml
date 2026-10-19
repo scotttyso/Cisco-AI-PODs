@@ -1,0 +1,45 @@
+---
+- name: "UCS/Intersight: validate host claim metadata"
+  ansible.builtin.assert:
+    that:
+      - hostvars[ucs_inventory_host].ucs is mapping
+      - hostvars[ucs_inventory_host].ucs.platform in ['domain', 'standalone']
+      - hostvars[ucs_inventory_host].ucs.claim_target | default('') | length > 0
+      - hostvars[ucs_inventory_host].ucs.cimc.ip | default('') | length > 0
+      - hostvars[ucs_inventory_host].ucs.cimc.user | default('') | length > 0
+      - hostvars[ucs_inventory_host].ucs.cimc.pass_ref | default('') | length > 0
+      - lookup('vars', 'vault_' ~ (hostvars[ucs_inventory_host].ucs.cimc.pass_ref | lower), default='') | length > 0
+    fail_msg: >-
+      {{ ucs_inventory_host }} is missing canonical UCS claim metadata or its
+      per-endpoint vault password.
+  no_log: true
+
+- name: "UCS/Intersight: add endpoint to its deduplicated claim target"
+  ansible.builtin.set_fact:
+    ucs_claim_targets: >-
+      {{
+        ucs_claim_targets | combine(
+          {
+            hostvars[ucs_inventory_host].ucs.claim_target: {
+              'platform': hostvars[ucs_inventory_host].ucs.platform,
+              'role': hostvars[ucs_inventory_host].ucs.role,
+              'resource_group': hostvars[ucs_inventory_host].ucs.resource_group
+                | default(intersight_resource_group_name | default('default', true), true),
+              'organization': hostvars[ucs_inventory_host].ucs.organization
+                | default(intersight_organization_name | default('default', true), true),
+              'endpoints':
+                (ucs_claim_targets.get(hostvars[ucs_inventory_host].ucs.claim_target, {}).get('endpoints', []))
+                + [
+                    {
+                      'inventory_host': ucs_inventory_host,
+                      'ip': hostvars[ucs_inventory_host].ucs.cimc.ip,
+                      'user': hostvars[ucs_inventory_host].ucs.cimc.user,
+                      'password_var': 'vault_' ~ (hostvars[ucs_inventory_host].ucs.cimc.pass_ref | lower)
+                    }
+                  ]
+            }
+          },
+          recursive=True
+        )
+      }}
+  no_log: true

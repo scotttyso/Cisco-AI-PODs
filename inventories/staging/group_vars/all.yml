@@ -1,0 +1,9 @@
+---
+# Staging-wide Ansible vars. Empty on purpose until a subsystem needs
+# site-level overrides. When this environment claims devices in Intersight,
+# put intersight_* here (see inventories/example/group_vars/all.yml).
+#
+# Secrets: shared (cluster admin, API tokens) → group_vars/vault.yml.
+# Same password for every host or a large group → stay in group_vars; skip
+# host vault files. Unique per-host secrets only → host_vars/<host>/vault.yml.
+# See inventories/README.md.

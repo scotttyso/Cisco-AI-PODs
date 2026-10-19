@@ -46,7 +46,7 @@ Critical dependency: Portworx installation must occur only after OpenShift insta
 ## Configuration Files
 
 - `host_vars/everpure/everpure.ezai.yaml`: Everpure and Portworx input variables
-- `roles/everpure/tasks/main.yaml`: Everpure role entry point
+- `04-storage-everpure/automation/roles/everpure/tasks/main.yml`: Everpure role entry point
 - `roles/portworx_enterprise/tasks/main.yaml`: Portworx role entry point
 
 Edit variables in Visual Studio Code:
@@ -103,7 +103,7 @@ The Everpure role configures FlashArray and FlashBlade settings from input varia
 - System settings
 - FlashBlade notifications (if configured)
 
-Role details: [roles/everpure/README.md](../roles/everpure/README.md)
+Role details: [04-storage-everpure/automation/roles/everpure/README.md](../04-storage-everpure/automation/roles/everpure/README.md)
 
 ## Portworx Workflow
 

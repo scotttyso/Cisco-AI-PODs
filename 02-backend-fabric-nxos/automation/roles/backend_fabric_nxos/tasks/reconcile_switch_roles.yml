@@ -1,0 +1,106 @@
+---
+- name: "BE fabric: read imported switches for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}/inventory/switchesByFabric"
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_imported_switches
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: require every intended switch before changing roles"
+  ansible.builtin.assert:
+    that:
+      - be_imported_switches.json | length == be_switch_configs | length
+      - >-
+        be_switch_configs
+        | map(attribute='seed_ip')
+        | difference(be_imported_switches.json | map(attribute='ipAddress') | list)
+        | length == 0
+    fail_msg: >-
+      {{ be_fabric.name }} does not contain every intended switch after
+      import; refusing partial role reconciliation.
+  no_log: true
+
+- name: "BE fabric: initialize Manage role updates"
+  ansible.builtin.set_fact:
+    be_manage_role_updates: []
+  no_log: true
+
+- name: "BE fabric: build Manage role updates"
+  ansible.builtin.include_tasks: collect_switch_role_update.yml
+  loop: "{{ be_switch_configs }}"
+  loop_control:
+    loop_var: be_switch_config
+    label: "{{ be_switch_config.seed_ip }}"
+  no_log: true
+
+- name: "BE fabric: assign intended roles through the supported Manage API"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/api/v1/manage/inventory/switchActions/changeRoles
+    method: POST
+    headers: "{{ be_platform_headers }}"
+    body_format: json
+    body:
+      switchRoles: "{{ be_manage_role_updates }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code:
+      - 200
+      - 207
+    return_content: true
+    timeout: 120
+  delegate_to: localhost
+  register: be_manage_role_result
+  no_log: true
+
+- name: "BE fabric: require every role update to succeed"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_manage_role_result.json['items'] | default([]) | length
+        == be_manage_role_updates | length
+      - >-
+        be_manage_role_result.json['items'] | default([])
+        | rejectattr('status', 'equalto', 'success')
+        | list
+        | length == 0
+    fail_msg: >-
+      Nexus Dashboard did not accept every requested switch-role update for
+      {{ be_fabric.name }}.
+  no_log: true
+
+- name: "BE fabric: wait for intended roles in {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}/inventory/switchesByFabric"
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_role_verify
+  until:
+    - >-
+      be_role_verify.json
+      | selectattr('switchRole', 'equalto', 'spine')
+      | list
+      | length
+      == be_switch_configs | selectattr('role', 'equalto', 'spine') | list | length
+    - >-
+      be_role_verify.json
+      | selectattr('switchRole', 'equalto', 'leaf')
+      | list
+      | length
+      == be_switch_configs | selectattr('role', 'equalto', 'leaf') | list | length
+  retries: 12
+  delay: 5
+  changed_when: false
+  no_log: true

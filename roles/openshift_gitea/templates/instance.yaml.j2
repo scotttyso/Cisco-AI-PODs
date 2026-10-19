@@ -2,7 +2,7 @@ apiVersion: pfe.rhpds.com/v1
 kind: Gitea
 metadata:
   name: gitea-with-admin
-  namespace: "{{ namespace }}"
+  namespace: "{{ gitea_namespace | default(operator_namespace) }}"
 spec:
   giteaSsl: true
   giteaAdminUser: opentlc-mgr

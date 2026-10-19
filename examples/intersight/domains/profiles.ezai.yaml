@@ -1,0 +1,33 @@
+---
+# =========================================================
+#   Profiles
+# =========================================================
+intersight:
+  configure:
+    default:
+      profiles:
+        chassis:
+          - action: No-op
+            imc_access_policy: KVMAccess
+            power_policy: X9508
+            targets:
+              - name: ucsai-1
+                serial_number: FOX29100000
+              - name: ucsai-2
+                serial_number: FOX29100001
+            thermal_policy: X9508
+        domain:
+          - action: Deploy
+            attach_template: true
+            name: ucsai-1
+            serial_numbers:
+              - FDO29100001
+              - FDO29100002
+            ucs_domain_profile_template: XDirect
+          - action: Deploy
+            attach_template: true
+            name: ucsai-2
+            serial_numbers:
+              - FDO29100003
+              - FDO29100004
+            ucs_domain_profile_template: XDirect

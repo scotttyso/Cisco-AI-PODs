@@ -1,0 +1,10 @@
+---
+- name: "UCS/Intersight: process one independent claim target"
+  block:
+    - name: "UCS/Intersight: execute target claim workflow"
+      ansible.builtin.include_tasks: process_target.yml
+  rescue:
+    - name: "UCS/Intersight: record failed target and continue the batch"
+      ansible.builtin.set_fact:
+        ucs_claim_failures: "{{ ucs_claim_failures + [ucs_claim_target_item.key] }}"
+      no_log: true

@@ -1,0 +1,232 @@
+{
+    "bundle_version": "ucs-c880a-m8-4.0.2.260009",
+    "components": {
+        "server": [
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/bmc/",
+                        "md5sum": "02fa82dc0146b905e55b6a32754a0cc5",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/bmc/C880A-BMC-4.0.2.260022-signed.fwpkg",
+                        "firmwareName": "bmc.bin"
+                    }
+                ],
+                "tools": [],
+                "desc": "BMC",
+                "Brand String": "BMC",
+                "packaged_version": "4.0(2.260022)",
+                "timeout": 2700
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/bios/",
+                        "md5sum": "b4e83861bfa93cdd6dfc1cb47c65d32a",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/bios/C880A-BIOS-4.0.2.67.bin",
+                        "firmwareName": "bios.bin"
+                    }
+                ],
+                "tools": [],
+                "desc": "BIOS",
+                "Brand String": "BIOS",
+                "packaged_version": "4.0.2.67",
+                "timeout": 2700
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/dcscm/",
+                        "md5sum": "3197deebebb498a797405685ad35fa75",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/cpld/dcscm/C880A_scm_fpga_v0101_cfm0_auto.fwpkg",
+                        "firmwareName": "dcsm.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "DCSCM CPLD",
+                "Brand String": "DCSCM-CPLD",
+                "packaged_version": "0.1.0.1",
+                "timeout": 2700
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/mb/",
+                        "md5sum": "e887aae6ab264c5eda2ea3c18bdc07a6",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/cpld/mb/0.1.2.8_MB_cfm0_auto.fwpkg",
+                        "firmwareName": "mb.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "MB CPLD",
+                "Brand String": "MB-CPLD",
+                "packaged_version": "0.1.2.8",
+                "timeout": 3600
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/e1sbp/",
+                        "md5sum": "000c7867937ca61ccce195c8385466b3",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/cpld/e1sbp/E1s_0107.fwpkg",
+                        "firmwareName": "e1sbp.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "E1S BACKPLANE CPLD",
+                "Brand String": "E1S-BP-CPLD",
+                "packaged_version": "0.1.0.7",
+                "timeout": 1800
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/bp/",
+                        "md5sum": "84108b712ab6e00d5cb816f2a1a828b8",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/cpld/bp/0.1.0.7_output_file_cfm0_auto.fwpkg",
+                        "firmwareName": "fpga.rpd"
+                    }
+                ],
+                "tools": [],
+                "desc": "Backplane CPLD",
+                "Brand String": "BP-CPLD",
+                "packaged_version": "0.1.0.7",
+                "timeout": 2100
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/nvidia/",
+                        "md5sum": "8765aeb41cedb02a540c56d6c32626d1",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/gpu/nvfw_HGX-B300x8_0006_260610.1.1_custom_prod-signed_process.fwpkg",
+                        "firmwareName": "gpu.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "NVIDIA B300 GPU",
+                "Brand String": "NVIDIA-B300-GPU",
+                "packaged_version": "97.10.7E.00.03-G540.0216.00.03",
+                "timeout": 2400
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/erot_bmc/",
+                        "md5sum": "5edc9225ee1a42b33163b74db94d0818",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/erot-bmc/C880A-REL-EROT-BMC-4.0.15.fwpkg",
+                        "firmwareName": "erot_bmc.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "EROT BMC",
+                "Brand String": "EROT-BMC",
+                "packaged_version": "4.0.15",
+                "timeout": 300
+            },
+            {
+                "oob_update": [
+                    "Update",
+                    "Inventory",
+                    "Activate",
+                    "Config"
+                ],
+                "hook_name": "N/A",
+                "firmwares": [
+                    {
+                        "dst_location": "/tmp/firmware/erot_bios/",
+                        "md5sum": "570f68b80835b2b1ff6ba3efb2b5457b",
+                        "secure-copy": {
+                            "enabled": true
+                        },
+                        "src_location": "/oob/erot-bios/C880A-REL-EROT-BIOS-4.0.15.fwpkg",
+                        "firmwareName": "erot_bios.fwpkg"
+                    }
+                ],
+                "tools": [],
+                "desc": "EROT BIOS",
+                "Brand String": "EROT-BIOS",
+                "packaged_version": "4.0.15",
+                "timeout": 300
+            }
+        ]
+    }
+}

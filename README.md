@@ -46,7 +46,7 @@ All workflows execute through the deployment module from the repository root:
 
 3. **Everpure Storage** (`python3 scripts/deploy_ai_pod.py --role everpure --vault-password-file <password-file>`)
    - Guide: [docs/everpure.md](docs/everpure.md)
-  - Role details: [roles/everpure/README.md](roles/everpure/README.md)
+  - Role details: [04-storage-everpure/automation/roles/everpure/README.md](04-storage-everpure/automation/roles/everpure/README.md)
   - Role details: [roles/portworx_enterprise/README.md](roles/portworx_enterprise/README.md)
 
 4. **OpenShift Platform** (`python3 scripts/deploy_ai_pod.py --role openshift --vault-password-file <password-file>`)
@@ -163,8 +163,10 @@ Then follow the iServer setup instructions: [https://github.com/datacenter/iserv
 Copy example variables to `host_vars/` and customize for your environment:
 
 ```bash
-mkdir -p host_vars
-cp -r examples/intersight host_vars/
+mkdir -p host_vars/intersight
+# Intersight: copy system/ plus only the domain and server types you deploy (see docs/intersight.md)
+cp examples/intersight/system/system.ezai.yaml host_vars/intersight/
+cp -r examples/intersight/domains examples/intersight/servers host_vars/intersight/
 cp -r examples/openshift host_vars/
 cp -r examples/everpure host_vars/
 cp -r examples/splunk_observability host_vars/

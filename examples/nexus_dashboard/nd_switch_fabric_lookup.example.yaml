@@ -1,0 +1,18 @@
+# Input for scripts/nd_switch_fabric_lookup.py
+# Password comes from the environment: NEXUS_DASHBOARD_PASSWORD
+# nxos_bootflash_stage.yaml can also be passed directly; extra sections are ignored.
+
+nexus_dashboard:
+  host: 192.0.2.10
+  # ND API user (GUI login), e.g. admin
+  username: admin
+  # ND login domain (local, or the remote auth domain name)
+  domain: local
+  # Optional
+  # verify_ssl: false
+  # timeout: 120
+
+switches:
+  hosts:
+    - 192.0.2.21
+    - 192.0.2.22

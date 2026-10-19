@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/telemetry/run-status/v1",
+  "title": "AI POD orchestrator run status",
+  "description": "Lifecycle state for a single orchestrator run, atomically written to status.json in the run directory. heartbeat_utc is refreshed while running so readers can identify stale runs without a progress estimate. Shared by every subsystem; the shape does not vary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "state", "pid", "started_utc", "heartbeat_utc"],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Run directory basename, of the form <UTC timestamp with microseconds>-<host>-<action>."
+    },
+    "state": {
+      "type": "string",
+      "enum": ["running", "succeeded", "failed"],
+      "description": "A SIGKILL or power loss can leave `running` behind. Readers should compare heartbeat_utc with the current time; an expired heartbeat is stale, not evidence of percentage progress."
+    },
+    "pid": {
+      "type": "integer",
+      "description": "Process id of the orchestrator, recorded so a reader on the same host can distinguish a genuinely running run from an abandoned one."
+    },
+    "started_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "heartbeat_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last lifecycle heartbeat. Refreshed every 10 seconds while state is running; terminal writes set it to the final update time."
+    },
+    "ended_utc": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Null while the state is `running`."
+    },
+    "exit_code": {
+      "type": ["integer", "null"],
+      "description": "Process exit code. 0 success, 1 completed but the result is a failure, 2 operational error, 3 downgrade blocked, 128+signum when terminated by a signal."
+    },
+    "error": {
+      "type": ["string", "null"],
+      "description": "Sanitized exception or error summary when available; null when the run has no additional error detail."
+    }
+  }
+}

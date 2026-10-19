@@ -1,0 +1,308 @@
+---
+# Claim/verify the ND target using values discovered from ND at run time.
+#
+# The normal path is deliberately non-destructive: it claims an unclaimed
+# target or verifies a target already claimed by the selected account. A
+# separate, explicitly enabled intersight_reclaim task owns unclaim/reclaim.
+# Device ID, Claim Code, API responses, and account details remain in memory
+# only and every task that handles them uses no_log.
+#
+# ND Device Connector registers an asset.Target before it is claimed. The
+# cisco.intersight.intersight_target_claim module equates that pre-claim target
+# with a completed claim and skips its POST. Therefore the unclaimed ND path
+# uses the same collection's native intersight_rest_api module to post the
+# DeviceClaims payload that target_claim itself constructs.
+
+- name: "ND/Intersight: require the shared site claim inputs"
+  ansible.builtin.assert:
+    that:
+      - intersight_api_uri | default('') | length > 0
+      - intersight_account_name | default('') | length > 0
+      - intersight_resource_group_name | default('') | length > 0
+      - vault_intersight_api_key_id | default('') | length > 0
+      - vault_intersight_api_private_key | default('') | length > 0
+    fail_msg: >-
+      ND Intersight claim requires the shared intersight_* site values and
+      vault_intersight_api_key_id/private_key. Do not add Device ID or Claim
+      Code to inventory or the vault; this task discovers both at runtime.
+  no_log: true
+
+- name: "ND/Intersight: normalize the Cisco Intersight API base URI"
+  ansible.builtin.set_fact:
+    nd_intersight_api_uri: >-
+      {{
+        intersight_api_uri | regex_replace('/+$', '')
+        ~ (
+          ''
+          if (intersight_api_uri | regex_replace('/+$', '')) is match('.*/api/v1$')
+          else '/api/v1'
+        )
+      }}
+  no_log: true
+
+- name: "ND/Intersight: log in to Nexus Dashboard for runtime claim discovery"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/login"
+    method: POST
+    body_format: json
+    body:
+      userName: "{{ admin_username }}"
+      userPasswd: "{{ nd_admin_password }}"
+      domain: DefaultAuth
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: false
+    timeout: 30
+  register: nd_intersight_login
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight: read current connector ownership state"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/status"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: [200, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: nd_intersight_status_before
+  until: nd_intersight_status_before.status == 200
+  retries: 30
+  delay: 10
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight: normalize runtime device identity and ownership"
+  ansible.builtin.set_fact:
+    nd_intersight_registration_moid: >-
+      {{ nd_intersight_status_before.json.connectivity.overview.deviceRegistrationMoid | default('') }}
+    nd_intersight_ownership_state: >-
+      {{ nd_intersight_status_before.json.connectivity.overview.accountOwnershipState | default('') | lower | trim }}
+    nd_intersight_ownership_account: >-
+      {{ nd_intersight_status_before.json.connectivity.overview.accountOwnershipName | default('') }}
+  no_log: true
+
+- name: "ND/Intersight: read the claim Device ID from the connector"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/about"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_about
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight: normalize the connector claim Device ID"
+  ansible.builtin.set_fact:
+    nd_intersight_device_id: "{{ nd_intersight_about.json.id | default('') }}"
+  no_log: true
+
+- name: "ND/Intersight: reject an unknown or incomplete connector state"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_device_id | length > 0
+      - nd_intersight_registration_moid | length > 0
+      - nd_intersight_ownership_state in ['claimed', 'unclaimed', 'not claimed']
+    fail_msg: >-
+      Nexus Dashboard did not return a usable Intersight connector Device ID,
+      registration identity, and claim state. Verify that the ND cluster is
+      Running and that its Device Connector is healthy before retrying.
+  no_log: true
+
+- name: "ND/Intersight: reject a target claimed by a different account"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_ownership_account == intersight_account_name
+    fail_msg: >-
+      Nexus Dashboard is already claimed by a different Intersight account.
+      This normal claim path never moves a target between accounts. Use the
+      separately confirmed reclaim procedure only after validating ownership.
+  when: nd_intersight_ownership_state == 'claimed'
+  no_log: true
+
+- name: "ND/Intersight: request one-time claim code only when unclaimed"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/securityToken"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_security_token
+  changed_when: false
+  when: nd_intersight_ownership_state in ['unclaimed', 'not claimed']
+  no_log: true
+
+- name: "ND/Intersight: require the one-time claim token"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_security_token.json.token | default('') | length > 0
+    fail_msg: >-
+      Nexus Dashboard did not return a usable one-time Intersight claim token.
+      Do not substitute a manually copied value; verify connector health and
+      retry runtime discovery.
+  when: nd_intersight_ownership_state in ['unclaimed', 'not claimed']
+  no_log: true
+
+- name: "ND/Intersight: submit an unclaimed Nexus Dashboard Device Claim"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /asset/DeviceClaims
+    api_body:
+      SecurityToken: "{{ nd_intersight_security_token.json.token }}"
+      SerialNumber: "{{ nd_intersight_device_id }}"
+    state: present
+  register: nd_intersight_claim_result
+  when: nd_intersight_ownership_state in ['unclaimed', 'not claimed']
+  no_log: true
+
+- name: "ND/Intersight: wait for Nexus Dashboard to report claimed"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/status"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_status_after_claim
+  until: >-
+    (nd_intersight_status_after_claim.json.connectivity.overview.accountOwnershipState
+      | default('') | lower | trim) == 'claimed'
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: nd_intersight_ownership_state in ['unclaimed', 'not claimed']
+  no_log: true
+
+- name: "ND/Intersight: verify claimed ownership is the selected account"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (nd_intersight_status_after_claim.json.connectivity.overview.accountOwnershipName
+          | default('')) == intersight_account_name
+  when: nd_intersight_ownership_state in ['unclaimed', 'not claimed']
+  no_log: true
+
+- name: "ND/Intersight: read the selected resource group"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+  register: nd_intersight_resource_group_before
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight: require the selected resource group to exist"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_resource_group_before.api_response.Moid | default('') | length > 0
+    fail_msg: >-
+      The selected Intersight resource group does not exist. Create the named
+      resource group before running ND claim automation; this play does not
+      create shared Intersight objects.
+  no_log: true
+
+- name: "ND/Intersight: prepare the current registration selector"
+  ansible.builtin.set_fact:
+    nd_intersight_registration_selector: >-
+      /api/v1/asset/DeviceRegistrations?$filter=(Moid eq '{{ nd_intersight_registration_moid }}')
+    nd_intersight_existing_selectors: >-
+      {{ nd_intersight_resource_group_before.api_response.Selectors | default([]) }}
+  no_log: true
+
+- name: "ND/Intersight: find selectors for the current registration"
+  ansible.builtin.set_fact:
+    nd_intersight_current_registration_selectors: >-
+      {{
+        nd_intersight_existing_selectors
+        | selectattr('Selector', 'search', nd_intersight_registration_moid)
+        | list
+      }}
+  no_log: true
+
+- name: "ND/Intersight: report current-registration selector count"
+  ansible.builtin.debug:
+    msg: >-
+      The selected resource group has
+      {{ nd_intersight_current_registration_selectors | length }} selector(s)
+      for this ND registration.
+
+- name: "ND/Intersight: append the ND registration to the resource group"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+    api_body:
+      Name: "{{ intersight_resource_group_name }}"
+      Qualifier: "{{ nd_intersight_resource_group_before.api_response.Qualifier | default('Allow-Selectors') }}"
+      Selectors: >-
+        {{
+          nd_intersight_existing_selectors
+          + [
+              {
+                'ClassId': 'resource.Selector',
+                'ObjectType': 'resource.Selector',
+                'Selector': nd_intersight_registration_selector
+              }
+            ]
+        }}
+    state: present
+  register: nd_intersight_resource_group_update
+  when: nd_intersight_current_registration_selectors | length == 0
+  no_log: true
+
+- name: "ND/Intersight: re-read the resource group after reconciliation"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+  register: nd_intersight_resource_group_after
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight: verify the registration is in the selected resource group"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (nd_intersight_resource_group_after.api_response.Selectors
+          | default([])
+          | selectattr('Selector', 'search', nd_intersight_registration_moid)
+          | list
+          | length) > 0
+  no_log: true
+
+- name: "ND/Intersight: report normal claim reconciliation"
+  ansible.builtin.debug:
+    msg: >-
+      Nexus Dashboard Intersight claim is present and its registration belongs
+      to the selected resource group. Runtime Device ID and Claim Code were
+      not written to inventory, the vault, logs, or test artifacts.
+
+- name: "ND/Intersight: reconcile disconnected duplicate targets after reimage"
+  ansible.builtin.include_tasks: intersight_prune_stale_targets.yml
+  when: nd_intersight_prune_stale_targets | bool

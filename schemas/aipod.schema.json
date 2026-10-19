@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/aipod/v1",
+  "title": "AI POD composed inventory",
+  "description": "Top-level shape for an AI POD inventory that covers one or more subsystems in a single file. Each top-level key is OPTIONAL: a customer deploying only network drops the others; a customer deploying everything provides them all. Inside each subsystem, what is required is required.\n\nDomains (orchestration grouping for Tier 3 playbooks): Network (01–03), Storage (04), Compute (05–06), Platform (07–08), AI Workload (09). The x-aipod-domain annotation on each property is documentation only — not enforced by validation.\n\nSubsystems that are not yet automated reference a placeholder schema that accepts any object today. As each subsystem's automation lands, replace its $ref with the subsystem's real schema and the validation tightens automatically.\n\nVersioning: this schema is /aipod/v1. Breaking changes will publish /aipod/v2 alongside; partners migrate at their own pace. Additive changes (new optional subsystems, new vendors in discriminators) stay within v1.",
+
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+
+    "nd_cluster": {
+      "$ref": "nd-cluster.schema.json",
+      "description": "Subsystem 01 - Nexus Dashboard 4.x cluster install. Fully specified.",
+      "x-aipod-domain": "network",
+      "x-aipod-subsystem": "01"
+    },
+
+    "backend_fabric_nxos": {
+      "$ref": "backend-fabric-nxos.schema.json",
+      "description": "Subsystem 02 - VXLAN EVPN backend (GPU east-west) fabric on NX-OS via NDFC. Stub: any object accepted today.",
+      "x-aipod-domain": "network",
+      "x-aipod-subsystem": "02"
+    },
+
+    "frontend_fabric_nxos": {
+      "$ref": "frontend-fabric-nxos.schema.json",
+      "description": "Subsystem 03 - VXLAN EVPN frontend fabric on NX-OS via NDFC. Stub: any object accepted today.",
+      "x-aipod-domain": "network",
+      "x-aipod-subsystem": "03"
+    },
+
+    "mgmt_fabric_nxos": {
+      "$ref": "mgmt-fabric-nxos.schema.json",
+      "description": "Subsystem 03 - Out-of-band management network fabric on NX-OS onboarded to Nexus Dashboard. Stub: any object accepted today.",
+      "x-aipod-domain": "network",
+      "x-aipod-subsystem": "03"
+    },
+
+    "storage_everpure": {
+      "$ref": "storage-everpure.schema.json",
+      "description": "Subsystem 04 - Storage on Everpure FlashBlade + XFM aggregation. Stub: any object accepted today. Storage subsystem is vendor-named; future variants land as peer subsystems (storage-netapp, etc.).",
+      "x-aipod-domain": "storage",
+      "x-aipod-subsystem": "04"
+    },
+
+    "mgmt_nodes_ucs": {
+      "$ref": "mgmt-nodes-ucs.schema.json",
+      "description": "Subsystem 05 - UCS management nodes. Supports domain or standalone UCS platforms; OpenShift later assigns control or compact roles.",
+      "x-aipod-domain": "compute",
+      "x-aipod-subsystem": "05"
+    },
+
+    "workload_nodes_ucs": {
+      "$ref": "workload-nodes-ucs.schema.json",
+      "description": "Subsystem 06 - UCS workload nodes. Supports general and GPU workloads on domain or standalone UCS platforms; OpenShift later assigns worker or compact roles.",
+      "x-aipod-domain": "compute",
+      "x-aipod-subsystem": "06"
+    },
+
+    "openshift_cluster": {
+      "$ref": "openshift-cluster.schema.json",
+      "description": "Subsystem 07 - OpenShift install spanning management and workload nodes; owns control, compact, and worker role assignment plus the operator stack (NVIDIA GPU operator, Network operator, NFD, GPUDirect). Stub: any object accepted today.",
+      "x-aipod-domain": "platform",
+      "x-aipod-subsystem": "07"
+    },
+
+    "mlops": {
+      "$ref": "mlops.schema.json",
+      "description": "Subsystem 08 - MLOps platform (OpenShift AI / Kubeflow / NIM / NeMo). Stub: any object accepted today.",
+      "x-aipod-domain": "platform",
+      "x-aipod-subsystem": "08"
+    },
+
+    "ai_workloads": {
+      "$ref": "ai-workloads.schema.json",
+      "description": "Subsystem 09 - Validation workloads (NCCL allreduce benchmark + small training reference + inference reference). Scope strictly limited to validation workloads; production workloads remain partner/customer concern. Stub: any object accepted today.",
+      "x-aipod-domain": "ai_workload",
+      "x-aipod-subsystem": "09"
+    },
+
+    "site": {
+      "type": "object",
+      "description": "Optional site-wide identity used by logs, asset tags, and observability labels. Lives at the root because it is shared across subsystems.",
+      "additionalProperties": false,
+      "properties": {
+        "site_id":    { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[A-Za-z0-9_-]+$" },
+        "site_name":  { "type": "string", "minLength": 1 },
+        "owner":      { "type": "string", "minLength": 1 },
+        "environment": { "type": "string", "enum": ["lab", "staging", "production"] }
+      }
+    },
+
+    "intersight": {
+      "type": "object",
+      "description": "Optional shared Cisco Intersight SaaS site settings. Consumed by ND claim and later UCS/storage claim. Ansible site inventory stores the same values as intersight_* in group_vars/all.yml. API credentials stay in vault (vault_intersight_api_key_id, vault_intersight_api_private_key). Device ID and Claim Code are runtime-discovered and must not appear here.",
+      "additionalProperties": false,
+      "required": [
+        "api_uri",
+        "account_name",
+        "resource_group_name",
+        "organization_name"
+      ],
+      "properties": {
+        "api_uri": { "type": "string", "minLength": 1, "format": "uri" },
+        "account_name": { "type": "string", "minLength": 1 },
+        "resource_group_name": { "type": "string", "minLength": 1 },
+        "organization_name": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

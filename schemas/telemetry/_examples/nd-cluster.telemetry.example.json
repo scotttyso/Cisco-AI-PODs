@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "telemetry_type": "nd_cluster_deploy_telemetry",
+  "phase": "offline_plan",
+  "timestamp_utc": "2026-01-01T00:00:00+00:00",
+  "summary": {
+    "decision": "offline_example",
+    "badge": {"label": "Offline example", "variant": "info"},
+    "reason": "Sanitized example generated without inventory, credentials, or ND access.",
+    "phases_total": 1,
+    "phases_succeeded": 1,
+    "checks_total": 3,
+    "checks_passed": 3,
+    "checks_failed": 0,
+    "cluster_state": "active",
+    "nodes_total": 2,
+    "nodes_healthy": 2
+  },
+  "checks_table": [
+    {"kind": "phase", "name": "offline_plan", "state": "succeeded", "detail": "Sanitized offline deployment example.", "badge": {"label": "Complete", "variant": "success"}},
+    {"kind": "node", "name": "nd-node-1", "state": "active", "detail": "Synthetic node state for offline example; no ND query performed.", "badge": {"label": "Passed", "variant": "success"}},
+    {"kind": "node", "name": "nd-node-2", "state": "active", "detail": "Synthetic node state for offline example; no ND query performed.", "badge": {"label": "Passed", "variant": "success"}}
+  ],
+  "console_drawer": {"title": "Raw Orchestrator Logs", "total_lines": 1, "lines": ["[00:00:00.000] Sanitized telemetry example"], "collapsible": true, "default_expanded": false}
+}

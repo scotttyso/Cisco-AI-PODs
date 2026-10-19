@@ -1,0 +1,50 @@
+---
+# Canonical site values for the ND 4.3.1 validation run.
+# Secrets are references only; values belong in group_vars/vault.yml.
+
+nd_admin_username: admin
+nd_admin_pass_ref: ND_ADMIN_PASSWORD
+
+# Remove only disconnected duplicate ND targets whose Device Registration is
+# not the registration currently reported by this cluster.
+nd_intersight_prune_stale_targets: true
+
+nd_cluster_spec:
+  # iso_reimage: re-images all nodes in the cluster using the inventory-selected ISO.
+  # factory_preinstalled: re-images no nodes and requires all nodes to already have the inventory-selected release.
+  # In both modes, only ND-1 receives the manual first-node bootstrap; ND-2 and ND-3 are configured during cluster bringup.
+  start_mode: iso_reimage
+  name: Example-ND-Cluster
+  implementation_type: LAN
+  # DNS, NTP, domain and timezone are shared under aipod in group_vars/all.yml.
+  iso:
+    url: http://192.0.2.150/software/Nexus-Dashboard/nd-dk9.4.3.1.175.iso
+    sha512: 5349fefdc4b601ea5fcc8ff7bdbbd40229c89c1fd31edaa6e8669b91daa984d0fd49061e9102d8c035a44288f410d23810cc4889d0cf1f3ad37f3ccb502a6a32
+  network:
+    mgmt_subnet: 192.0.2.0/24
+    mgmt_gateway: 192.0.2.254
+    data_subnet: 203.0.113.0/24
+    data_gateway: 203.0.113.254
+    oob_subnet: 198.51.100.0/24
+  internal_networks:
+    # Cisco ND 4.3.x defaults. Both must remain /16 and must not overlap
+    # anything the cluster needs to reach outside its internal containers.
+    app_network: 198.18.0.1/16
+    service_network: 198.19.0.0/16
+  proxy:
+    skip: true
+  external_services:
+    management_service_ips: []
+    data_service_ips:
+      - 203.0.113.20
+      - 203.0.113.21
+      - 203.0.113.22
+      - 203.0.113.23
+      - 203.0.113.24
+
+# Operator-side values used by the Python/Ansible validation workflow.
+nd_runtime:
+  state_dir: state/
+  ca_bundle: null
+  verify_tls: false
+  cluster_bringup_timeout_s: 3600

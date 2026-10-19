@@ -1,14 +1,14 @@
 ---
 openshift:
   ldap:
-    base_dn: DC=rich,DC=ciscolabs,DC=com
-    base_dn_groups: OU=Groups,DC=rich,DC=ciscolabs,DC=com
-    base_dn_users: OU=Users,DC=rich,DC=ciscolabs,DC=com
-    bind_dn: CN=Network Service,OU=Service Accounts,DC=rich,DC=ciscolabs,DC=com
+    base_dn: DC=example,DC=com
+    base_dn_groups: OU=Groups,DC=example,DC=com
+    base_dn_users: OU=Users,DC=example,DC=com
+    bind_dn: CN=Network Service,OU=Service Accounts,DC=example,DC=com
     certificate_file_path: ca1.crt
     cluster_admins:
       - lab-admins
     group_uid_mappings:
-      "CN=Lab Admin,OU=Cisco Employees,DC=rich,DC=ciscolabs,DC=com": lab-admins
+      "CN=AI-POD Admins,OU=Groups,DC=example,DC=com": lab-admins
     secure_ldap: true
-    url: ldaps://ad1.rich.ciscolabs.com:636
+    url: ldaps://ad1.example.com:636

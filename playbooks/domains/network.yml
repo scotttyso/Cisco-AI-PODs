@@ -1,0 +1,16 @@
+---
+# Tier 3 — Network domain
+# Subsystems: 01 nd-cluster → 02 backend-fabric-nxos → 03 frontend-fabric-nxos, 03 mgmt-fabric-nxos
+# ND (01) is prerequisite for NX-OS fabrics (02/03).
+
+- name: "Tier 3 — Network / subsystem 01"
+  ansible.builtin.import_playbook: ../../01-nd-cluster/automation/playbooks/01_nd_cluster.yml
+
+- name: "Tier 3 — Network / subsystem 02"
+  ansible.builtin.import_playbook: ../../02-backend-fabric-nxos/automation/playbooks/02_backend_fabric.yml
+
+- name: "Tier 3 — Network / subsystem 03"
+  ansible.builtin.import_playbook: ../../03-frontend-fabric-nxos/automation/playbooks/03_frontend_fabric.yml
+
+- name: "Tier 3 — Network / subsystem 03 (management fabric)"
+  ansible.builtin.import_playbook: ../../03-mgmt-fabric-nxos/automation/playbooks/03_mgmt_fabric.yml

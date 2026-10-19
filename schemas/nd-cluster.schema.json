@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/nd-cluster/v1",
+  "title": "AI POD subsystem 01 - Nexus Dashboard cluster",
+  "description": "Composite schema for the Nexus Dashboard 4.x management-plane cluster (subsystem 01). Validates the full nd-cluster shape: cluster-wide config + runtime defaults + per-node config + admin credential reference. Maps to Tables 1-3 in 01-nd-cluster/docs/MOP-ND4-install.md.\n\nVersioning: /nd-cluster/v1. Breaking changes will publish /nd-cluster/v2 alongside; partners migrate at their own pace. Additive changes (new optional fields, new vendor variants) stay within v1.",
+
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cluster", "admin_username", "admin_pass_ref", "nodes"],
+
+  "properties": {
+
+    "cluster": {
+      "type": "object",
+      "description": "Settings applied to the ND cluster as a whole.",
+      "additionalProperties": false,
+      "required": ["start_mode", "name", "iso", "network", "internal_networks", "dns", "ntp", "proxy", "external_services"],
+      "properties": {
+
+        "start_mode": {
+          "type": "string",
+          "enum": ["factory_preinstalled", "iso_reimage"],
+          "description": "Declared deployment starting mode. factory_preinstalled requires all three physical nodes to have the target ND release preinstalled and skips ISO imaging. iso_reimage installs the inventory-selected ISO on all three nodes before cluster formation."
+        },
+
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Cluster name (Table 1: <cluster_name>). Letters, digits, hyphens; must start with a letter."
+        },
+
+        "implementation_type": {
+          "type": "string",
+          "enum": ["LAN", "Fabric"],
+          "default": "LAN",
+          "description": "ND implementation type. AI POD CVDs use LAN."
+        },
+
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "default": "UTC",
+          "description": "Intended site timezone (e.g. UTC or America/New_York). The native cisco.nd.nd_setup path does not apply this value; handle the ND user display preference manually. Not proof of cluster operating-system timezone configuration."
+        },
+
+        "iso": {
+          "type": "object",
+          "description": "ND ISO image hosted on a server reachable from each node's CIMC.",
+          "additionalProperties": false,
+          "required": ["url", "sha512"],
+          "properties": {
+            "url":    { "$ref": "_shared/network-primitives.schema.json#/$defs/url_http",
+                        "description": "ISO URL (Table 1: <iso_url>). HTTP/HTTPS reachable from each CIMC vMedia." },
+            "sha512": { "$ref": "_shared/network-primitives.schema.json#/$defs/sha512_hex",
+                        "description": "Vendor-published SHA-512 of the ISO. Pre-flight verifies the served file matches." }
+          }
+        },
+
+        "network": {
+          "type": "object",
+          "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array.",
+          "additionalProperties": false,
+          "required": ["mgmt_subnet", "mgmt_gateway", "data_subnet", "data_gateway"],
+          "properties": {
+            "mgmt_subnet":  { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+                              "description": "ND management subnet (Table 1: <mgmt_prefix> applied)." },
+            "mgmt_gateway": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                              "description": "Default gateway on ND-MGMT (Table 1: <mgmt_gateway>)." },
+            "data_subnet":  { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+                              "description": "ND data subnet. L2 mode requires persistent IPs in this subnet." },
+            "data_gateway": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                              "description": "Default gateway on ND-DATA (Table 1: <data_gateway>)." },
+            "oob_subnet":   { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+                              "description": "Out-of-band management subnet carrying the node CIMCs. ND has no interface of its own here; this is the third of the three networks an ND node touches (ND-MGMT, ND-DATA, CIMC/OOB), declared so that CIMC placement can be validated instead of reported as off-plan. Optional - omit it and CIMC placement is checked against the mgmt and data subnets only." },
+            "oob_gateway":  { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                              "description": "Default gateway on the OOB management subnet, where one is known. Optional, and often owned by the lab network team rather than the deployment team, in which case leave it unset rather than guessing." }
+          }
+        },
+
+        "internal_networks": {
+          "type": "object",
+          "description": "Internal Kubernetes container networks used only inside Nexus Dashboard. Cisco ND 4.3.x requires IPv4 /16 networks and recommends the defaults unless they overlap an external network the cluster must reach.",
+          "additionalProperties": false,
+          "required": ["app_network", "service_network"],
+          "properties": {
+            "app_network": {
+              "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+              "description": "Internal ND application network; IPv4 prefix must be /16. Cisco default is 172.17.0.1/16."
+            },
+            "service_network": {
+              "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_cidr",
+              "description": "Internal ND service network; IPv4 prefix must be /16. Cisco default is 100.80.0.0/16."
+            }
+          }
+        },
+
+        "dns": {
+          "type": "object",
+          "description": "DNS resolvers used by the cluster (Table 1: <dns_server_*>, <dns_search_domain>).",
+          "additionalProperties": false,
+          "required": ["servers"],
+          "properties": {
+            "servers": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4" }
+            },
+            "search_domains": {
+              "type": "array",
+              "description": "Optional DNS search suffixes. Omit this property or use an empty array when none are configured.",
+              "default": [],
+              "uniqueItems": true,
+              "items": { "$ref": "_shared/network-primitives.schema.json#/$defs/fqdn" }
+            }
+          }
+        },
+
+        "ntp": {
+          "type": "object",
+          "description": "NTP servers used by the cluster (Table 1: <ntp_server_*>). Two or more required by the MOP prereqs.",
+          "additionalProperties": false,
+          "required": ["servers"],
+          "properties": {
+            "servers": {
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": false,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["host"],
+                "properties": {
+                  "host": {
+                    "$ref": "_shared/network-primitives.schema.json#/$defs/hostname_or_ipv4",
+                    "description": "NTP server (IP literal preferred; troubleshooting log notes verifyremoteservices fails when DNS can't resolve hostnames)."
+                  },
+                  "preferred": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Marks the preferred peer. Exactly one server is typically marked preferred."
+                  }
+                }
+              }
+            }
+          }
+        },
+
+        "proxy": {
+          "type": "object",
+          "description": "Outbound HTTP(S) proxy. Set skip:true to disable; otherwise url is required.",
+          "additionalProperties": false,
+          "required": ["skip"],
+          "properties": {
+            "skip":         { "type": "boolean" },
+            "url":          { "$ref": "_shared/network-primitives.schema.json#/$defs/url_http" },
+            "ignore_hosts": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          },
+          "oneOf": [
+            { "properties": { "skip": { "const": true } },
+              "not": { "required": ["url"] } },
+            { "properties": { "skip": { "const": false } },
+              "required": ["url"] }
+          ]
+        },
+
+        "external_services": {
+          "type": "object",
+          "description": "Persistent external service IP pools passed directly to cisco.nd.nd_setup. The AI POD lab currently uses an ND-DATA pool and no ND-MGMT pool.",
+          "additionalProperties": false,
+          "required": ["management_service_ips", "data_service_ips"],
+          "properties": {
+            "management_service_ips": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4" }
+            },
+            "data_service_ips": {
+              "type": "array",
+              "description": "Persistent IP pool for service endpoints on ND-DATA. The CVD prerequisites require at least five addresses.",
+              "minItems": 5,
+              "uniqueItems": true,
+              "items": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4" }
+            }
+          }
+        }
+      }
+    },
+
+    "runtime": {
+      "type": "object",
+      "description": "Operator-side defaults consumed by Phase 1 Python automation (scripts/main.py). Phase 2 mirrors these as Ansible role defaults.",
+      "additionalProperties": false,
+      "properties": {
+        "state_dir":                 { "type": "string", "minLength": 1, "default": "state/" },
+        "ca_bundle":                 { "type": ["string", "null"], "default": null,
+                                       "description": "Path to a PEM CA bundle for TLS verification. null falls back to system trust." },
+        "verify_tls":                { "type": "boolean", "default": true,
+                                       "description": "Set false only in labs with self-signed certs and no CA bundle. Logs a warning." },
+        "cluster_bringup_timeout_s": { "type": "integer", "minimum": 600, "maximum": 14400, "default": 3600,
+                                       "description": "Total budget for cluster bringup poll. CVD says ~30 min; default 60 min." }
+      }
+    },
+
+    "admin_username": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ND cluster administrative login username. This is non-secret operator input; the AI POD lab uses admin."
+    },
+
+    "admin_pass_ref": {
+      "$ref": "_shared/credentials.schema.json#/$defs/secret_ref",
+      "description": "Reference to the ND cluster admin password (Credentials table: ND cluster admin). Used at first-boot of ND-1 and for all subsequent ND API auth. Must be distinct from CIMC passwords in production."
+    },
+
+    "nodes": {
+      "type": "array",
+      "description": "Exactly 3 ND nodes. Subsystem 01 currently scopes a 3-node primary cluster; standby/secondary scaling is out of scope until ND adds it to AI POD.",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hostname", "type", "role", "cimc", "mgmt", "data"],
+        "properties": {
+
+          "hostname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$",
+            "description": "Nexus Dashboard node hostname, as typed into the product. Any RFC 1123 label is accepted: letters, digits and hyphens, not starting or ending with a hyphen. Case is the operator's choice and DNS treats it case-insensitively. AI POD collateral uses ND-1, ND-2, ND-3 to match the T&FT guides. Independent of the lowercase Ansible inventory handle."
+          },
+
+          "type": {
+            "type": "string",
+            "enum": ["Primary"],
+            "description": "ND node type. AI POD always uses Primary for all 3 nodes."
+          },
+
+          "role": {
+            "type": "string",
+            "enum": ["bootstrap", "secondary"],
+            "description": "Cluster-formation role. Exactly one node has role=bootstrap (ND-1); the other two are role=secondary. Imaging behavior is controlled separately by cluster.start_mode."
+          },
+
+          "cimc": {
+            "type": "object",
+            "description": "Out-of-band CIMC management for this chassis (Credentials table: CIMC admin).",
+            "additionalProperties": false,
+            "required": ["ip", "user", "pass_ref"],
+            "properties": {
+              "ip":       { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                            "description": "CIMC IP (Table 2: <ndN_cimc_ip>)." },
+              "user":     { "$ref": "_shared/credentials.schema.json#/$defs/username",
+                            "description": "CIMC user (Table 1: <cimc_user>, typically admin)." },
+              "pass_ref": { "$ref": "_shared/credentials.schema.json#/$defs/secret_ref",
+                            "description": "Reference to CIMC password. Use a distinct ref per chassis in production (NDx_CIMC_PASSWORD pattern)." }
+            }
+          },
+
+          "mgmt": {
+            "type": "object",
+            "description": "ND-MGMT (out-of-band cluster mgmt) interface for this node.",
+            "additionalProperties": false,
+            "required": ["ip", "mask", "gateway"],
+            "properties": {
+              "ip":      { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                           "description": "Management IP (Table 2: <ndN_mgmt_ip>)." },
+              "mask":    { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_prefix_length",
+                           "description": "Prefix length for the mgmt subnet (matches cluster.network.mgmt_subnet)." },
+              "gateway": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                           "description": "Mgmt gateway (typically the same as cluster.network.mgmt_gateway)." },
+              "vlan":    { "oneOf": [
+                             { "$ref": "_shared/network-primitives.schema.json#/$defs/vlan_id" },
+                             { "type": "null" }
+                           ],
+                           "default": null,
+                           "description": "VLAN ID if the mgmt link is trunked. null for access mode (typical)." }
+            }
+          },
+
+          "data": {
+            "type": "object",
+            "description": "ND-DATA (cluster data plane) interface for this node.",
+            "additionalProperties": false,
+            "required": ["ip", "mask", "gateway"],
+            "properties": {
+              "ip":      { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                           "description": "Data IP (Table 2: <ndN_data_ip>)." },
+              "mask":    { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4_prefix_length",
+                           "description": "Prefix length for the data subnet (matches cluster.network.data_subnet)." },
+              "gateway": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4",
+                           "description": "Data gateway (typically the same as cluster.network.data_gateway)." },
+              "vlan":    { "oneOf": [
+                             { "$ref": "_shared/network-primitives.schema.json#/$defs/vlan_id" },
+                             { "type": "null" }
+                           ],
+                           "default": null,
+                           "description": "VLAN ID if the data link is trunked. null for access mode."
+                         }
+            }
+          }
+        }
+      },
+
+      "allOf": [
+        {
+          "description": "Exactly one node must be role=bootstrap.",
+          "contains": { "properties": { "role": { "const": "bootstrap" } } },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  }
+}

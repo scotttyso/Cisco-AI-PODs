@@ -11,6 +11,20 @@
         )
     fail_msg: "OpenShift authentication is not configured. Set K8S_AUTH_KUBECONFIG or KUBECONFIG, or export both openshift_token_id and openshift_api_url."
 
+- name: Default the GitOps Repository URL to the In-Cluster Gitea Repository
+  ansible.builtin.set_fact:
+    openshift: >-
+      {{
+        openshift | combine({'operators': {'openshift_gitops': {'gitops_repo_url':
+          'https://gitea-with-admin-gitea-operator.apps.' ~ openshift.cluster_name ~ '.' ~ openshift.base_dns_domain
+          ~ '/lab-user/openshift-gitops-repo.git'}}}, recursive=True)
+      }}
+  when:
+    - (openshift.operators.gitea.enable | default(false)) | bool
+    - (openshift.operators.openshift_gitops.gitops_repo_url | default('')) | length == 0
+    - openshift.cluster_name is defined
+    - openshift.base_dns_domain is defined
+
 - name: Validate Required GitOps Configuration
   ansible.builtin.assert:
     that:
@@ -34,6 +48,11 @@
           'openshift-nmstate'
         ])
       }}
+
+- name: Add the NVIDIA GPU Operator When the NVIDIA NIM Operator Is in Operator List
+  ansible.builtin.set_fact:
+    operator_list: "{{ operator_list | union(['nvidia-gpu-operator']) }}"
+  when: "'nvidia-nim-operator' in operator_list"
 
 - name: Add Required Operators When Red Hat OpenShift AI Is in Operator List
   ansible.builtin.set_fact:
@@ -177,6 +196,13 @@
     dest: "{{ destination_directory }}/helm/nvidia-gpu-operator/values.yaml"
     mode: '0755'
   when: "'nvidia-gpu-operator' in operator_list"
+
+- name: Create the NVIDIA NIM Operator Subscription from Template
+  ansible.builtin.copy:
+    content: "{{ lookup('template', 'nvidia-nim-operator-subscription.yaml.j2') }}"
+    dest: "{{ destination_directory }}/apps/nvidia-nim-operator/subscription.yaml"
+    mode: '0755'
+  when: "'nvidia-nim-operator' in operator_list"
 
 - name: Create the NVIDIA Network Operator - NIC Cluster Policy from Template
   ansible.builtin.copy:

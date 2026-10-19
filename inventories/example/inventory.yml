@@ -1,0 +1,102 @@
+---
+# Example site inventory — canonical runtime source for the ND cluster.
+#
+# ND is API/console-driven (not SSH-managed), so cluster tasks run
+# connection: local. The three ND nodes are inventory entries (data +
+# targeting), not SSH hosts. Groups:
+#   nd_cluster    — all three ND nodes
+#     nd_bootstrap  — nd-1 (runs the Redfish/SOL image + first-boot path)
+#     nd_secondary  — nd-2, nd-3 (joined via the ND cluster API / nd_setup)
+#
+# The lowercase inventory host key (nd-1) is a stable handle. The ND-assigned
+# hostname is the uppercase value in host_vars/nd-N.yml -> nd_node.hostname
+# (ND-1) and is independent of this key.
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      # Run local modules with the same solution-wide venv that launched
+      # ansible-playbook so collection Python dependencies remain consistent.
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  children:
+    nd_cluster:
+      children:
+        nd_bootstrap:
+          hosts:
+            nd-1:
+        nd_secondary:
+          hosts:
+            nd-2:
+            nd-3:
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    # UCS endpoints are inventory data, not SSH targets. Claim and discovery
+    # tasks run locally against each endpoint's CIMC API.
+    # An UCS-X Direct domain has two controller endpoints but one Intersight
+    # claim target; its shared claim_target key is in the endpoint host_vars.
+    ucs_xdirect_domains:
+      children:
+        ucsx_mgmt_1:
+          hosts:
+            ucsx-mgmt-1-a:
+            ucsx-mgmt-1-b:
+        ucsx_gpu_1:
+          hosts:
+            ucsx-gpu-1-a:
+            ucsx-gpu-1-b:
+        ucsx_aid_1:
+          hosts:
+            ucsx-aid-1-a:
+            ucsx-aid-1-b:
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    ucs_standalone:
+      hosts:
+        ucs-c845-1:
+        ucs-c845-2:
+        ucs-c880-1:
+        ucs-c880-2:
+        ucs-c880-3:
+        ucs-c880-4:
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    # Ownership groups mirror the established subsystem structure. A domain
+    # pair also remains in ucs_xdirect_domains above for one-claim semantics.
+    ucs_mgmt_nodes:
+      hosts:
+        ucsx-mgmt-1-a:
+        ucsx-mgmt-1-b:
+    ucs_workload_nodes:
+      hosts:
+        ucsx-gpu-1-a:
+        ucsx-gpu-1-b:
+        ucsx-aid-1-a:
+        ucsx-aid-1-b:
+        ucs-c845-1:
+        ucs-c845-2:
+        ucs-c880-1:
+        ucs-c880-2:
+        ucs-c880-3:
+        ucs-c880-4:
+    # Backend fabric switches are managed through NDFC on Nexus Dashboard.
+    # The split groups preserve the two independently deployable fabrics.
+    backend_fabric_switches:
+      children:
+        backend_fabric_backend:
+          hosts:
+            example-backend-spine-1:
+            example-backend-spine-2:
+            example-backend-leaf-1:
+            example-backend-leaf-2:
+        backend_fabric_backend_800g:
+          hosts:
+            example-backend-800g-spine-1:
+            example-backend-800g-spine-2:
+            example-backend-800g-leaf-1:
+            example-backend-800g-leaf-2:
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"

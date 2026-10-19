@@ -8,7 +8,7 @@ from openpyxl import Workbook
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("inventory_builder", ROOT / "scripts/build_initial_inventory.py")
+SPEC = importlib.util.spec_from_file_location("inventory_builder", ROOT / "00-environment-prep/automation/scripts/build_initial_inventory.py")
 builder = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(builder)
 

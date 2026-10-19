@@ -21,5 +21,9 @@
 {% if openshift_install.ntp_servers is defined %}
     "ntp": "{% for ntp in openshift_install.ntp_servers %}{{ ntp }}{% if not loop.last %},{% endif %}{% endfor %}",
 {% endif %}
+{% set cilium_settings = ((openshift | default({})).operators | default({})).cilium | default({}) %}
+{% if cilium_settings.version is defined %}
+    "cilium": {"version": "{{ cilium_settings.version }}"},
+{% endif %}
     "openshift_version": "{{ openshift_install.cluster_version | default('4.20.16') }}"
 }

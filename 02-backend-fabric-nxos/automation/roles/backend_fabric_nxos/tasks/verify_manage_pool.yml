@@ -1,0 +1,12 @@
+---
+- name: "BE fabric: verify {{ be_expected_pool.key }} on {{ be_fabric.name }}"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_license_after.json.management[be_expected_pool.key]
+        == be_expected_pool.value
+    fail_msg: >-
+      Nexus Dashboard did not retain {{ be_expected_pool.key }}={{
+        be_expected_pool.value
+      }} for {{ be_fabric.name }}. Switch onboarding is stopped.
+  no_log: true

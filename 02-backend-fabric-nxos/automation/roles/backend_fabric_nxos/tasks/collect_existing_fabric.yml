@@ -1,0 +1,14 @@
+---
+- name: "BE fabric: record existing fabric identity {{ be_existing_summary.name }}"
+  ansible.builtin.set_fact:
+    be_existing_fabric_identities: >-
+      {{
+        be_existing_fabric_identities + [
+          {
+            'name': be_existing_summary.name,
+            'bgp_as': be_existing_summary.management.bgpAsn | string,
+            'type': be_existing_summary.management.type
+          }
+        ]
+      }}
+  no_log: true

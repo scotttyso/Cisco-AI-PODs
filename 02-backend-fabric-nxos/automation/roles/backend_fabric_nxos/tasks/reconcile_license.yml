@@ -1,0 +1,200 @@
+---
+- name: "BE fabric: wait for preceding NDFC work on {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{
+        be_fabric.name | urlencode
+      }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_fabric_ready
+  until:
+    - be_fabric_ready.status | default(0) == 200
+    - be_fabric_ready.json.operStatus | default('') | upper == 'HEALTHY'
+  retries: "{{ be_fabric_ready_poll_retries }}"
+  delay: "{{ be_fabric_ready_poll_interval }}"
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: read complete fabric record for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{
+        be_manage_fabrics_path
+      }}/{{ be_fabric.name | urlencode }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_license_before
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: initialize live management pool overrides for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_management_pool_overrides: {}
+  no_log: true
+
+- name: "BE fabric: derive every live 10.* management pool for {{ be_fabric.name }}"
+  ansible.builtin.include_tasks: collect_manage_pool_override.yml
+  loop: "{{ be_license_before.json.management | dict2items }}"
+  loop_control:
+    loop_var: be_manage_field
+    label: "{{ be_manage_field.key }}"
+  no_log: true
+
+- name: "BE fabric: build complete desired Manage record for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_desired_fabric_body: >-
+      {{
+        (be_license_before.json | dict2items | rejectattr('key', 'equalto', 'location') | items2dict) | combine(
+          {
+            'licenseTier': be_fabric.license_tier | lower,
+            'telemetryCollection': be_fabric_features.enable_telemetry,
+            'telemetryCollectionType': (
+              'inBand'
+              if be_fabric_features.telemetry_collection_mode == 'in_band'
+              else 'outOfBand'
+            ),
+            'telemetrySourceInterface': be_fabric_features.telemetry_source_interface,
+            'telemetrySourceVrf': be_fabric_features.telemetry_vrf,
+            'telemetryStreamingProtocol': be_fabric_features.telemetry_streaming_protocol,
+            'telemetrySettings': (
+              be_license_before.json.telemetrySettings
+              | default(be_default_telemetry_settings, true)
+            ),
+            'management': (
+              be_license_before.json.management
+              | combine(be_management_pool_overrides)
+            )
+          }
+        ) | combine(
+          {"location": be_fabric.location}
+          if be_fabric.location is defined else {}
+        )
+      }}
+  no_log: true
+
+- name: "BE fabric: reconcile license and underlay pools for {{ be_fabric.name }}"
+  when: be_desired_fabric_body != be_license_before.json
+  no_log: true
+  block:
+    - name: "BE fabric: submit one bounded Manage update for {{ be_fabric.name }}"
+      ansible.builtin.uri:
+        url: >-
+          https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{
+            be_manage_fabrics_path
+          }}/{{ be_fabric.name | urlencode }}
+        method: PUT
+        headers: "{{ be_platform_headers }}"
+        body: "{{ be_desired_fabric_body }}"
+        body_format: json
+        validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+        status_code: 200
+        return_content: true
+        # This request is separate from dcnm_inventory, whose collection-native
+        # workflow enforces a 1000-second connection timeout. Do not inherit that
+        # broad value for this single Manage write.
+        timeout: "{{ be_manage_update_request_timeout }}"
+      delegate_to: localhost
+      register: be_license_update
+
+  rescue:
+    # A client timeout does not prove that ND abandoned the update. Observe the
+    # same record instead of blindly resending a potentially active write.
+    - name: "BE fabric: observe timed-out Manage update for {{ be_fabric.name }}"
+      ansible.builtin.uri:
+        url: >-
+          https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{
+            be_manage_fabrics_path
+          }}/{{ be_fabric.name | urlencode }}
+        method: GET
+        headers: "{{ be_platform_headers }}"
+        validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+        status_code: 200
+        return_content: true
+        timeout: 60
+      delegate_to: localhost
+      register: be_manage_observed
+      until:
+        - be_manage_observed.status | default(0) == 200
+        - be_manage_observed.json | default({}) == be_desired_fabric_body
+      retries: "{{ be_manage_update_observe_retries }}"
+      delay: "{{ be_manage_update_observe_interval }}"
+      changed_when: false
+
+    - name: "BE fabric: record controller-completed Manage update"
+      ansible.builtin.set_fact:
+        be_license_update:
+          changed: true
+          observed_after_request_timeout: true
+
+- name: "BE fabric: verify {{ be_fabric.name }} license tier"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{
+        be_manage_fabrics_path
+      }}/{{ be_fabric.name | urlencode }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_license_after
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: require {{ be_fabric.name }} Premier license intent"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_license_after.json.licenseTier | lower
+        == be_fabric.license_tier | lower
+    fail_msg: >-
+      Nexus Dashboard did not retain license tier
+      {{ be_fabric.license_tier | lower }} for {{ be_fabric.name }}.
+      Switch onboarding is stopped.
+  no_log: true
+
+- name: "BE fabric: require {{ be_fabric.name }} location intent"
+  when: be_fabric.location is defined
+  ansible.builtin.assert:
+    that:
+      - be_license_after.json.location.latitude | float == be_fabric.location.latitude | float
+      - be_license_after.json.location.longitude | float == be_fabric.location.longitude | float
+    fail_msg: >-
+      Nexus Dashboard did not retain the inventory-defined coordinates for {{ be_fabric.name }}. Switch onboarding is stopped.
+  no_log: true
+
+- name: "BE fabric: require {{ be_fabric.name }} telemetry intent"
+  ansible.builtin.assert:
+    that:
+      - be_license_after.json.telemetryCollection | bool == be_fabric_features.enable_telemetry | bool
+      - >-
+        be_license_after.json.telemetryCollectionType
+        == ('inBand' if be_fabric_features.telemetry_collection_mode == 'in_band' else 'outOfBand')
+      - be_license_after.json.telemetrySourceVrf == be_fabric_features.telemetry_vrf
+      - be_license_after.json.telemetrySourceInterface == be_fabric_features.telemetry_source_interface
+      - be_license_after.json.telemetryStreamingProtocol == be_fabric_features.telemetry_streaming_protocol
+    fail_msg: >-
+      Nexus Dashboard did not retain the canonical telemetry settings for
+      {{ be_fabric.name }}. Switch onboarding is stopped.
+  no_log: true
+
+- name: "BE fabric: verify every rewritten management pool for {{ be_fabric.name }}"
+  ansible.builtin.include_tasks: verify_manage_pool.yml
+  loop: "{{ be_management_pool_overrides | dict2items }}"
+  loop_control:
+    loop_var: be_expected_pool
+    label: "{{ be_expected_pool.key }}"

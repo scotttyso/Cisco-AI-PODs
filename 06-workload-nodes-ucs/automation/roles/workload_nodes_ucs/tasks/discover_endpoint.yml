@@ -1,0 +1,33 @@
+---
+- name: "UCS/Intersight: discover endpoint with guaranteed session cleanup"
+  block:
+    - name: "UCS/Intersight: run endpoint discovery"
+      ansible.builtin.include_tasks: discover_endpoint_body.yml
+  always:
+    - name: "UCS/Intersight: delete temporary standalone Redfish session"
+      ansible.builtin.uri:
+        url: >-
+          {{
+            ucs_standalone_login.location
+            if ucs_standalone_login.location is match('^https?://')
+            else 'https://' ~ ucs_claim_endpoint.ip ~ ucs_standalone_login.location
+          }}
+        method: DELETE
+        headers:
+          X-Auth-Token: "{{ ucs_standalone_login.x_auth_token }}"
+        validate_certs: "{{ ucs_connector_validate_certs }}"
+        status_code: [200, 204, 404]
+        return_content: false
+        timeout: 30
+      register: ucs_standalone_logout
+      until: ucs_standalone_logout.status | default(0) in [200, 204, 404]
+      retries: 3
+      delay: 2
+      when:
+        - ucs_claim_target.platform == 'standalone'
+        - ucs_standalone_login is defined
+        - ucs_standalone_login.status | default(0) in [200, 201]
+        - ucs_standalone_login.location | default('') | length > 0
+        - ucs_standalone_login.x_auth_token | default('') | length > 0
+      changed_when: false
+      no_log: true

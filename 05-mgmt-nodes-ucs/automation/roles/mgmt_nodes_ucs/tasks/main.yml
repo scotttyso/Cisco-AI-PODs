@@ -1,0 +1,7 @@
+---
+- name: "UCS/Intersight: select the normal non-destructive claim path"
+  ansible.builtin.set_fact:
+    ucs_intersight_reclaim_mode: false
+
+- name: "UCS/Intersight: claim or verify subsystem-owned targets"
+  ansible.builtin.include_tasks: intersight_claim.yml

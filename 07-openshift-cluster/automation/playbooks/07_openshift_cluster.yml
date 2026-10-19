@@ -1,0 +1,20 @@
+---
+# Subsystem 07 - OpenShift cluster
+#
+# Tier 2 playbook in the four-tier model (aipod-architecture skill):
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/platform.yml
+#   Tier 2: this file
+#   Tier 1: roles/ (not yet scaffolded)
+#
+# SKELETON — wires domain hierarchy; automation not implemented yet.
+
+- name: "Subsystem 07 - OpenShift cluster (skeleton)"
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Skip — Tier 2 automation not yet implemented"
+      ansible.builtin.debug:
+        msg: >-
+          Subsystem 07 skeleton. Implement roles/ and capability tasks under
+          07-openshift-cluster/automation/ before removing this skip.

@@ -299,7 +299,8 @@ def load_configurations(kwargs):
                     dict):
                 deep_merge_dicts(dest[key], value)
             elif key in dest and isinstance(dest[key], list) and isinstance(value, list):
-                dest[key].extend(normalize_value(value))
+                # The UCS Domains and UCS Servers folders can both carry the same policy; keep one copy.
+                dest[key].extend(item for item in normalize_value(value) if item not in dest[key])
             else:
                 dest[key] = normalize_value(value)
         return dest

@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=../../../../schema/cisco-ai-pods.json
+intersight:
+  configure:
+    common:
+      pools:
+        wwnn:
+          - id_blocks:
+              - from: 20:00:00:25:B5:C1:00:00
+                size: 256
+            name: WWNN
+        wwpn:
+          - id_blocks:
+              - from: 20:00:00:25:B5:C1:A0:00
+                size: 256
+            name: WWPN-A
+          - id_blocks:
+              - from: 20:00:00:25:B5:C1:B0:00
+                size: 256
+            name: WWPN-B

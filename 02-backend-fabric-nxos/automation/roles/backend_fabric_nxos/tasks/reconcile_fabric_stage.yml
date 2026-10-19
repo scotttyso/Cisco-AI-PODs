@@ -1,0 +1,38 @@
+---
+- name: "BE fabric: reconcile {{ be_reconcile_stage.name }}"
+  block:
+    - name: "BE fabric: submit {{ be_reconcile_stage.name }}"
+      cisco.dcnm.dcnm_fabric:
+        state: merged
+        skip_validation: true
+        config: "{{ be_reconcile_stage.configs }}"
+      register: be_reconcile_stage_result
+      no_log: true
+  rescue:
+    # Never expose the module result because the robot-password stage contains
+    # a secret. Report only controller status codes and generic messages.
+    - name: "BE fabric: sanitize {{ be_reconcile_stage.name }} failure"
+      ansible.builtin.set_fact:
+        be_stage_failure_return_codes: >-
+          {{
+            ansible_failed_result.response | default([])
+            | select('mapping')
+            | map(attribute='RETURN_CODE', default='unknown')
+            | list
+          }}
+        be_stage_failure_controller_messages: >-
+          {{
+            ansible_failed_result.response | default([])
+            | select('mapping')
+            | map(attribute='MESSAGE', default='')
+            | reject('equalto', '')
+            | list
+          }}
+      no_log: true
+
+    - name: "BE fabric: stop after {{ be_reconcile_stage.name }} failure"
+      ansible.builtin.fail:
+        msg: >-
+          NDFC rejected the {{ be_reconcile_stage.name }} stage.
+          Controller return codes: {{ be_stage_failure_return_codes }}.
+          Controller messages: {{ be_stage_failure_controller_messages }}.

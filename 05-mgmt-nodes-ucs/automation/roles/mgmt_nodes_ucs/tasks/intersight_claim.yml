@@ -1,0 +1,66 @@
+---
+# Normal claim is idempotent and non-destructive. Device ID and Claim Code are
+# discovered from the target connector at run time and are never persisted.
+
+- name: "UCS/Intersight: require shared site claim inputs"
+  ansible.builtin.assert:
+    that:
+      - intersight_api_uri | default('') | length > 0
+      - vault_intersight_api_key_id | default('') | length > 0
+      - vault_intersight_api_private_key | default('') | length > 0
+      - groups[ucs_claim_inventory_group] | default([]) | length > 0
+    fail_msg: >-
+      UCS Intersight claim requires the shared intersight_* site values, the
+      Intersight API key pair in vault.yml, and hosts in the subsystem's
+      canonical inventory group.
+  no_log: true
+
+- name: "UCS/Intersight: normalize the Cisco Intersight API base URI"
+  ansible.builtin.set_fact:
+    ucs_intersight_api_uri: >-
+      {{ intersight_api_uri | regex_replace('/+$', '') ~
+         ('' if (intersight_api_uri | regex_replace('/+$', '')) is match('.*/api/v1$') else '/api/v1') }}
+    ucs_claim_targets: {}
+  no_log: true
+
+- name: "UCS/Intersight: read the account that owns the API key"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ ucs_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /iam/Accounts
+    query_params:
+      $select: Name
+  register: ucs_intersight_account
+  changed_when: false
+  when: intersight_account_name | default('') | length == 0
+  no_log: true
+
+- name: "UCS/Intersight: use the account name from the API key"
+  ansible.builtin.set_fact:
+    intersight_account_name: "{{ ucs_intersight_account.api_response.Name | default('') }}"
+  when: intersight_account_name | default('') | length == 0
+
+- name: "UCS/Intersight: require a resolved account name"
+  ansible.builtin.assert:
+    that:
+      - intersight_account_name | length > 0
+    fail_msg: The Intersight account name could not be read with the API key.
+
+- name: "UCS/Intersight: assemble subsystem claim targets from canonical host_vars"
+  ansible.builtin.include_tasks: build_target.yml
+  loop: "{{ groups[ucs_claim_inventory_group] }}"
+  loop_control:
+    loop_var: ucs_inventory_host
+    label: "{{ ucs_inventory_host }}"
+
+- name: "UCS/Intersight: claim or verify each selected target"
+  ansible.builtin.include_tasks: process_target.yml
+  loop: "{{ ucs_claim_targets | dict2items }}"
+  loop_control:
+    loop_var: ucs_claim_target_item
+    label: "{{ ucs_claim_target_item.key }}"
+  when: >-
+    ucs_intersight_target_filter | length == 0 or
+    ucs_claim_target_item.key in ucs_intersight_target_filter

@@ -87,6 +87,7 @@ cover/
 
 # Django stuff:
 *.log
+LOGS/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -247,3 +248,29 @@ credentials*
 .idea/
 .DS_Store
 .venv/
+
+# Workflow stages merged from Cisco-AI-PODs-DEV
+# Re-include tracked stage inventories, shared libraries, and schema contracts
+# that the generic rules above would otherwise hide.
+!/inventories/*/host_vars/
+!/shared/lib/
+!/schemas/_shared/credentials.schema.json
+# Site run evidence (test results, generated post-install reports) stays local;
+# keep it in the deployment environment, not the repository.
+/0[0-9]-*/automation/test-results/
+/01-nd-cluster/manual/
+/inventories/lab/
+# Lab UI captures show site addresses; keep them in the deployment environment.
+/0[0-9]-*/docs/screenshots/
+/0[0-9]-*/docs/figures/
+**/automation/run-logs/
+/0[0-9]-*/**/state/
+/0[0-9]-*/**/logs/
+/0[0-9]-*/automation/.venv-aipod-inf/
+# Assembled collection tree written by scripts/build_collection.sh
+/build/
+# Site vaults (the keys-only .example template is tracked)
+/inventories/**/vault.yml
+
+# Automation UI editor build dependencies (the built bundle in scripts/aipod_webui/static is committed)
+/scripts/aipod_webui/editor/node_modules/

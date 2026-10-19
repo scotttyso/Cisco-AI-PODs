@@ -177,7 +177,7 @@ Master playbook supporting all operations. Recommended for most use cases.
 - `fabric_name`: Name of the fabric
 - `fabric_type`: Type (classicLan, vxlanIbgp, vxlanEbgp)
 - `config_file`: Path to YAML configuration file
-- `nd_url`: Nexus Dashboard URL (default: https://nd-lan.rich.ciscolabs.com)
+- `nd_url`: Nexus Dashboard URL (default: https://nd.example.com)
 - `nd_username`: Nexus Dashboard username (default: admin)
 - `vault_file`: Path to vault-ai-pod.yaml
 - `platform_type`: Platform type (default: nx-os)
@@ -198,7 +198,7 @@ For specific operations:
 Role defaults (override with -e flags):
 
 ```yaml
-nd_url: "https://nd-lan.rich.ciscolabs.com"
+nd_url: "https://nd.example.com"
 nd_username: "admin"
 vault_file: "vault-ai-pod.yaml"
 platform_type: "nx-os"
@@ -293,7 +293,7 @@ done
 Set these to avoid passing arguments repeatedly:
 
 ```bash
-export ND_URL="https://nd-lan.rich.ciscolabs.com"
+export ND_URL="https://nd.example.com"
 export ND_USERNAME="admin"
 
 ansible-playbook playbooks/deploy_nexus_dashboard.yaml \

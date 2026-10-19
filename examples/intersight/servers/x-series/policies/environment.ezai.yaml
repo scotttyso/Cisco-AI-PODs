@@ -1,0 +1,19 @@
+---
+# =========================================================
+#   Policies -> Environment - Variables
+# =========================================================
+intersight:
+  configure:
+    default:
+      policies:
+        power:
+          - name: X9508
+            power_allocation: 8400
+            power_redundancy: Grid
+            target_platform: Chassis
+          - name: Server
+            power_restore: LastState
+            target_platform: FIAttached
+        thermal:
+          - fan_control_mode: Balanced
+            name: Balanced

@@ -1,0 +1,192 @@
+{
+  "$id": "hgx.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cisco AI PODs - HGX Servers",
+  "description": "BMC management settings for Cisco UCS HGX servers (C845A / C880A) that are configured through the BMC Redfish API instead of Intersight.",
+  "definitions": {
+    "bmc_settings": {
+      "title": "HGX BMC Settings",
+      "description": "Settings applied to every HGX BMC.  DNS, NTP, domain, and timezone default to the Initial Inventory shared services.\n\nRequired fields are:\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `timezone`\n\nOptional fields are:\n  * `configure`\n  * `password_ref`\n  * `request_spacing`\n  * `username`\n  * `verify_ssl`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "configure": {
+          "title": "Settings to Configure",
+          "description": "Which BMC settings the automation applies.  Every setting is applied by default.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dns": {
+              "default": true,
+              "description": "Default value is `true`.  Set the BMC static DNS servers.",
+              "title": "DNS Servers",
+              "type": "boolean"
+            },
+            "hostname": {
+              "default": true,
+              "description": "Default value is `true`.  Set the BMC host name and FQDN (`<hostname>.<domain_name>`).",
+              "title": "Host Name and FQDN",
+              "type": "boolean"
+            },
+            "ntp": {
+              "default": true,
+              "description": "Default value is `true`.  Set the NTP servers and enable the NTP protocol.",
+              "title": "NTP",
+              "type": "boolean"
+            },
+            "timezone": {
+              "default": true,
+              "description": "Default value is `true`.  Set the BMC `DateTimeLocalOffset` to the current UTC offset of `timezone`.  The BMC stores an offset, not an IANA zone, so re-run after daylight saving time changes.",
+              "title": "Timezone Offset",
+              "type": "boolean"
+            }
+          }
+        },
+        "dns_servers": {
+          "$ref": "./shared.json#/definitions/dns_servers"
+        },
+        "domain_name": {
+          "$ref": "./shared.json#/definitions/domain_name"
+        },
+        "ntp_servers": {
+          "$ref": "./shared.json#/definitions/ntp_servers"
+        },
+        "password_ref": {
+          "$ref": "#/definitions/password_ref"
+        },
+        "request_spacing": {
+          "default": 3,
+          "description": "Default value is `3`.  Seconds to wait between Redfish requests; the C880A BMC rejects rapid requests.",
+          "maximum": 30,
+          "minimum": 0,
+          "title": "Request Spacing (seconds)",
+          "type": "number"
+        },
+        "timezone": {
+          "$ref": "./shared.json#/definitions/timezone"
+        },
+        "username": {
+          "$ref": "#/definitions/username"
+        },
+        "verify_ssl": {
+          "default": false,
+          "description": "Default value is `false`.  Verify the BMC HTTPS certificate.  BMCs ship with self-signed certificates.",
+          "title": "Verify SSL",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dns_servers",
+        "domain_name",
+        "ntp_servers",
+        "timezone"
+      ]
+    },
+    "hgx_servers": {
+      "title": "HGX Servers",
+      "description": "Cisco UCS HGX servers (C845A / C880A) managed through the BMC Redfish API.\n\nRequired fields are:\n  * `bmc_settings`\n  * `servers`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bmc_settings": {
+          "$ref": "#/definitions/bmc_settings"
+        },
+        "servers": {
+          "title": "Servers",
+          "description": "HGX servers to configure.  Pre-filled from the Initial Inventory rows with the HGX node role and the Claim Targets addresses.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/server"
+          }
+        }
+      },
+      "required": [
+        "bmc_settings",
+        "servers"
+      ]
+    },
+    "password_ref": {
+      "default": "HGX_BMC_PASSWORD",
+      "description": "Default value is `HGX_BMC_PASSWORD`.  Name of the environment variable that holds the BMC password.  The web UI exports Ansible Vault key `vault_<name in lower case>` under this name; `HGX_BMC_PASSWORD` is the HGX BMC password entered on Compute > HGX Servers (a target with overridden credentials on Claim Targets uses `<HOST>_CIMC_PASSWORD`).",
+      "examples": [
+        "HGX_BMC_PASSWORD",
+        "HGX_NODE_1_CIMC_PASSWORD"
+      ],
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "title": "BMC Password Reference",
+      "type": "string"
+    },
+    "server": {
+      "title": "HGX Server",
+      "description": "One HGX server.\n\nRequired fields are:\n  * `bmc`\n  * `hostname`\n\nOptional fields are:\n  * `model`\n  * `serial_number`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bmc": {
+          "title": "BMC",
+          "description": "BMC address and optional credential overrides.\n\nRequired fields are:\n  * `ip`\n\nOptional fields are:\n  * `password_ref`\n  * `username`",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ip": {
+              "$ref": "./shared.json#/definitions/ip/properties/ipv4_address",
+              "description": "BMC management address (the static address from Claim Targets when one is set).",
+              "title": "BMC IPv4 Address"
+            },
+            "password_ref": {
+              "$ref": "#/definitions/password_ref"
+            },
+            "username": {
+              "$ref": "#/definitions/username"
+            }
+          },
+          "required": [
+            "ip"
+          ]
+        },
+        "hostname": {
+          "description": "Short host name set on the BMC; the FQDN is `<hostname>.<domain_name>`.",
+          "examples": [
+            "hgx-node-1"
+          ],
+          "maxLength": 63,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$",
+          "title": "Host Name",
+          "type": "string"
+        },
+        "model": {
+          "description": "Server model.",
+          "enum": [
+            "C845A",
+            "C880A"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "serial_number": {
+          "description": "Server serial number from the Initial Inventory.",
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Serial Number",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bmc",
+        "hostname"
+      ]
+    },
+    "username": {
+      "default": "admin",
+      "description": "Default value is `admin`.  BMC user name.",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "BMC Username",
+      "type": "string"
+    }
+  }
+}

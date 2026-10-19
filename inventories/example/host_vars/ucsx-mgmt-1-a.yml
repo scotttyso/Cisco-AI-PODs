@@ -1,0 +1,11 @@
+---
+# Endpoint A of one UCS-X Direct management domain. The domain is claimed once
+# after discovery combines the two controller Device IDs.
+ucs:
+  platform: domain
+  role: mgmt
+  claim_target: ucsx-mgmt-1
+  cimc:
+    ip: 203.0.113.10
+    user: admin
+    pass_ref: UCSX_MGMT_1_A_CIMC_PASSWORD

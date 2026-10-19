@@ -1,0 +1,14 @@
+---
+# Role-internal constants. Not user-tunable; for that use defaults/main.yml.
+
+# Capability allowlist (mirrors task files). Used by the dispatcher in
+# tasks/main.yml to validate nd_action.
+nd_known_actions:
+  - preflight
+  - image_node
+  - form_cluster
+  - capture_baseline
+  - intersight_claim
+  - intersight_reclaim
+  - persistent_ips
+  - remote_auth

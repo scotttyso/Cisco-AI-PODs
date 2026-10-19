@@ -1,0 +1,27 @@
+---
+# Bootstrap ND-1 from an already installed and positively verified release.
+# Used after acs reboot factory-reset and for factory-preinstalled appliances.
+
+- name: "ND/bootstrap_node: require the no-reimage start mode"
+  ansible.builtin.assert:
+    that:
+      - cluster.start_mode == 'factory_preinstalled'
+      - node.role == 'bootstrap'
+    fail_msg: >-
+      bootstrap_node requires start_mode=factory_preinstalled and the
+      inventory bootstrap node.
+
+- name: "ND/bootstrap_node: configure ND-1 first boot without reinstalling"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/main.py bootstrap
+      --ansible-inventory {{ inventory_file }}
+    chdir: "{{ nd_python_root }}"
+  environment: >-
+    {{
+      {admin_pass_ref: nd_admin_password}
+      | combine({node.cimc.pass_ref: cimc_passwords_by_ref[node.cimc.pass_ref]})
+    }}
+  register: bootstrap_result
+  changed_when: "'changed=true' in bootstrap_result.stdout"
+  failed_when: bootstrap_result.rc != 0

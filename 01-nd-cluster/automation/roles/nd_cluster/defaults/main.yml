@@ -1,0 +1,32 @@
+---
+# Defaults for cisco.aipod.nd_cluster.
+# Override via inventory; never edit this file for site-specific values.
+
+# Path to the local Python automation tree that contains scripts/main.py.
+# Derive it from the canonical site inventory rather than playbook_dir (which
+# changes across Tier 2/3/4 entrypoints) or role_path (which points into the
+# assembled collection and may be a symlink). A packaged collection can
+# override this with its co-located roles/<role>/files/automation path.
+nd_python_root: "{{ inventory_dir }}/../../01-nd-cluster/automation"
+
+# Which capability to run when the role is included without tasks_from.
+# Set per-call from the section playbook; this default catches misuse.
+nd_action: preflight
+
+# Cluster bringup budget (seconds). Mirrors runtime.cluster_bringup_timeout_s.
+nd_cluster_bringup_timeout_s: 3600
+
+# TLS verification for CIMC and ND endpoints.
+nd_verify_tls: true
+nd_ca_bundle: null
+
+# Runtime-discovered hardware identity. This path is beneath the gitignored
+# state directory and is regenerated from CIMC immediately before nd_setup.
+nd_serial_artifact: "{{ nd_python_root }}/{{ nd_runtime.state_dir }}/nd-serials.json"
+nd_release_evidence_artifact: >-
+  {{ nd_python_root }}/{{ nd_runtime.state_dir }}/nd-release-evidence.json
+
+# Stale Intersight targets can remain after a destructive ND reimage because
+# the new cluster receives a new Device Registration. Keep this disabled in
+# the reusable role; site inventory must explicitly enable guarded cleanup.
+nd_intersight_prune_stale_targets: false

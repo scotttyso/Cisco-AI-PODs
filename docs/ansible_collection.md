@@ -23,7 +23,7 @@ So the repository path should be:
 
 If your repository is currently at:
 
-- /home/tyscott/scotttyso/Cisco-AI-PODs
+- ~/src/Cisco-AI-PODs
 
 ansible-test sanity will fail collection-layout checks because it is not under ansible_collections/cisco/ai_pods.
 

@@ -1,0 +1,105 @@
+---
+- name: "BE fabric: initialize this fabric's underlay pool overrides"
+  ansible.builtin.set_fact:
+    be_pool_overrides: {}
+  no_log: true
+
+- name: "BE fabric: rewrite every live 10.* CIDR pool for this backend fabric"
+  ansible.builtin.set_fact:
+    be_pool_overrides: >-
+      {{
+        be_pool_overrides | combine(
+          {
+            be_default_item.key:
+              (be_default_item.value | regex_replace('^10\.', (be_fabric.underlay_first_octet | string) ~ '.'))
+          }
+        )
+      }}
+  loop: "{{ be_template_defaults | dict2items }}"
+  loop_control:
+    loop_var: be_default_item
+    label: "{{ be_default_item.key }}"
+  when:
+    - be_default_item.key in be_ndfc_pool_keys
+    # Ingress Replication does not use an Anycast-RP pool. NDFC keeps this
+    # field empty and rejects an attempt to populate the multicast-only pool.
+    - >-
+      be_default_item.key != 'ANYCAST_RP_IP_RANGE' or
+      (be_fabric.replication_mode
+       | default(be_template_defaults.REPLICATION_MODE)) != 'Ingress'
+    - be_default_item.value is string
+    - be_default_item.value is match('^10\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$')
+  no_log: true
+
+- name: "BE fabric: append identity and intentional non-defaults"
+  ansible.builtin.set_fact:
+    be_fabric_create_configs: >-
+      {{
+        be_fabric_create_configs + [
+          {
+            'FABRIC_NAME': be_fabric.name,
+            'FABRIC_TYPE': 'BGP',
+            'BGP_AS': be_fabric.bgp_as | string,
+            'BGP_AS_MODE': be_fabric_features.bgp_as_mode,
+            'ENABLE_EVPN': be_fabric_features.enable_evpn,
+            'ENABLE_AI_ML_QOS_POLICY': be_fabric_features.enable_ai_ml_qos_policy,
+            'AI_ML_QOS_POLICY': be_fabric.qos_policy,
+            'FABRIC_MTU': be_fabric_features.fabric_mtu,
+            'LINK_STATE_ROUTING': be_fabric_features.link_state_routing,
+            'unifiedNDFabricType': be_fabric_features.unified_fabric_type,
+            'DEPLOY': false
+          }
+        ]
+      }}
+    be_fabric_topology_configs: >-
+      {{
+        be_fabric_topology_configs + [
+          be_pool_overrides | combine(
+            {
+              'FABRIC_NAME': be_fabric.name,
+              'FABRIC_TYPE': 'BGP',
+              'BGP_AS': be_fabric.bgp_as | string,
+              'REPLICATION_MODE': (
+                be_fabric.replication_mode
+                | default(be_template_defaults.REPLICATION_MODE)
+              ),
+              'DEPLOY': false,
+              'BFD_ENABLE': be_fabric_features.bfd,
+              'FEATURE_PTP': (
+                be_fabric.ptp | default(be_fabric_features.ptp)
+              ),
+              'FEATURE_PTP_INTERNAL': (
+                be_fabric.ptp | default(be_fabric_features.ptp)
+              ),
+              'PTP_LB_ID': (
+                be_fabric_features.ptp_source_loopback_id
+                if (be_fabric.ptp | default(be_fabric_features.ptp))
+                else ''
+              ),
+              'PTP_DOMAIN_ID': (
+                be_fabric_features.ptp_domain_id
+                if (be_fabric.ptp | default(be_fabric_features.ptp))
+                else ''
+              ),
+              'enableRealTimeBackup': be_fabric_features.real_time_backup
+            }
+          )
+        ]
+      }}
+    be_fabric_robot_password_configs: >-
+      {{
+        be_fabric_robot_password_configs + [
+          {
+            'FABRIC_NAME': be_fabric.name,
+            'FABRIC_TYPE': 'BGP',
+            'BGP_AS': be_fabric.bgp_as | string,
+            'DEPLOY': false,
+            'designerUseRobotPassword': be_fabric_features.use_robot_password,
+            'designerPassword': lookup(
+              'vars',
+              'vault_' ~ (be_fabric_features.switch_password_ref | lower)
+            )
+          }
+        ]
+      }}
+  no_log: true

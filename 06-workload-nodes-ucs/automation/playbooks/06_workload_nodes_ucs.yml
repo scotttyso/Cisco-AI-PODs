@@ -1,0 +1,19 @@
+---
+# Subsystem 06 - UCS workload nodes
+#
+# Tier 2 playbook in the four-tier model (aipod-architecture skill):
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/compute.yml
+#   Tier 2: this file
+#   Tier 1: roles/workload_nodes_ucs
+
+- name: "Subsystem 06 - UCS workload nodes"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+  roles:
+    - role: cisco.aipod.workload_nodes_ucs

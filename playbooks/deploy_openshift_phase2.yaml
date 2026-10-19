@@ -188,7 +188,7 @@
 
     - role: openshift_gitea
       tags: [gitea]
-      when: openshift.operators.gitea.enabled | default(false) | bool
+      when: openshift.operators.gitea.enable | default(openshift.operators.gitea.enabled | default(false)) | bool
 
     - role: openshift_argo_cd
       tags: [argocd]

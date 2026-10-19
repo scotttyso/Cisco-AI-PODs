@@ -132,7 +132,7 @@ class NexusDashboardClient:
         Initialize Nexus Dashboard client
 
         Args:
-            nd_url: Nexus Dashboard URL (e.g., https://nd-lan.rich.ciscolabs.com)
+            nd_url: Nexus Dashboard URL (e.g., https://nd.example.com)
             username: API username
             password: API password
             verify_ssl: Whether to verify SSL certificates (default: False)
@@ -554,7 +554,7 @@ def main():
 Examples:
   # Create a classic-lan fabric
   python nexus_dashboard.py create-fabric \\
-    --nd-url https://nd-lan.rich.ciscolabs.com \\
+    --nd-url https://nd.example.com \\
     --nd-username admin \\
     --vault-file vault-ai-pod.yaml \\
     --fabric-name my-fabric \\
@@ -562,7 +562,7 @@ Examples:
 
   # Add switches from YAML configuration
   python nexus_dashboard.py add-devices \\
-    --nd-url https://nd-lan.rich.ciscolabs.com \\
+    --nd-url https://nd.example.com \\
     --nd-username admin \\
     --vault-file vault-ai-pod.yaml \\
     --fabric-name my-fabric \\
@@ -570,7 +570,7 @@ Examples:
 
   # Create VXLAN fabric
   python nexus_dashboard.py create-fabric \\
-    --nd-url https://nd-lan.rich.ciscolabs.com \\
+    --nd-url https://nd.example.com \\
     --nd-username admin \\
     --vault-file vault-ai-pod.yaml \\
     --fabric-name vxlan-fabric \\
@@ -578,13 +578,13 @@ Examples:
 
   # List all fabrics
   python nexus_dashboard.py list-fabrics \\
-    --nd-url https://nd-lan.rich.ciscolabs.com \\
+    --nd-url https://nd.example.com \\
     --nd-username admin \\
     --vault-file vault-ai-pod.yaml
 
   # List switches in a fabric
   python nexus_dashboard.py list-switches \\
-    --nd-url https://nd-lan.rich.ciscolabs.com \\
+    --nd-url https://nd.example.com \\
     --nd-username admin \\
     --vault-file vault-ai-pod.yaml \\
     --fabric-name my-fabric

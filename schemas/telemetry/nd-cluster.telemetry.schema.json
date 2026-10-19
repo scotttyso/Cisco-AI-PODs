@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/telemetry/nd-cluster/v1",
+  "title": "AI POD subsystem 01 ND cluster deployment telemetry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "telemetry_type", "phase", "timestamp_utc", "summary", "checks_table", "console_drawer"],
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["1.0"]},
+    "telemetry_type": {"type": "string", "enum": ["nd_cluster_deploy_telemetry"]},
+    "phase": {"type": "string", "enum": ["offline_plan", "precheck", "node1", "bootstrap", "secondary", "validate", "tail-sol"]},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "badge", "reason", "phases_total", "phases_succeeded", "checks_total", "checks_passed", "checks_failed", "cluster_state", "nodes_total", "nodes_healthy"],
+      "properties": {
+        "decision": {"type": "string"}, "badge": {"$ref": "#/$defs/badge"},
+        "reason": {"type": "string"}, "phases_total": {"type": "integer", "minimum": 0},
+        "phases_succeeded": {"type": "integer", "minimum": 0}, "checks_total": {"type": "integer", "minimum": 0},
+        "checks_passed": {"type": "integer", "minimum": 0}, "checks_failed": {"type": "integer", "minimum": 0},
+        "cluster_state": {"type": ["string", "null"]}, "nodes_total": {"type": "integer", "minimum": 0},
+        "nodes_healthy": {"type": "integer", "minimum": 0}
+      }
+    },
+    "checks_table": {"type": "array", "items": {"$ref": "#/$defs/check_row"}},
+    "console_drawer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "total_lines", "lines", "collapsible", "default_expanded"],
+      "properties": {"title": {"type": "string"}, "total_lines": {"type": "integer", "minimum": 0}, "lines": {"type": "array", "items": {"type": "string"}}, "collapsible": {"const": true}, "default_expanded": {"const": false}}
+    },
+    "artifacts": {"$ref": "#/$defs/artifacts"}
+  },
+  "$defs": {
+    "badge": {"type": "object", "additionalProperties": false, "required": ["label", "variant"], "properties": {"label": {"type": "string"}, "variant": {"type": "string", "enum": ["success", "warning", "danger", "info", "primary", "secondary"]}}},
+    "check_row": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "name", "state", "detail", "badge"],
+      "properties": {"kind": {"type": "string", "enum": ["phase", "node", "verification"]}, "name": {"type": "string"}, "state": {"type": "string"}, "detail": {"type": "string"}, "badge": {"$ref": "#/$defs/badge"}}
+    },
+    "artifacts": {"type": "object", "additionalProperties": false, "required": ["run_id", "run_dir", "raw_log", "telemetry_file", "status_file"], "properties": {"run_id": {"type": "string"}, "run_dir": {"type": "string"}, "raw_log": {"type": "string"}, "telemetry_file": {"type": "string"}, "status_file": {"type": "string"}}}
+  }
+}

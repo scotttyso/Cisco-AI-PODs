@@ -1,0 +1,10 @@
+---
+- name: "BE fabric: append changed topology setting"
+  ansible.builtin.set_fact:
+    be_topology_updates: >-
+      {{ be_topology_updates
+         | combine({be_topology_item.key: be_topology_item.value}) }}
+  when: >-
+    (be_topology_before.json.nvPairs[be_topology_item.key] | default('') | string | lower)
+    != (be_topology_item.value | string | lower)
+  no_log: true

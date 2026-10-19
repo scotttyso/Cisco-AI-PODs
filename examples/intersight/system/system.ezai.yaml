@@ -1,5 +1,5 @@
 ---
-# yaml-language-server: $schema=/home/tyscott/scotttyso/intersight-tools/schema/cisco-ai-pods.json --- IGNORE ---
+# yaml-language-server: $schema=../../../schema/cisco-ai-pods.json
 intersight:
   system:
     locations:

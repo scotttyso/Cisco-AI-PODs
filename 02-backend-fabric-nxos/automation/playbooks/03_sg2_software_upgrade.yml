@@ -1,0 +1,526 @@
+---
+# SG2-only NX-OS upgrade through the ND 4.3.1 Fabric Software Manage API.
+# The image must first be present in the ND repository, with its SHA512
+# verified against Cisco's published value. No write is retried blindly.
+- name: "Subsystem 02 - Safely upgrade the SG2 backend fabric"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  force_handlers: true
+
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    nd_upgrade_controller: "{{ hostvars[groups['nd_bootstrap'][0]] }}"
+    nd_upgrade_base: "https://{{ nd_upgrade_controller.nd_node.mgmt.ip }}"
+    nd_upgrade_verify_tls: "{{ nd_upgrade_controller.nd_runtime.verify_tls }}"
+    nd_upgrade_fabric: AIPOD-BE-SG2-Fabric
+    nd_upgrade_group: AIPOD-SG2-1064M
+    nd_upgrade_image_name: nxos64-s1.10.6.4.M.bin
+    nd_upgrade_image_size: 3430233088
+    # upload: verify local SHA512 and stream to ND (no switch action);
+    # plan: read-only; stage: create group and stage/validate; install: stage if
+    # needed, then install; verify: read-only post-install check.
+    nd_upgrade_phase: plan
+    nd_upgrade_image_path: ""
+    nd_upgrade_helper_path: >-
+      {{ lookup('ansible.builtin.first_found', [
+           playbook_dir ~ '/../scripts/sg2_nd_upload.py',
+           playbook_dir ~ '/../roles/backend_fabric_nxos/files/automation/scripts/sg2_nd_upload.py'
+         ]) }}
+    nd_upgrade_expected_names: >-
+      {{ groups['backend_fabric_sg2']
+         | map('extract', hostvars, 'be_switch')
+         | map(attribute='hostname') | list }}
+    nd_upgrade_order_names:
+      - BE-SG2-SP1
+      - BE-SG2-LF1
+      - BE-SG2-SP2
+      - BE-SG2-LF2
+    nd_upgrade_api: "{{ nd_upgrade_base }}/api/v1/manage"
+    nd_upgrade_plan_path: "/fabrics/{{ nd_upgrade_fabric }}/softwareUpdatePlan"
+
+  tasks:
+    - name: Require exact SG2 scope and an explicit phase
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_phase in ['upload', 'plan', 'stage', 'install', 'verify']
+          - nd_upgrade_phase != 'upload' or nd_upgrade_image_path | length > 0
+          - nd_upgrade_expected_names | length == 4
+          - nd_upgrade_expected_names | unique | length == 4
+          - nd_upgrade_expected_names | difference(['BE-SG2-SP1', 'BE-SG2-SP2', 'BE-SG2-LF1', 'BE-SG2-LF2']) | length == 0
+          - nd_upgrade_order_names | difference(nd_upgrade_expected_names) | length == 0
+          - vault_nd_admin_password | default('') | length > 0
+        fail_msg: Refusing an unscoped or unauthenticated SG2 software operation.
+      no_log: true
+
+    - name: Stream the SHA512-verified image into ND when requested
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python,
+              nd_upgrade_helper_path,
+              '--image', nd_upgrade_image_path,
+              '--vault', aipod_vault_file | default(inventory_dir ~ '/group_vars/vault.yml'),
+              '--nd-host', nd_upgrade_controller.nd_node.mgmt.ip]
+             + (['--verify-tls'] if nd_upgrade_verify_tls | bool else []) }}
+      when: nd_upgrade_phase == 'upload'
+      register: nd_upgrade_upload
+      changed_when: "'Beginning one-shot ND image upload' in nd_upgrade_upload.stdout"
+      no_log: true
+
+    - name: Open an ephemeral ND API session
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_base }}/api/v1/infra/login"
+        method: POST
+        body_format: json
+        body:
+          userName: "{{ nd_upgrade_controller.nd_admin_username }}"
+          userPasswd: "{{ vault_nd_admin_password }}"
+          domain: DefaultAuth
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 30
+      register: nd_upgrade_login
+      changed_when: true
+      notify: Close ephemeral ND session
+      no_log: true
+
+    - name: Retain only the ND session cookie in memory
+      ansible.builtin.set_fact:
+        nd_upgrade_headers:
+          Cookie: "{{ nd_upgrade_login.cookies_string }}"
+      no_log: true
+
+    - name: Read ND software repository
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}/fabricSoftware/images"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_images
+      changed_when: false
+      no_log: true
+
+    - name: Require the exact SG2 image in ND before any switch action
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_image_records | length == 1
+          - nd_upgrade_image_records[0].imagePresent == 'present'
+          - nd_upgrade_image_records[0].imageSize | int == nd_upgrade_image_size | int
+        fail_msg: >-
+          Cisco-verified SG2 image is absent or incomplete in the ND repository;
+          no update-group, staging, or install write was made.
+      vars:
+        nd_upgrade_image_records: >-
+          {{ nd_upgrade_images.json.uploadedImages | default([])
+             | selectattr('imageName', 'equalto', nd_upgrade_image_name) | list }}
+      no_log: true
+
+    - name: Read only the SG2 fabric switch inventory
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_base }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ nd_upgrade_fabric }}/inventory/switchesByFabric"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_switches
+      changed_when: false
+      no_log: true
+
+    - name: Require all and only the intended SG2 switches and model
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_switches.json | length == 4
+          - nd_upgrade_switches.json | map(attribute='logicalName') | difference(nd_upgrade_expected_names) | length == 0
+          - nd_upgrade_expected_names | difference(nd_upgrade_switches.json | map(attribute='logicalName') | list) | length == 0
+          - nd_upgrade_switches.json | rejectattr('model', 'equalto', 'N9364E-SG2-O') | list | length == 0
+          - nd_upgrade_switches.json | rejectattr('status', 'equalto', 'ok') | list | length == 0
+          - nd_upgrade_switches.json | selectattr('switchRole', 'equalto', 'spine') | list | length == 2
+          - nd_upgrade_switches.json | selectattr('switchRole', 'equalto', 'leaf') | list | length == 2
+        fail_msg: SG2 live inventory no longer matches the four-switch upgrade scope.
+      no_log: true
+
+    - name: Resolve four live switch identifiers without logging them
+      ansible.builtin.set_fact:
+        nd_upgrade_switch_ids: "{{ nd_upgrade_switches.json | map(attribute='serialNumber') | list }}"
+      no_log: true
+
+    - name: Require distinct identifiers for the four intended switches
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_switch_ids | length == 4
+          - nd_upgrade_switch_ids | unique | length == 4
+          - nd_upgrade_switch_ids | reject('equalto', '') | list | length == 4
+      no_log: true
+
+    - name: Initialize the deterministic one-switch-at-a-time install order
+      ansible.builtin.set_fact:
+        nd_upgrade_order_ids: []
+      no_log: true
+
+    - name: Map ND hostnames to live identifiers in install order
+      ansible.builtin.set_fact:
+        nd_upgrade_order_ids: >-
+          {{ nd_upgrade_order_ids + [
+               nd_upgrade_switches.json
+               | selectattr('logicalName', 'equalto', item)
+               | map(attribute='serialNumber') | first
+             ] }}
+      loop: "{{ nd_upgrade_order_names }}"
+      no_log: true
+
+    - name: Read SG2 installed versions before any update-plan write
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/summary"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_pre_plan
+      changed_when: false
+      no_log: true
+
+    - name: Collect the four SG2 software records without logging identifiers
+      ansible.builtin.set_fact:
+        nd_upgrade_pre_switches: >-
+          {{ nd_upgrade_pre_plan.json.updateGroups | default([])
+             | map(attribute='updateGroupSwitches') | flatten | list }}
+      no_log: true
+
+    - name: Require only source or target versions before an update-plan write
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_pre_switches | length == 4
+          - nd_upgrade_pre_switches | map(attribute='switchName') | difference(nd_upgrade_expected_names) | length == 0
+          - nd_upgrade_pre_switches | rejectattr('switchVersion', 'match', '^(10\.5\(3\)|10\.6\(4\))') | list | length == 0
+        fail_msg: An unexpected NX-OS version requires diagnosis before an update-plan write.
+      no_log: true
+
+    - name: Read SG2 update-group configuration
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}/fabrics/{{ nd_upgrade_fabric }}/updateGroups"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_existing_groups
+      changed_when: false
+      no_log: true
+
+    - name: Locate the task-owned update group
+      ansible.builtin.set_fact:
+        nd_upgrade_group_matches: >-
+          {{ nd_upgrade_existing_groups.json.updateGroups | default([])
+             | selectattr('updateGroupName', 'equalto', nd_upgrade_group) | list }}
+      no_log: true
+
+    - name: Refuse a conflicting existing update group
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_group_matches | length <= 1
+          - nd_upgrade_group_matches | length == 0 or (nd_upgrade_group_matches[0].updateGroupSwitches | sort == nd_upgrade_switch_ids | sort)
+          - >-
+            nd_upgrade_group_matches | length == 0 or
+            (((nd_upgrade_group_matches[0].installImageData | default({})).nosImageName
+            | default(nd_upgrade_image_name)) == nd_upgrade_image_name)
+        fail_msg: Existing update group differs from the intended SG2 switch/image set.
+      no_log: true
+
+    - name: Create a serial, pause-on-failure SG2 software update group
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}/fabrics/{{ nd_upgrade_fabric }}/updateGroups"
+        method: POST
+        headers: "{{ nd_upgrade_headers }}"
+        body_format: json
+        body:
+          updateGroups:
+            - updateGroupName: "{{ nd_upgrade_group }}"
+              updateGroupSwitches: "{{ nd_upgrade_switch_ids }}"
+              installationOrderDevices: "{{ nd_upgrade_order_ids }}"
+              installImageData:
+                nosImageName: "{{ nd_upgrade_image_name }}"
+              execution: serial
+              contingency: pause
+              analysis: snapshot
+              reports: noReport
+              reportSelection: noReport
+              isMaintenance: false
+              isDisruptiveUpdate: true
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        # ND may return 207 Multi-Status even when all four group members were
+        # accepted; the subsequent plan read-back is the actual success gate.
+        status_code: [200, 201, 202, 207]
+        timeout: 120
+      when:
+        - nd_upgrade_phase in ['stage', 'install']
+        - nd_upgrade_group_matches | length == 0
+        - nd_upgrade_pre_switches | selectattr('switchVersion', 'match', '^10\.5\(3\)') | list | length == 4
+      register: nd_upgrade_group_create
+      no_log: true
+
+    - name: Read the SG2 software update plan
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/summary"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_plan
+      until: >-
+        nd_upgrade_phase in ['plan', 'upload'] or
+        (nd_upgrade_plan.json.updateGroups | default([])
+         | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+         | list | length) == 1
+      retries: 12
+      delay: 5
+      changed_when: false
+      no_log: true
+
+    - name: Select the task-owned group from the plan
+      ansible.builtin.set_fact:
+        nd_upgrade_plan_group: >-
+          {{ nd_upgrade_plan.json.updateGroups | default([])
+             | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+             | list | first | default({}) }}
+      no_log: true
+
+    - name: Report read-only plan state
+      ansible.builtin.debug:
+        msg: >-
+          {{ nd_upgrade_fabric }} image present; {{ nd_upgrade_expected_names | join(', ') }};
+          update group {{ 'present' if nd_upgrade_plan_group else 'not yet created' }};
+          phase {{ nd_upgrade_phase }}.
+      when: nd_upgrade_phase in ['plan', 'upload']
+
+    - name: Require the named plan group to contain exactly four SG2 switches
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_plan_group | length > 0
+          - nd_upgrade_plan_group.updateGroupSwitches | length == 4
+          - nd_upgrade_plan_group.updateGroupSwitches | map(attribute='switchName') | difference(nd_upgrade_expected_names) | length == 0
+        fail_msg: ND software plan is incomplete; refusing stage or install.
+      when: nd_upgrade_phase in ['stage', 'install', 'verify']
+      no_log: true
+
+    - name: Refuse a previously failed stage or validation
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_plan_group.updateGroupSwitches | selectattr('imageStagedStatus', 'equalto', 'failed') | list | length == 0
+          - nd_upgrade_plan_group.updateGroupSwitches | selectattr('imageValidatedStatus', 'equalto', 'failed') | list | length == 0
+        fail_msg: Stage/validate previously failed; diagnose before changing any state.
+      when: nd_upgrade_phase in ['stage', 'install']
+      no_log: true
+
+    - name: Start SG2 image stage and validation once
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/actions/stage"
+        method: POST
+        headers: "{{ nd_upgrade_headers }}"
+        body_format: json
+        body:
+          updateGroupNames: ["{{ nd_upgrade_group }}"]
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: [200, 202]
+        timeout: 120
+      when:
+        - nd_upgrade_phase in ['stage', 'install']
+        - nd_upgrade_pre_switches | selectattr('switchVersion', 'match', '^10\.5\(3\)') | list | length == 4
+        - nd_upgrade_plan_group.updateGroupSwitches | selectattr('imageStagedStatus', 'equalto', 'none') | list | length == 4
+        - nd_upgrade_plan_group.updateGroupSwitches | selectattr('imageValidatedStatus', 'equalto', 'none') | list | length == 4
+      register: nd_upgrade_stage_start
+      no_log: true
+
+    - name: Observe stage and validation to completion, without retrying the write
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/summary"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_stage_poll
+      until: >-
+        (
+          nd_upgrade_stage_poll.json.updateGroups
+          | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+          | map(attribute='updateGroupSwitches') | first | default([])
+          | selectattr('imageValidatedStatus', 'equalto', 'success') | list | length
+        ) == 4 or
+        (
+          nd_upgrade_stage_poll.json.updateGroups
+          | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+          | map(attribute='updateGroupSwitches') | first | default([])
+          | selectattr('imageValidatedStatus', 'equalto', 'failed') | list | length
+        ) > 0
+      retries: 120
+      delay: 30
+      when: nd_upgrade_phase in ['stage', 'install']
+      changed_when: false
+      no_log: true
+
+    - name: Require successful validation on every SG2 switch
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_stage_switches | length == 4
+          - nd_upgrade_stage_switches | selectattr('imageValidatedStatus', 'equalto', 'success') | list | length == 4
+        fail_msg: ND did not validate the image on all four switches; install is blocked.
+      vars:
+        nd_upgrade_stage_switches: >-
+          {{ nd_upgrade_stage_poll.json.updateGroups
+             | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+             | map(attribute='updateGroupSwitches') | first | default([]) }}
+      when: nd_upgrade_phase in ['stage', 'install']
+      no_log: true
+
+    - name: Read current install state before any install write
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/summary"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_install_pre
+      when: nd_upgrade_phase in ['install', 'verify']
+      changed_when: false
+      no_log: true
+
+    - name: Select current SG2 install state
+      ansible.builtin.set_fact:
+        nd_upgrade_install_switches: >-
+          {{ nd_upgrade_install_pre.json.updateGroups
+             | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+             | map(attribute='updateGroupSwitches') | first | default([]) }}
+      when: nd_upgrade_phase in ['install', 'verify']
+      no_log: true
+
+    - name: Refuse ambiguous or failed existing install state
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_install_switches | length == 4
+          - nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'failed') | list | length == 0
+          - nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'skipped') | list | length == 0
+          - >-
+            nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'success') | list | length in [0, 4] or
+            nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'inProgress') | list | length > 0
+        fail_msg: Partial prior install needs inspection; no duplicate install will be sent.
+      when: nd_upgrade_phase in ['install', 'verify']
+
+      no_log: true
+
+    - name: Start the serial, pause-on-failure SG2 installation once
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/actions/updateSoftware"
+        method: POST
+        headers: "{{ nd_upgrade_headers }}"
+        body_format: json
+        body:
+          updateGroupNames: ["{{ nd_upgrade_group }}"]
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: [200, 202]
+        timeout: 120
+      when:
+        - nd_upgrade_phase == 'install'
+        - nd_upgrade_pre_switches | selectattr('switchVersion', 'match', '^10\.5\(3\)') | list | length == 4
+        - nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'success') | list | length == 0
+        - nd_upgrade_install_switches | selectattr('switchUpdateStatus', 'equalto', 'inProgress') | list | length == 0
+      register: nd_upgrade_install_start
+      no_log: true
+
+    - name: Observe install status without retrying the write
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_api }}{{ nd_upgrade_plan_path }}/summary"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_install_poll
+      until: >-
+        (
+          nd_upgrade_install_poll.json.updateGroups
+          | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+          | map(attribute='updateGroupSwitches') | first | default([])
+          | selectattr('switchUpdateStatus', 'equalto', 'success') | list | length
+        ) == 4 or
+        (
+          nd_upgrade_install_poll.json.updateGroups
+          | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+          | map(attribute='updateGroupSwitches') | first | default([])
+          | selectattr('switchUpdateStatus', 'equalto', 'failed') | list | length
+        ) > 0
+      retries: 180
+      delay: 60
+      when: nd_upgrade_phase in ['install', 'verify']
+      changed_when: false
+      no_log: true
+
+    - name: Require all four installs to succeed
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_final_switches | length == 4
+          - nd_upgrade_final_switches | selectattr('switchUpdateStatus', 'equalto', 'success') | list | length == 4
+          - nd_upgrade_final_switches | rejectattr('switchVersion', 'match', '^10\.6\(4\)') | list | length == 0
+        fail_msg: One or more SG2 installs failed or timed out; no repeat write was sent.
+      vars:
+        nd_upgrade_final_switches: >-
+          {{ nd_upgrade_install_poll.json.updateGroups
+             | selectattr('updateGroupName', 'equalto', nd_upgrade_group)
+             | map(attribute='updateGroupSwitches') | first | default([]) }}
+      when: nd_upgrade_phase in ['install', 'verify']
+      no_log: true
+
+    - name: Read SG2 inventory again after software installation
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_base }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ nd_upgrade_fabric }}/inventory/switchesByFabric"
+        method: GET
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: 200
+        timeout: 45
+      register: nd_upgrade_post_switches
+      when: nd_upgrade_phase in ['install', 'verify']
+      changed_when: false
+      no_log: true
+
+    - name: Require the intended four SG2 switches and roles after reboot
+      ansible.builtin.assert:
+        that:
+          - nd_upgrade_post_switches.json | length == 4
+          - nd_upgrade_post_switches.json | map(attribute='logicalName') | difference(nd_upgrade_expected_names) | length == 0
+          - nd_upgrade_post_switches.json | rejectattr('status', 'equalto', 'ok') | list | length == 0
+          - nd_upgrade_post_switches.json | selectattr('switchRole', 'equalto', 'spine') | list | length == 2
+          - nd_upgrade_post_switches.json | selectattr('switchRole', 'equalto', 'leaf') | list | length == 2
+        fail_msg: SG2 software updated, but ND inventory or intended roles are not healthy.
+      when: nd_upgrade_phase in ['install', 'verify']
+      no_log: true
+
+    - name: Report SG2 software operation completion
+      ansible.builtin.debug:
+        msg: >-
+          ND reports validated staging and successful serial installation for
+          BE-SG2-SP1, BE-SG2-SP2, BE-SG2-LF1, and BE-SG2-LF2.
+          Verify NX-OS version, breakout, carrier, and reciprocal LLDP live.
+      when: nd_upgrade_phase in ['install', 'verify']
+
+  handlers:
+    - name: Close ephemeral ND session
+      ansible.builtin.uri:
+        url: "{{ nd_upgrade_base }}/api/v1/infra/logout"
+        method: POST
+        headers: "{{ nd_upgrade_headers }}"
+        validate_certs: "{{ nd_upgrade_verify_tls }}"
+        status_code: [200, 204]
+        timeout: 20
+      changed_when: false
+      no_log: true

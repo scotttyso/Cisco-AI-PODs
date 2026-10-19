@@ -1,0 +1,9 @@
+---
+ucs:
+  platform: domain
+  role: gpu
+  claim_target: ucsx-gpu-1
+  cimc:
+    ip: 203.0.113.27
+    user: admin
+    pass_ref: UCSX_GPU_1_A_CIMC_PASSWORD

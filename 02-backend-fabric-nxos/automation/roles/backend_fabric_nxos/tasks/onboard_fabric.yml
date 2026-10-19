@@ -1,0 +1,197 @@
+---
+- name: "BE fabric: initialize switch list for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_switch_configs: []
+  no_log: true
+
+- name: "BE fabric: build switch onboarding records for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_switch_configs: >-
+      {{
+        be_switch_configs + [
+          {
+            'seed_ip': hostvars[be_switch_host].be_switch.mgmt_ip,
+            'user_name': hostvars[be_switch_host].be_switch.username,
+            'password': lookup(
+              'vars',
+              'vault_' ~ (hostvars[be_switch_host].be_switch.pass_ref | lower)
+            ),
+            'role': hostvars[be_switch_host].be_switch.role,
+            'preserve_config': false,
+            'max_hops': 0,
+            'auth_proto': 'SHA_AES'
+          }
+        ]
+      }}
+  loop: "{{ be_switch_inventory_hosts }}"
+  loop_control:
+    loop_var: be_switch_host
+    label: "{{ be_switch_host }}"
+  when: hostvars[be_switch_host].be_switch.fabric_key == be_fabric.key
+  no_log: true
+
+- name: "BE fabric: require two spines and two leaves for {{ be_fabric.name }}"
+  ansible.builtin.assert:
+    that:
+      - be_switch_configs | length >= 2
+      - be_switch_configs | selectattr('role', 'equalto', 'spine') | list | length >= 1
+      - be_switch_configs | selectattr('role', 'equalto', 'leaf') | list | length >= 1
+    fail_msg: >-
+      {{ be_fabric.name }} must have at least one spine and one leaf record
+      in the inventory before onboarding.
+  no_log: true
+
+- name: "BE fabric: read current membership before onboarding {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name
+      }}/inventory/switchesByFabric
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_existing_switches_before
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: reject unexpected existing membership in {{ be_fabric.name }}"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_existing_switches_before.json
+        | map(attribute='ipAddress')
+        | difference(be_switch_configs | map(attribute='seed_ip') | list)
+        | length == 0
+    fail_msg: >-
+      {{ be_fabric.name }} contains a switch outside canonical inventory;
+      refusing greenfield onboarding.
+  no_log: true
+
+- name: "BE fabric: initialize first-import switch list for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_first_import_switch_configs: []
+  no_log: true
+
+- name: "BE fabric: select switches that have never joined {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_first_import_switch_configs: >-
+      {{ be_first_import_switch_configs + [be_switch_config] }}
+  loop: "{{ be_switch_configs }}"
+  loop_control:
+    loop_var: be_switch_config
+    label: "{{ be_switch_config.seed_ip }}"
+  when: >-
+    be_switch_config.seed_ip not in
+    (be_existing_switches_before.json | map(attribute='ipAddress') | list)
+  no_log: true
+
+- name: "BE fabric: report guarded greenfield-import count for {{ be_fabric.name }}"
+  ansible.builtin.debug:
+    msg: >-
+      {{ be_first_import_switch_configs | length }} switch(es) are absent
+      from {{ be_fabric.name }} and eligible for the one-time greenfield
+      import. Existing members will not receive preserve_config=false again.
+
+- name: "BE fabric: require reload cleanup during initial formation"
+  ansible.builtin.include_tasks: reconcile_add_without_reload.yml
+  vars:
+    be_add_without_reload_enabled: false
+  when: be_first_import_switch_configs | length > 0
+
+- name: "BE fabric: merge and deploy switches in {{ be_fabric.name }}"
+  block:
+    - name: "BE fabric: use the collection-native first-import path"
+      cisco.dcnm.dcnm_inventory:
+        fabric: "{{ be_fabric.name }}"
+        state: merged
+        config: "{{ be_first_import_switch_configs }}"
+        save: true
+        deploy: true
+      when: be_first_import_switch_configs | length > 0
+      no_log: true
+
+  rescue:
+    # cisco.dcnm 3.13.0 can import switches successfully and then raise a
+    # NoneType error when the legacy role endpoint returns an empty response.
+    # ND 4.3.1 exposes a supported Manage API for the same role operation.
+    - name: "BE fabric: reconcile roles through the ND Manage API"
+      ansible.builtin.include_tasks: reconcile_switch_roles.yml
+      no_log: true
+
+    - name: "BE fabric: save and deploy after role reconciliation"
+      ansible.builtin.include_tasks: save_deploy_fabric.yml
+      no_log: true
+
+- name: "BE fabric: wait for cleanup reload and complete intended membership"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name
+      }}/inventory/switchesByFabric
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_imported_switches
+  until:
+    - be_imported_switches.json | length == be_switch_configs | length
+    - >-
+      be_switch_configs
+      | map(attribute='seed_ip')
+      | difference(be_imported_switches.json | map(attribute='ipAddress') | list)
+      | length == 0
+    - >-
+      be_imported_switches.json
+      | rejectattr('status', 'equalto', 'ok')
+      | list
+      | length == 0
+    - >-
+      be_imported_switches.json
+      | selectattr('managable', 'equalto', true)
+      | list
+      | length == be_switch_configs | length
+    - >-
+      be_imported_switches.json
+      | map(attribute='mode')
+      | map('lower')
+      | difference(['normal'])
+      | length == 0
+    - >-
+      be_imported_switches.json
+      | selectattr('switchRole', 'equalto', 'spine')
+      | list
+      | length
+      == be_switch_configs | selectattr('role', 'equalto', 'spine') | list | length
+    - >-
+      be_imported_switches.json
+      | selectattr('switchRole', 'equalto', 'leaf')
+      | list
+      | length
+      == be_switch_configs | selectattr('role', 'equalto', 'leaf') | list | length
+  retries: 60
+  delay: 30
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: require completed initial formation before steady state"
+  ansible.builtin.assert:
+    that:
+      - be_imported_switches is succeeded
+    fail_msg: >-
+      {{ be_fabric.name }} did not complete its cleanup reload, return every
+      intended switch to Normal/ok manageable state, and retain the intended
+      roles. Add-switches-without-reload remains disabled.
+  no_log: true
+
+- name: "BE fabric: enable no-reload additions after successful formation"
+  ansible.builtin.include_tasks: reconcile_add_without_reload.yml
+  vars:
+    be_add_without_reload_enabled: >-
+      {{ be_fabric_features.add_switches_without_reload | bool }}

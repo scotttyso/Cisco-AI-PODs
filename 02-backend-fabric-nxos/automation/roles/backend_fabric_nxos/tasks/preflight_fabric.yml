@@ -1,0 +1,24 @@
+---
+- name: "BE fabric: reject conflicting name or ASN for {{ be_fabric.name }}"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_existing_fabric_identities
+        | selectattr('name', 'equalto', be_fabric.name)
+        | rejectattr('bgp_as', 'equalto', be_fabric.bgp_as | string)
+        | list | length == 0
+      - >-
+        be_existing_fabric_identities
+        | selectattr('name', 'equalto', be_fabric.name)
+        | rejectattr('type', 'equalto', be_fabric_features.unified_fabric_type)
+        | list | length == 0
+      - >-
+        be_existing_fabric_identities
+        | selectattr('bgp_as', 'equalto', be_fabric.bgp_as | string)
+        | rejectattr('name', 'equalto', be_fabric.name)
+        | list | length == 0
+    fail_msg: >-
+      Refusing to create or reconcile {{ be_fabric.name }}: its name or ASN
+      conflicts with an existing Nexus Dashboard fabric. Resolve the collision
+      explicitly; automation will not overwrite a different fabric identity.
+  no_log: true

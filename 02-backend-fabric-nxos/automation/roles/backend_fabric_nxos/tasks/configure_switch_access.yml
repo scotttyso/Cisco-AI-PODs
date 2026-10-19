@@ -1,0 +1,127 @@
+---
+- name: "BE switch: read identity and SNMPv3 state"
+  cisco.nxos.nxos_command:
+    commands:
+      - show hostname
+      - show snmp user | include ^{{ be_switch.username }}
+  register: be_switch_access_before
+  changed_when: false
+  no_log: true
+
+- name: "BE switch: verify inventory maps to the connected switch"
+  ansible.builtin.assert:
+    that:
+      - be_switch.hostname in be_switch_access_before.stdout[0]
+    fail_msg: >-
+      Connected switch identity does not match canonical inventory for
+      {{ inventory_hostname }}; refusing to change SNMPv3 configuration.
+
+- name: "BE switch: read configured port breakout mode"
+  cisco.nxos.nxos_command:
+    commands:
+      - show running-config | include breakout
+  register: be_switch_breakout_before
+  changed_when: false
+  when: be_switch.breakout_commands | default([]) | length > 0
+
+- name: "BE switch: apply missing 2x400G breakout ranges"
+  cisco.nxos.nxos_config:
+    lines: "{{ item }}"
+    save_when: modified
+  loop: "{{ be_switch.breakout_commands | default([]) }}"
+  when:
+    - be_switch.breakout_commands | default([]) | length > 0
+    - item not in (be_switch_breakout_before.stdout[0].splitlines() | map('trim') | list)
+
+- name: "BE switch: re-read configured port breakout mode"
+  cisco.nxos.nxos_command:
+    commands:
+      - show running-config | include breakout
+  register: be_switch_breakout_after
+  changed_when: false
+  when: be_switch.breakout_commands | default([]) | length > 0
+
+- name: "BE switch: require every intended 2x400G breakout range"
+  ansible.builtin.assert:
+    that:
+      - >-
+        be_switch.breakout_commands
+        | difference(be_switch_breakout_after.stdout[0].splitlines() | map('trim') | list)
+        | length == 0
+    fail_msg: >-
+      {{ be_switch.hostname }} did not retain every intended 2x400G breakout
+      range; refusing to continue to NDFC onboarding.
+  when: be_switch.breakout_commands | default([]) | length > 0
+
+- name: "BE switch: administratively enable authoritative fabric lanes"
+  cisco.nxos.nxos_config:
+    parents: "interface {{ item }}"
+    lines:
+      - no shutdown
+    save_when: modified
+  loop: "{{ be_switch.fabric_link_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "BE switch: read authoritative fabric lane admin state"
+  cisco.nxos.nxos_command:
+    commands:
+      - "show interface {{ item }}"
+  loop: "{{ be_switch.fabric_link_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: be_switch_fabric_lane_state
+  changed_when: false
+
+- name: "BE switch: require every authoritative fabric lane to be admin-up"
+  ansible.builtin.assert:
+    that:
+      - "'admin state is up' in item.stdout[0]"
+    fail_msg: >-
+      {{ be_switch.hostname }} {{ item.item }} is not administratively up;
+      refusing to continue to NDFC onboarding.
+  loop: "{{ be_switch_fabric_lane_state.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item | default('fabric-lane') }}"
+
+- name: "BE switch: detect SHA/AES discovery user"
+  ansible.builtin.set_fact:
+    be_switch_sha_aes_ready: >-
+      {{
+        (be_switch.username | lower)
+          in (be_switch_access_before.stdout[1] | lower)
+        and ' sha ' in (be_switch_access_before.stdout[1] | lower)
+        and ' aes-128' in (be_switch_access_before.stdout[1] | lower)
+      }}
+  no_log: true
+
+- name: "BE switch: set SNMPv3 discovery user to SHA/AES"
+  cisco.nxos.nxos_config:
+    lines:
+      - >-
+        snmp-server user {{ be_switch.username }} network-admin
+        auth sha {{ ansible_password }} priv aes-128 {{ ansible_password }}
+    match: none
+    save_when: modified
+  when: not be_switch_sha_aes_ready
+  no_log: true
+
+- name: "BE switch: verify SHA/AES discovery user"
+  cisco.nxos.nxos_command:
+    commands:
+      - show snmp user | include ^{{ be_switch.username }}
+  register: be_switch_access_after
+  changed_when: false
+  no_log: true
+
+- name: "BE switch: require SHA/AES before NDFC onboarding"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (be_switch.username | lower)
+          in (be_switch_access_after.stdout[0] | lower)
+        and ' sha ' in (be_switch_access_after.stdout[0] | lower)
+        and ' aes-128' in (be_switch_access_after.stdout[0] | lower)
+    fail_msg: >-
+      {{ be_switch.hostname }} did not report the required SHA/AES SNMPv3
+      discovery user; refusing to continue to NDFC onboarding.

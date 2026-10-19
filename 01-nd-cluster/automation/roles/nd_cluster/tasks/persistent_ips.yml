@@ -1,0 +1,16 @@
+---
+# Manage the persistent IP pool. Day-2 capable: safe to run independently
+# to expand the pool without re-running form_cluster.
+#
+# Phase 2 wedge: not yet implemented as a separate Python entrypoint.
+# Phase 3: native cisco.aipod.nd_persistent_ips module.
+
+- name: "ND/persistent_ips: PLACEHOLDER (Phase 3 native module)"
+  ansible.builtin.fail:
+    msg: |
+      The persistent_ips capability is a placeholder in this role skeleton.
+      Phase 1 today applies the persistent IP pool only as part of cluster
+      bringup. Day-2 reconciliation will land in Phase 3 as a native module
+      (cisco.aipod.nd_persistent_ips). Until then, manage the pool manually
+      via the ND UI (Admin > System Settings > General > External pools).
+  when: not (allow_persistent_ips_placeholder | default(false))

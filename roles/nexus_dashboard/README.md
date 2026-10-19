@@ -100,7 +100,7 @@ python roles/nexus_dashboard/library/nexus_dashboard.py [command] [options]
 #### Classic-LAN Fabric
 ```bash
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-classic-lan \
@@ -111,7 +111,7 @@ python nexus_dashboard.py create-fabric \
 #### VXLAN eBGP Fabric
 ```bash
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-vxlan \
@@ -122,7 +122,7 @@ python nexus_dashboard.py create-fabric \
 #### VXLAN iBGP Fabric
 ```bash
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-vxlan-ibgp \
@@ -134,7 +134,7 @@ python nexus_dashboard.py create-fabric \
 
 ```bash
 python nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-classic-lan \
@@ -147,7 +147,7 @@ python nexus_dashboard.py add-devices \
 
 ```bash
 python nexus_dashboard.py list-fabrics \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml
 ```
@@ -156,7 +156,7 @@ python nexus_dashboard.py list-fabrics \
 
 ```bash
 python nexus_dashboard.py list-switches \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-classic-lan
@@ -236,7 +236,7 @@ Supported authentication and privacy combinations:
 ```bash
 # SHA-256-AES (recommended for security)
 python nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-fabric \
@@ -245,7 +245,7 @@ python nexus_dashboard.py add-devices \
 
 # SHA-512-AES (maximum security)
 python nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-fabric \
@@ -289,7 +289,7 @@ nexus_dashboard:
 ```bash
 # Step 1: Create fabric
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name basic-classic-lan \
@@ -297,7 +297,7 @@ python nexus_dashboard.py create-fabric \
 
 # Step 2: Add switches
 python nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name basic-classic-lan \
@@ -354,7 +354,7 @@ switches:
 ```bash
 # Create production VXLAN fabric
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name prod-vxlan-01 \
@@ -363,7 +363,7 @@ python nexus_dashboard.py create-fabric \
 
 # Add switches with high security
 python nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name prod-vxlan-01 \
@@ -439,7 +439,7 @@ Credentials can also be passed directly via command line (useful for CI/CD):
 
 ```bash
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --nd-password direct_password \
   --fabric-name my-fabric \
@@ -464,7 +464,7 @@ nd_password = vault.get_credential('nexus_dashboard.nd_password')
 
 # Initialize client
 client = NexusDashboardClient(
-    nd_url="https://nd-lan.rich.ciscolabs.com",
+    nd_url="https://nd.example.com",
     username="admin",
     password=nd_password
 )
@@ -570,7 +570,7 @@ For issues or questions:
 
 ## Related Documentation
 
-- [Nexus Dashboard API](https://nd-lan.rich.ciscolabs.com/swagger)
+- [Nexus Dashboard API](https://nd.example.com/swagger)
 - [Cisco Nexus Dashboard User Guide](https://www.cisco.com/c/en/us/support/cloud-systems-management/nexus-dashboard/series.html)
 - [JSON Schema Documentation](https://json-schema.org/)
 - [Ansible Vault Documentation](https://docs.ansible.com/ansible/latest/user_guide/vault.html)

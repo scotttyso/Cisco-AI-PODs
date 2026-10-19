@@ -1,0 +1,20 @@
+# Linux bridge on the management/staging VLAN. Requires a NodeNetworkConfigurationPolicy
+# that creates br-mgmt on the worker nodes (see README). Adjust the namespace and VLAN.
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: aipod-mgmt
+  namespace: aipod-automation
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/br-mgmt
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "aipod-mgmt",
+      "type": "bridge",
+      "bridge": "br-mgmt",
+      "vlan": 100,
+      "macspoofchk": false,
+      "ipam": {}
+    }

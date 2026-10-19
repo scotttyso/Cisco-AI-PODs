@@ -1,0 +1,15 @@
+[Unit]
+Description=Cisco AI PODs appliance first-boot configuration
+Wants=NetworkManager.service
+After=NetworkManager.service vmtoolsd.service cloud-init.service cloud-init-network.service
+Before=nginx.service automation-ui.service
+ConditionPathExists=!/etc/aipod/.configured
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/aipod-config --firstboot
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

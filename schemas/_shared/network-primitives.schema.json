@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/_shared/network-primitives/v1",
+  "title": "AI POD shared network primitives",
+  "description": "Reusable type definitions for IP addresses, CIDR blocks, hostnames, ASNs, and VLAN IDs. Referenced by every subsystem schema so validation behavior is identical across the AI POD.",
+
+  "$defs": {
+    "ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$",
+      "description": "IPv4 address in dotted-decimal notation (e.g. 203.0.113.7). The format keyword adds semantic validation when supported."
+    },
+
+    "ipv4_cidr": {
+      "type": "string",
+      "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)/(?:[0-9]|[12]\\d|3[0-2])$",
+      "description": "IPv4 address followed by /prefix (e.g. 203.0.113.0/24). Prefix range 0-32."
+    },
+
+    "ipv4_prefix_length": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32,
+      "description": "IPv4 prefix length (network mask in bits). Typically 16-30 for AI POD networks."
+    },
+
+    "fqdn": {
+      "type": "string",
+      "format": "hostname",
+      "pattern": "^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$",
+      "description": "Fully qualified or single-label DNS name."
+    },
+
+    "hostname_or_ipv4": {
+      "anyOf": [
+        { "$ref": "#/$defs/fqdn" },
+        { "$ref": "#/$defs/ipv4" }
+      ],
+      "description": "Either a DNS name or an IPv4 literal. Used where DNS is optional (e.g. NTP server). anyOf (not oneOf) because pure-numeric labels like 10.115.0.20 are technically valid per the FQDN regex; we accept either interpretation."
+    },
+
+    "vlan_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4094,
+      "description": "802.1Q VLAN ID. 0 and 4095 are reserved."
+    },
+
+    "asn_2byte": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "2-byte BGP ASN. Use asn_4byte for 4-byte ASNs."
+    },
+
+    "asn_4byte": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295,
+      "description": "4-byte BGP ASN (RFC 6793). Public range 1-65535 + 65536-4199999999, private 64512-65534 + 4200000000-4294967294."
+    },
+
+    "url_http": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://",
+      "description": "HTTP or HTTPS URL. Use this for ISO mirrors and similar."
+    },
+
+    "sha512_hex": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{128}$",
+      "description": "SHA-512 digest in lowercase or uppercase hex (128 chars)."
+    }
+  }
+}

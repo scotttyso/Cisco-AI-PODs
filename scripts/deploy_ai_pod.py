@@ -6,6 +6,7 @@ ordering, sensitive-variable validation, and live child-process output.
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import shutil
@@ -104,6 +105,14 @@ def load_vault_environment(vault_file: Path, password_file: Path) -> dict[str, s
                 raise DeploymentError(f"vault variable {name!r} must be a scalar value")
             if value is not None:
                 environment[name] = str(value).lower() if isinstance(value, bool) else str(value)
+    key = environment.get("intersight_secret_key", "")
+    if key.lstrip().startswith("-----BEGIN"):
+        # The vault may hold the PEM itself; the Intersight tooling expects a file path.
+        descriptor, path = tempfile.mkstemp(prefix="intersight-", suffix=".pem")
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(key.strip() + "\n")
+        atexit.register(Path(path).unlink, missing_ok=True)
+        environment["intersight_secret_key"] = path
     return environment
 
 
@@ -170,7 +179,7 @@ def iserver_command() -> list[str]:
 
 
 def openshift_commands(
-    models: dict[str, Any], check: bool, stages: tuple[str, ...]
+    models: dict[str, Any], check: bool, stages: tuple[str, ...], host_vars_dir: Path = DEFAULT_HOST_VARS
 ) -> list[tuple[list[str], Path]]:
     commands: list[tuple[list[str], Path]] = []
     for stage in stages:
@@ -183,18 +192,31 @@ def openshift_commands(
                 continue
             commands.append((iserver_command(), REPO_ROOT / "assisted-installer"))
             continue
-        command = ["ansible-playbook", str(REPO_ROOT / "playbooks" / f"deploy_openshift_{stage}.yaml")]
+        command = ["ansible-playbook", str(REPO_ROOT / "playbooks" / f"deploy_openshift_{stage}.yaml"),
+                   "-e", f"host_vars_dir={host_vars_dir}"]
         if check:
             command.append("--check")
         commands.append((command, REPO_ROOT))
     return commands
 
 
-def command_for_role(role: str, host_vars_dir: Path, check: bool) -> list[str]:
+def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path) -> Path:
+    """Copy shared Intersight files (``intersight/*.ezai.yaml``) plus one page's subfolder into ``target``."""
+    source = host_vars_dir / "intersight"
+    if not (source / scope).is_dir() or not any((source / scope).rglob("*.ezai.yaml")):
+        raise DeploymentError(f"no *.ezai.yaml files found under {source / scope}")
+    for path in source.glob("*.ezai.yaml"):
+        shutil.copy2(path, target / path.name)
+    shutil.copytree(source / scope, target / scope)
+    return target
+
+
+def command_for_role(role: str, host_vars_dir: Path, check: bool, intersight_dir: Path | None = None) -> list[str]:
     if role == "intersight":
-        intersight_dir = host_vars_dir / "intersight"
-        if not any(intersight_dir.rglob("*.ezai.yaml")):
-            intersight_dir = host_vars_dir
+        if intersight_dir is None:
+            intersight_dir = host_vars_dir / "intersight"
+            if not any(intersight_dir.rglob("*.ezai.yaml")):
+                intersight_dir = host_vars_dir
         command = [
             PYTHON,
             str(REPO_ROOT / "roles/intersight_ucs_provision/library/deploy_intersight_ucs.py"),
@@ -210,7 +232,7 @@ def command_for_role(role: str, host_vars_dir: Path, check: bool) -> list[str]:
         "observability": ("deploy_observability.yaml", None),
     }
     playbook, tag = playbooks[role]
-    command = ["ansible-playbook", str(REPO_ROOT / "playbooks" / playbook)]
+    command = ["ansible-playbook", str(REPO_ROOT / "playbooks" / playbook), "-e", f"host_vars_dir={host_vars_dir}"]
     if tag:
         command.extend(["--tags", tag])
     if check:
@@ -238,6 +260,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--check", action="store_true", help="pass check mode where supported")
     parser.add_argument(
+        "--intersight-scope", choices=("all", "domains", "servers"), default="all",
+        help="intersight files to deploy: everything under host_vars/intersight, or the shared top-level files plus "
+             "only the domains/ or servers/ subfolder (default: all)",
+    )
+    parser.add_argument(
         "--openshift-stage", choices=OPENSHIFT_STAGES, default="phase1",
         help="openshift stage to start from, then continue through the rest (default: phase1)",
     )
@@ -264,7 +291,8 @@ def main(argv: list[str] | None = None) -> int:
         env = os.environ.copy()
         env.update(load_vault_environment(vault_file, vault_password_file))
         env["PYTHONUNBUFFERED"] = "1"
-        validate_models(models, env)
+        sections = {"splunk_observability" if role == "observability" else role for role in args.roles}
+        validate_models({key: value for key, value in models.items() if key in sections}, env)
         for role in ROLE_ORDER:
             if role not in args.roles:
                 continue
@@ -273,8 +301,14 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             print(f"\n==> Starting {role}", flush=True)
             if role == "openshift":
-                for command, cwd in openshift_commands(models, args.check, args.openshift_stages):
+                for command, cwd in openshift_commands(models, args.check, args.openshift_stages, host_vars_dir):
                     run_command(command, env, cwd)
+            elif role == "intersight" and args.intersight_scope != "all":
+                with tempfile.TemporaryDirectory(prefix=f"aipod-intersight-{args.intersight_scope}-") as folder:
+                    scoped = scoped_intersight_dir(host_vars_dir, args.intersight_scope, Path(folder))
+                    print(f"Deploying shared intersight/*.ezai.yaml and intersight/{args.intersight_scope}/ only",
+                          flush=True)
+                    run_command(command_for_role(role, host_vars_dir, args.check, scoped), env)
             else:
                 run_command(command_for_role(role, host_vars_dir, args.check), env)
         return 0

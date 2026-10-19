@@ -1,0 +1,133 @@
+---
+# Read-only capture used for both the manual and automated parity snapshots.
+# Raw module responses remain in memory under no_log; only the explicit
+# allowlisted, secret-free normalized artifact is written to disk.
+
+- name: "ND/capture_baseline: validate requested baseline kind"
+  ansible.builtin.assert:
+    that:
+      - nd_baseline_kind in ['manual', 'automated']
+    fail_msg: "nd_baseline_kind must be manual or automated"
+
+- name: "ND/capture_baseline: set one UTC capture timestamp"
+  ansible.builtin.set_fact:
+    nd_baseline_captured_at: "{{ now(utc=true, fmt='%Y%m%dT%H%M%SZ') }}"
+
+- name: "ND/capture_baseline: discover current serial and CIMC mappings"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/discover_serials.py
+      --ansible-inventory {{ inventory_file }}
+      --out {{ nd_serial_artifact }}
+    chdir: "{{ nd_python_root }}"
+  environment:
+    ND1_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND1_CIMC_PASSWORD }}"
+    ND2_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND2_CIMC_PASSWORD }}"
+    ND3_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND3_CIMC_PASSWORD }}"
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/capture_baseline: load current hardware identity"
+  ansible.builtin.set_fact:
+    nd_baseline_serials: >-
+      {{ lookup('ansible.builtin.file', nd_serial_artifact) | from_json }}
+
+- name: "ND/capture_baseline: bind installed releases to current hardware identity"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/capture_release_evidence.py
+      --ansible-inventory {{ inventory_file }}
+      --serial-artifact {{ nd_serial_artifact }}
+      --out {{ nd_release_evidence_artifact }}
+    chdir: "{{ nd_python_root }}"
+  environment: "{{ {admin_pass_ref: nd_admin_password} }}"
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/capture_baseline: query completed setup state"
+  cisco.nd.nd_setup:
+    host: "{{ (nodes | selectattr('role', 'equalto', 'bootstrap') | first).mgmt.ip }}"
+    username: "{{ admin_username }}"
+    password: "{{ nd_admin_password }}"
+    use_ssl: true
+    validate_certs: "{{ runtime.verify_tls }}"
+    state: query
+  register: nd_baseline_setup_query
+  changed_when: false
+  no_log: true
+
+- name: "ND/capture_baseline: query running software version"
+  cisco.nd.nd_version:
+    host: "{{ (nodes | selectattr('role', 'equalto', 'bootstrap') | first).mgmt.ip }}"
+    username: "{{ admin_username }}"
+    password: "{{ nd_admin_password }}"
+    use_ssl: true
+    validate_certs: "{{ runtime.verify_tls }}"
+    state: query
+  register: nd_baseline_version_query
+  changed_when: false
+  no_log: true
+
+- name: "ND/capture_baseline: query the full submitted setup document"
+  cisco.nd.nd_rest:
+    path: /bootstrap/cluster
+    method: get
+  register: nd_baseline_bootstrap_query
+  changed_when: false
+  no_log: true
+
+- name: "ND/capture_baseline: query runtime cluster state"
+  cisco.nd.nd_rest:
+    path: /api/v1/infra/cluster/status
+    method: get
+  register: nd_baseline_cluster_status_query
+  changed_when: false
+  no_log: true
+
+- name: "ND/capture_baseline: normalize allowlisted parity data"
+  ansible.builtin.set_fact:
+    nd_baseline_artifact: >-
+      {{ nd_baseline_setup_query.current | cisco.aipod.aipod_nd_baseline(
+           nd_baseline_version_query.current,
+           cluster,
+           nodes,
+           baseline_kind=nd_baseline_kind,
+           captured_at=nd_baseline_captured_at,
+           bootstrap=nd_baseline_bootstrap_query.current,
+           cluster_status=nd_baseline_cluster_status_query.current,
+           serial_artifact=nd_baseline_serials
+         ) }}
+  no_log: true
+
+- name: "ND/capture_baseline: create the gitignored baseline directory"
+  ansible.builtin.file:
+    path: "{{ nd_baseline_dir }}"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/capture_baseline: write normalized secret-free artifact"
+  ansible.builtin.copy:
+    content: "{{ nd_baseline_artifact | to_nice_json }}\n"
+    dest: >-
+      {{ nd_baseline_dir }}/{{ nd_baseline_kind }}-{{ nd_baseline_captured_at }}.json
+    mode: '0600'
+  register: nd_baseline_write
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/capture_baseline: report artifact path"
+  ansible.builtin.debug:
+    msg: >-
+      Baseline written to
+      {{ nd_baseline_dir }}/{{ nd_baseline_kind }}-{{ nd_baseline_captured_at }}.json

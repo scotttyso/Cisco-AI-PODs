@@ -1,0 +1,13 @@
+---
+# Configure TACACS+ / LDAP remote auth providers and role mappings.
+# Out of scope for the first AI POD CVD revision; placeholder so the
+# capability boundary exists for partners and the discussion doc is
+# concrete.
+
+- name: "ND/remote_auth: PLACEHOLDER (out of scope for current CVD)"
+  ansible.builtin.fail:
+    msg: |
+      Remote auth (TACACS+ / LDAP) is not yet automated. The current AI
+      POD CVD scopes local admin auth only. When this capability lands,
+      the contract is in meta/argument_specs.yml under remote_auth.
+  when: not (allow_remote_auth_placeholder | default(false))

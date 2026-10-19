@@ -1,0 +1,288 @@
+#!/usr/bin/python3
+"""Update a standard Cisco AI PODs appliance or bare-metal server to a published release tag."""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import os
+import pwd
+import re
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+from urllib.error import URLError
+from urllib.parse import quote
+from urllib.request import ProxyHandler, build_opener, urlopen
+
+
+SERVICE = "automation-ui.service"
+APP_USER = "automation-ui"
+APP_HOME = Path("/home/automation-ui")
+REPO = APP_HOME / "Cisco-AI-PODs"
+STATE = APP_HOME / ".automation-ui"
+PLAYBOOKS = APP_HOME / "playbooks"
+OWNER_REPOSITORY = "scotttyso/Cisco-AI-PODs"
+REPOSITORY = f"https://github.com/{OWNER_REPOSITORY}"
+RAW_BASE = f"https://raw.githubusercontent.com/{OWNER_REPOSITORY}"
+TAG_PATTERN = re.compile(r"v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?")
+ENDPOINT = "http://127.0.0.1:8080/login"
+REQUIRED_PATHS = (
+    "VERSION", "scripts/automation_ui.py", "scripts/release_updates.py", "scripts/setup.sh",
+    "scripts/requirements-webui.txt",
+)
+# Root-executed files are downloaded by commit as root, never read from the service account's checkout.
+SYSTEM_FILES = (
+    ("automation-appliance/files/aipod-update", Path("/usr/local/sbin/aipod-update"), 0o755, True),
+    ("automation-appliance/files/automation-ui.service", Path("/etc/systemd/system") / SERVICE, 0o644, True),
+    ("automation-appliance/files/aipod-config", Path("/usr/local/sbin/aipod-config"), 0o755, False),
+)
+
+
+def run(*command: str, capture: bool = False, cwd: Path | None = None) -> str:
+    result = subprocess.run(command, check=True, text=True, capture_output=capture, cwd=cwd)
+    return result.stdout.strip() if capture else ""
+
+
+def as_app_user(*command: str, capture: bool = False, cwd: Path | None = None) -> str:
+    return run("runuser", "-u", APP_USER, "--", "env", f"HOME={APP_HOME}", "GIT_TERMINAL_PROMPT=0",
+               *command, capture=capture, cwd=cwd)
+
+
+def git(*arguments: str, capture: bool = False) -> str:
+    return as_app_user("git", "-C", str(REPO), *arguments, capture=capture)
+
+
+def normalized_remote(url: str) -> str:
+    return url.strip().rstrip("/").removesuffix(".git")
+
+
+def remote_tag_commit(tag: str) -> str:
+    output = run("git", "ls-remote", "--tags", REPOSITORY + ".git", f"refs/tags/{tag}",
+                 f"refs/tags/{tag}^{{}}", capture=True)
+    refs = {}
+    for line in output.splitlines():
+        commit, _, ref = line.partition("\t")
+        if not re.fullmatch(r"[0-9a-f]{40}", commit):
+            raise ValueError("GitHub returned an invalid tag reference")
+        refs[ref] = commit
+    commit = refs.get(f"refs/tags/{tag}^{{}}") or refs.get(f"refs/tags/{tag}")
+    if not commit:
+        raise ValueError(f"Release tag {tag} was not found in {REPOSITORY}")
+    return commit
+
+
+def download(commit: str, path: str, limit: int = 1024 * 1024) -> bytes:
+    url = f"{RAW_BASE}/{commit}/{quote(path)}"
+    with urlopen(url, timeout=30) as response:
+        content = response.read(limit + 1)
+    if len(content) > limit:
+        raise ValueError(f"Release file is too large: {path}")
+    return content
+
+
+def preflight() -> None:
+    for path in (APP_HOME, REPO, REPO / ".git", STATE):
+        if not path.is_dir() or path.is_symlink():
+            raise ValueError(f"Expected an existing standard installation directory: {path}")
+    if REPO.stat().st_uid != pwd.getpwnam(APP_USER).pw_uid:
+        raise ValueError(f"{REPO} must be owned by {APP_USER}")
+    properties = {}
+    for name in ("User", "WorkingDirectory", "ExecStart"):
+        properties[name] = run("systemctl", "show", SERVICE, f"--property={name}", "--value", capture=True)
+    command = properties["ExecStart"]
+    if (properties["User"] != APP_USER or properties["WorkingDirectory"] != str(REPO)
+            or f"{REPO}/scripts/automation_ui.py" not in command):
+        raise ValueError("Custom service user or application location requires the manual update procedure")
+    if not re.search(r"--host\s+127\.0\.0\.1(?:\s|;)", command) or not re.search(r"--port\s+8080(?:\s|;)", command):
+        raise ValueError("Updater expects the standard backend at 127.0.0.1:8080")
+    if normalized_remote(git("config", "--get", "remote.origin.url", capture=True)) != REPOSITORY:
+        raise ValueError(f"Repository origin must be {REPOSITORY}; forks require the manual update procedure")
+    changes = git("status", "--porcelain", "--untracked-files=no", capture=True)
+    if changes:
+        raise ValueError("Tracked repository files have local changes; commit, stash, or remove them first:\n" + changes)
+
+
+def resolve_release(tag: str) -> tuple[str, dict[Path, tuple[bytes, int]]]:
+    commit = remote_tag_commit(tag)
+    version = download(commit, "VERSION", 128).decode("utf-8").strip()
+    if version != tag:
+        raise ValueError(f"Release VERSION {version!r} does not match requested {tag}")
+    files = {}
+    for source, target, mode, required in SYSTEM_FILES:
+        if required or target.exists():
+            files[target] = (download(commit, source), mode)
+    git("fetch", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main",
+        f"refs/tags/{tag}:refs/tags/{tag}")
+    if git("rev-parse", "--verify", f"refs/tags/{tag}^{{commit}}", capture=True) != commit:
+        raise ValueError(f"Local tag {tag} differs from GitHub; delete the stale local tag and retry")
+    try:
+        git("merge-base", "--is-ancestor", commit, "refs/remotes/origin/main")
+    except subprocess.CalledProcessError:
+        raise ValueError(f"Release tag {tag} is not part of the main branch") from None
+    for path in REQUIRED_PATHS:
+        try:
+            git("cat-file", "-e", f"{commit}:{path}")
+        except subprocess.CalledProcessError:
+            raise ValueError(f"Release {tag} is missing {path}") from None
+    return commit, files
+
+
+def make_backups(directory: Path, previous: str) -> None:
+    sources = [path for path in (STATE, PLAYBOOKS) if path.is_dir()]
+    required = sum(int(run("du", "-sb", str(path), capture=True).split()[0]) for path in sources)
+    if shutil.disk_usage(directory).free < required + 128 * 1024 * 1024:
+        raise RuntimeError("Insufficient backup space for UI state and playbooks plus 128 MiB headroom")
+    (directory / "previous-commit.txt").write_text(previous + "\n", encoding="utf-8")
+    for path in sources:
+        run("tar", "--acls", "--xattrs", "-czf", str(directory / f"{path.name.lstrip('.')}.tar.gz"),
+            "-C", str(path.parent), path.name)
+    config = [path for path in (
+        Path("/etc/systemd/system") / SERVICE, Path("/etc/systemd/system") / (SERVICE + ".d"),
+        Path("/etc/aipod"), Path("/etc/nginx"), Path("/etc/pki/nginx"), Path("/etc/sudoers.d") / APP_USER,
+        *(target for _, target, _, _ in SYSTEM_FILES),
+    ) if path.exists()]
+    if config:
+        run("tar", "--acls", "--xattrs", "-czf", str(directory / "configuration.tar.gz"),
+            "-C", "/", *(str(path.relative_to("/")) for path in config))
+    for item in directory.iterdir():
+        item.chmod(0o600)
+
+
+def install_system_files(files: dict[Path, tuple[bytes, int]]) -> None:
+    for target, (content, mode) in files.items():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, temporary = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(content)
+            os.chmod(temporary, mode)
+            os.replace(temporary, target)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+
+
+def relabel(files: dict[Path, tuple[bytes, int]]) -> None:
+    if not shutil.which("selinuxenabled") or subprocess.run(["selinuxenabled"], check=False).returncode != 0:
+        return
+    run("restorecon", "-RF", str(REPO / ".venv/bin"), *(str(path) for path in files))
+
+
+def wait_ready(timeout: float = 120) -> None:
+    opener = build_opener(ProxyHandler({}))
+    deadline = time.monotonic() + timeout
+    last_error = "No response"
+    while time.monotonic() < deadline:
+        try:
+            run("systemctl", "is-active", "--quiet", SERVICE)
+            with opener.open(ENDPOINT, timeout=3) as response:
+                if response.status == 200 and response.geturl() == ENDPOINT:
+                    return
+                last_error = f"HTTP {response.status} from {response.geturl()}"
+        except (OSError, URLError, subprocess.CalledProcessError) as error:
+            last_error = str(error)
+        time.sleep(2)
+    raise RuntimeError(f"Automation UI did not become healthy within {timeout} seconds: {last_error}")
+
+
+def recovery_steps(previous: str, backup: Path) -> str:
+    repository = shlex.quote(str(REPO))
+    return (f"Recovery files: {backup}\n"
+            "No automatic rollback was attempted. To return to the previous code, run:\n"
+            f"  sudo -u {APP_USER} -H git -C {repository} checkout --detach {previous}\n"
+            f"  cd {repository} && sudo -u {APP_USER} -H env PYTHON_BIN=python3.12 "
+            "./scripts/setup.sh --skip-apt --skip-iserver\n"
+            "Restore configuration.tar.gz only if system files must also be rolled back, then start "
+            f"{SERVICE} after reviewing journalctl -u {SERVICE}.")
+
+
+def install_update(commit: str, files: dict[Path, tuple[bytes, int]], previous: str, backup: Path) -> None:
+    success = False
+    try:
+        run("systemctl", "stop", SERVICE)
+        make_backups(backup, previous)
+        print(f"Backups saved: {backup}", flush=True)
+        git("-c", "advice.detachedHead=false", "checkout", "--detach", commit)
+        as_app_user("env", "PYTHON_BIN=python3.12", "./scripts/setup.sh", "--skip-apt", "--skip-iserver", cwd=REPO)
+        python = str(REPO / ".venv/bin/python3")
+        as_app_user(python, "-m", "pip", "install", "-r", "scripts/requirements-webui.txt", cwd=REPO)
+        as_app_user("env", f"AI_PODS_APP_DIR={STATE}", python, "-c",
+                    "import automation_ui; print('Automation UI imports OK')", cwd=REPO / "scripts")
+        install_system_files(files)
+        relabel(files)
+        run("systemctl", "daemon-reload")
+        run("systemctl", "start", SERVICE)
+        wait_ready()
+        success = True
+    finally:
+        if not success:
+            print("Update failed.\n" + recovery_steps(previous, backup), file=sys.stderr, flush=True)
+            try:
+                run("systemctl", "stop", SERVICE)
+            except subprocess.CalledProcessError as error:
+                raise RuntimeError("Could not stop the service after failure; stop it manually "
+                                   "and inspect the journal before recovery") from error
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", required=True, help="Published release tag, e.g. v0.1.0")
+    parser.add_argument("--yes", action="store_true", help="Confirm the outage and that all work has finished")
+    args = parser.parse_args(argv)
+    if not TAG_PATTERN.fullmatch(args.version):
+        parser.error("--version must be a release tag such as v0.1.0")
+    return args
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    if os.geteuid() != 0:
+        print("ERROR: Run this updater with sudo from an administrator shell.", file=sys.stderr)
+        return 1
+    # Checked-out code and the virtual environment must remain readable by the service account.
+    os.umask(0o022)
+    os.environ["PATH"] = "/usr/sbin:/usr/bin:/sbin:/bin"
+    try:
+        descriptor = os.open("/run/lock/aipod-update.lock",
+                             os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
+        with os.fdopen(descriptor, "r+") as lock:
+            info = os.fstat(lock.fileno())
+            if info.st_uid != 0 or not stat.S_ISREG(info.st_mode):
+                raise ValueError("Updater lock must be a root-owned regular file")
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise RuntimeError("Another Cisco AI PODs update is running") from None
+            preflight()
+            commit, files = resolve_release(args.version)
+            previous = git("rev-parse", "--verify", "HEAD^{commit}", capture=True)
+            installed = (REPO / "VERSION").read_text(encoding="utf-8").strip() if (REPO / "VERSION").is_file() else "development"
+            print(f"Installed: {installed} ({previous[:12]}) | Requested: {args.version} ({commit[:12]})", flush=True)
+            if previous == commit:
+                print(f"{args.version} is already checked out; no changes were made.")
+                return 0
+            print("This stops the automation UI, checks out the release, and reruns setup. "
+                  "Finish ALL active playbooks, uploads, and terminal work in the repository first.", flush=True)
+            if not args.yes and input("Type UPDATE to continue: ").strip() != "UPDATE":
+                print("Cancelled; service was not stopped.")
+                return 0
+            Path("/var/backups").mkdir(mode=0o700, exist_ok=True)
+            backup = Path(tempfile.mkdtemp(prefix="aipod-update-", dir="/var/backups"))
+            print(f"Recovery directory: {backup}", flush=True)
+            install_update(commit, files, previous, backup)
+            print(f"Update complete: {args.version}. Automation UI is healthy. Refresh your HTTPS UI.\n"
+                  f"Backups retained at {backup}. Nginx and TLS configuration were not changed.", flush=True)
+        return 0
+    except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError, EOFError,
+            KeyboardInterrupt) as error:
+        print(f"ERROR: Update did not complete: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

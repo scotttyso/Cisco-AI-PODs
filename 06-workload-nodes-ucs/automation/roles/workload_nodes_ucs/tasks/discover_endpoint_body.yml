@@ -1,0 +1,181 @@
+---
+- name: "UCS/Intersight: log in to UCS-X Direct Device Console"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/Login"
+    method: POST
+    body_format: json
+    body:
+      User: "{{ ucs_claim_endpoint.user }}"
+      Password: "{{ lookup('vars', ucs_claim_endpoint.password_var) }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_domain_login
+  when: ucs_claim_target.platform == 'domain'
+  no_log: true
+
+- name: "UCS/Intersight: create temporary standalone Redfish session"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/redfish/v1/SessionService/Sessions"
+    method: POST
+    body_format: json
+    body:
+      UserName: "{{ ucs_claim_endpoint.user }}"
+      Password: "{{ lookup('vars', ucs_claim_endpoint.password_var) }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 201]
+    return_content: false
+    timeout: 30
+  register: ucs_standalone_login
+  when: ucs_claim_target.platform == 'standalone'
+  until: ucs_standalone_login.status | default(0) in [200, 201]
+  # A timed-out POST may have created a session. Never repeat it blindly.
+  retries: 1
+  no_log: true
+
+- name: "UCS/Intersight: select connector authentication header"
+  ansible.builtin.set_fact:
+    ucs_connector_headers: >-
+      {{
+        {
+          'Cookie': 'sessionId=' ~ (ucs_domain_login.content | from_json).SessionId,
+          'X-Csrf-Token': ucs_domain_login.x_csrf_token
+        }
+        if ucs_claim_target.platform == 'domain'
+        else {'X-Auth-Token': ucs_standalone_login.x_auth_token}
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: reconcile UCS-X Direct connector prerequisites"
+  ansible.builtin.include_tasks: reconcile_domain_connector_prerequisites.yml
+  when: ucs_claim_target.platform == 'domain'
+
+- name: "UCS/Intersight: read connector state"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/Systems"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 404]
+    return_content: true
+    timeout: 30
+  register: ucs_connector_systems_raw
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: validate supported standalone connector prerequisites"
+  ansible.builtin.include_tasks: validate_standalone_connector_prerequisites.yml
+  when:
+    - ucs_claim_target.platform == 'standalone'
+    - ucs_connector_systems_raw.status == 200
+
+- name: "UCS/Intersight: refresh connector state after prerequisite reconciliation"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/Systems"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 404]
+    return_content: true
+    timeout: 30
+  register: ucs_connector_systems_raw
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: read runtime Device ID"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/DeviceIdentifiers"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 404]
+    return_content: true
+    timeout: 30
+  register: ucs_connector_identifier_raw
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: parse connector response payloads"
+  ansible.builtin.set_fact:
+    ucs_connector_system_payload: >-
+      {{ (ucs_connector_systems_raw.content | from_json) if ucs_connector_systems_raw.status == 200 else {} }}
+    ucs_connector_identifier_payload: >-
+      {{ (ucs_connector_identifier_raw.content | from_json) if ucs_connector_identifier_raw.status == 200 else {} }}
+  no_log: true
+
+- name: "UCS/Intersight: normalize connector response objects"
+  ansible.builtin.set_fact:
+    ucs_connector_system: >-
+      {{
+        (ucs_connector_system_payload | first)
+        if (ucs_connector_system_payload is sequence and ucs_connector_system_payload is not mapping)
+        else ucs_connector_system_payload
+      }}
+    ucs_connector_identifier: >-
+      {{
+        (ucs_connector_identifier_payload | first)
+        if (ucs_connector_identifier_payload is sequence and ucs_connector_identifier_payload is not mapping)
+        else ucs_connector_identifier_payload
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: request one-time Claim Code only when unclaimed"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_claim_endpoint.ip }}/connector/SecurityTokens"
+    method: GET
+    headers: "{{ ucs_connector_headers }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 404, 500, 502, 503, 504]
+    return_content: true
+    timeout: 30
+  register: ucs_connector_token_raw
+  changed_when: false
+  when: >-
+    ucs_connector_systems_raw.status == 200 and
+    (ucs_connector_system.ConnectionState | default('') | lower | trim) == 'connected' and
+    (ucs_connector_system.AccountOwnershipState | default('') | lower | trim) in ['unclaimed', 'not claimed']
+  until: ucs_connector_token_raw.status not in [500, 502, 503, 504]
+  retries: 3
+  delay: 15
+  no_log: true
+
+- name: "UCS/Intersight: normalize one-time Claim Code response"
+  ansible.builtin.set_fact:
+    ucs_connector_token: >-
+      {{
+        ((ucs_connector_token_raw.content | from_json) | first)
+        if (
+          not (ucs_connector_token_raw.skipped | default(false)) and
+          ucs_connector_token_raw.status == 200 and
+          (ucs_connector_token_raw.content | from_json) is sequence and
+          (ucs_connector_token_raw.content | from_json) is not mapping
+        )
+        else (
+          (ucs_connector_token_raw.content | from_json)
+          if not (ucs_connector_token_raw.skipped | default(false)) and ucs_connector_token_raw.status == 200
+          else {}
+        )
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: retain only in-memory discovery data"
+  ansible.builtin.set_fact:
+    ucs_endpoint_results: >-
+      {{
+        ucs_endpoint_results + [
+          {
+            'inventory_host': ucs_claim_endpoint.inventory_host,
+            'connector_supported': ucs_connector_systems_raw.status == 200 and ucs_connector_identifier_raw.status == 200,
+            'admin_state': ucs_connector_system.AdminState | default(false),
+            'connection_state': ucs_connector_system.ConnectionState | default(''),
+            'ownership_state': ucs_connector_system.AccountOwnershipState | default('') | lower | trim,
+            'ownership_account': ucs_connector_system.AccountOwnershipName | default(''),
+            'registration_moid': ucs_connector_system.DeviceRegistrationMoid | default(''),
+            'device_id': ucs_connector_identifier.Id | default(''),
+            'claim_code': ucs_connector_token.Token | default(''),
+            'claim_code_duration': ucs_connector_token.Duration | default(0) | int
+          }
+        ]
+      }}
+  no_log: true

@@ -1,0 +1,145 @@
+---
+# Per-task-entrypoint argument specs for cisco.aipod.nd_cluster.
+#
+# This is the role's input contract. It serves three purposes:
+#   1. Ansible validates inventory inputs at task-include time (fail-fast).
+#   2. Generates documentation for partners/customers.
+#   3. Becomes the input schema for an MCP tool with no rewrite.
+#
+# Field shapes mirror schemas/nd-cluster.schema.json exactly.
+
+argument_specs:
+
+  preflight:
+    short_description: Verify inventory, reachability, credentials. No side effects.
+    description: |
+      Always run before any side-effecting task. Validates the cluster +
+      nodes inventory against the JSON Schema, probes CIMC reachability,
+      probes ISO URL, resolves DNS/NTP, and checks credentials work.
+      Exits non-zero with actionable messages on any failure.
+    options:
+      cluster:        { type: dict, required: true, description: "Cluster-wide config (nd-cluster.schema.json#/properties/cluster)." }
+      nodes:          { type: list, required: true, elements: dict, description: "Per-node config (nd-cluster.schema.json#/properties/nodes)." }
+      admin_username: { type: str,  required: true, description: "ND administrative login username from canonical inventory." }
+      admin_pass_ref: { type: str,  required: true, description: "ND admin password reference (env var name in Phase 1; vault path in Phase 2)." }
+      nd_admin_password: { type: str, required: true, no_log: true }
+      cimc_passwords_by_ref: { type: dict, required: true, no_log: true }
+
+  image_node:
+    short_description: Image one ND node according to its cluster role.
+    description: |
+      Mounts the ND ISO via CIMC remote vMedia, drives a one-time UEFI vDVD
+      boot, and watches the SOL console through the install. For the bootstrap
+      node, it also performs first-boot setup. Secondary nodes stop before
+      first-boot so cluster formation can drive that dialog. Runs only when
+      cluster.start_mode is iso_reimage. Idempotent state markers make an
+      already-completed run a no-op.
+    options:
+      node:                  { type: dict, required: true, description: "One element of inventory.nodes (must include cimc, mgmt, hostname)." }
+      cluster:               { type: dict, required: true, description: "Cluster context (iso URL/SHA, network, dns)." }
+      admin_pass_ref:        { type: str, required: true }
+      nd_admin_password:     { type: str, required: true, no_log: true }
+      cimc_passwords_by_ref: { type: dict, required: true, no_log: true }
+
+  bootstrap_node:
+    short_description: Bootstrap ND-1 without reinstalling a verified image.
+    description: |
+      Drives only the ND-1 first-boot SOL dialog after factory reset or on a
+      factory-preinstalled appliance. The installed release must already have
+      been positively verified by preflight. No ISO is mounted or installed.
+    options:
+      node:                  { type: dict, required: true }
+      cluster:               { type: dict, required: true }
+      admin_pass_ref:        { type: str, required: true }
+      nd_admin_password:     { type: str, required: true, no_log: true }
+      cimc_passwords_by_ref: { type: dict, required: true, no_log: true }
+
+  capture_baseline:
+    short_description: Capture a normalized, secret-free ND parity baseline.
+    description: |
+      Queries setup state and running software version without changing ND,
+      allowlists the parity fields, and writes a gitignored JSON artifact.
+    options:
+      cluster:           { type: dict, required: true }
+      runtime:           { type: dict, required: true }
+      nodes:             { type: list, required: true, elements: dict }
+      admin_username:    { type: str, required: true }
+      nd_admin_password: { type: str, required: true, no_log: true }
+      cimc_passwords_by_ref: { type: dict, required: true, no_log: true }
+      nd_baseline_kind:  { type: str, required: true, choices: [manual, automated] }
+      nd_baseline_dir:   { type: path, required: true }
+
+  form_cluster:
+    short_description: Bootstrap the 3-node cluster from ND-1 UI/API.
+    description: |
+      Calls ND-1's bootstrap API with cluster-wide config plus the per-node
+      details for ND-2 and ND-3. All three nodes must already carry the target
+      release: positively verified for factory_preinstalled or installed by
+      image_node for iso_reimage. Idempotent: returns success if a healthy
+      cluster already matches the requested config.
+    options:
+      cluster:        { type: dict, required: true }
+      runtime:        { type: dict, required: true }
+      nodes:          { type: list, required: true, elements: dict }
+      admin_username: { type: str,  required: true }
+      admin_pass_ref: { type: str,  required: true }
+      nd_admin_password: { type: str, required: true, no_log: true }
+      cimc_passwords_by_ref: { type: dict, required: true, no_log: true }
+      timeout_s:
+        type: int
+        required: false
+        default: 3600
+        description: "Total budget for cluster bringup. CVD says ~30 min; default 60 min."
+
+  intersight_claim:
+    short_description: Claim or verify the ND target and its resource-group membership.
+    description: |
+      Discovers the Intersight Device ID and one-time Claim Code from a running
+      Nexus Dashboard cluster. Claims only an unclaimed target; an existing
+      expected claim is verified without mutation. The selected resource group
+      must already exist and its existing selectors are preserved.
+    options:
+      runtime: { type: dict, required: true }
+      admin_username: { type: str, required: true }
+      nd_admin_password: { type: str, required: true, no_log: true }
+      nd_intersight_prune_stale_targets:
+        type: bool
+        required: false
+        default: false
+        description: >-
+          Remove disconnected duplicate ND targets that do not reference the
+          current runtime Device Registration.
+
+  intersight_reclaim:
+    short_description: Explicitly unclaim then reclaim the ND target.
+    description: |
+      A destructive test/recovery operation. It is never selected by inventory
+      and requires nd_intersight_allow_reclaim=true as a one-run extra var.
+    options:
+      runtime: { type: dict, required: true }
+      admin_username: { type: str, required: true }
+      nd_admin_password: { type: str, required: true, no_log: true }
+      nd_intersight_allow_reclaim: { type: bool, required: true }
+
+  persistent_ips:
+    short_description: Manage the persistent IP pool (day-2 capable).
+    description: |
+      Reconciles the persistent IP pool with the inventory. Safe to run
+      independently of form_cluster for day-2 expansions.
+    options:
+      cluster:        { type: dict, required: true, description: "Must include cluster.persistent_ips (>=5 IPs in cluster.network.data_subnet)." }
+      admin_pass_ref: { type: str,  required: true }
+
+  remote_auth:
+    short_description: Configure TACACS+ / LDAP remote auth (optional, day-2).
+    description: |
+      Adds remote auth providers and role mappings. Out of scope for the
+      first AI POD CVD; placeholder so the contract exists for partners.
+    options:
+      cluster:        { type: dict, required: true }
+      admin_pass_ref: { type: str,  required: true }
+      providers:
+        type: list
+        required: true
+        elements: dict
+        description: "TACACS+/LDAP provider list. Schema TBD."

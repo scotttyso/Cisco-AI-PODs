@@ -18,7 +18,7 @@
 ###############################################################################
 - name: Find Variable Files Under host_vars
   ansible.builtin.find:
-    paths: "{{ playbook_dir }}/../host_vars/everpure"
+    paths: "{{ host_vars_dir | default(playbook_dir ~ '/../host_vars') }}/everpure"
     patterns:
       - "*.ezai.yaml"
     file_type: file

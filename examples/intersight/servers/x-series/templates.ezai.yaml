@@ -1,0 +1,26 @@
+---
+# =========================================================
+#   Templates
+# =========================================================
+intersight:
+  configure:
+    default:
+      templates:
+        server:
+          - bios_policy: GPUTraining-M8-AMD-Tpm
+            boot_order_policy: M2-Boot
+            create_template: true
+            firmware_policy: Recommended
+            imc_access_policy: KVMAccess
+            ipmi_over_lan_policy: IPMIWithEncryption
+            lan_connectivity_policy: RoCEv2Optimized
+            local_user_policy: LocalUsers
+            name: AIOptimized
+            power_policy: Server
+            serial_over_lan_policy: SoL
+            server_family: All
+            storage_policy: ModelCache
+            target_platform: FIAttached
+            thermal_policy: Balanced
+            uuid_pool: UUID
+            virtual_kvm_policy: vKVM

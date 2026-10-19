@@ -1,0 +1,33 @@
+---
+# Pre-flight: validate inventory + probe reachability + verify credentials.
+# Read-only: no side effects on CIMC, ND, or the network.
+#
+# This task is the single chokepoint that converts CVD "war stories" into
+# guard rails. Every postmortem lesson should land here as a check.
+#
+# Python and Ansible both consume inventory_file. load_ansible validates the
+# fully merged host/group vars against the ND schema before any probes run.
+
+- name: "ND/preflight: run Phase 1 Python precheck (DNS/NTP/CIMC reachability + creds)"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/main.py precheck
+      --ansible-inventory {{ inventory_file }}
+      {{ nd_precheck_skip | default([])
+         | map('regex_replace', '^', '--skip ')
+         | join(' ') }}
+    chdir: "{{ nd_python_root }}"
+  # Export the vault values under the exact reference names declared by
+  # canonical inventory. Building the environment from the reference map
+  # avoids coupling secret resolution to hostname spelling or case.
+  environment: >-
+    {{
+      {admin_pass_ref: nd_admin_password}
+      | combine(cimc_passwords_by_ref)
+    }}
+  changed_when: false
+  register: precheck
+
+- name: "ND/preflight: surface result"
+  ansible.builtin.debug:
+    msg: "{{ precheck.stdout_lines }}"

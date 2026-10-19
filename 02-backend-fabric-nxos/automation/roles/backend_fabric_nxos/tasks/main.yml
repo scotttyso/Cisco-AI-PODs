@@ -1,0 +1,273 @@
+---
+- name: "BE fabric: mandatory cable gate before any ND template operation"
+  ansible.builtin.include_tasks: preflight_core_connectivity.yml
+
+- name: "BE fabric: require canonical controller, fabric, and switch inputs"
+  ansible.builtin.assert:
+    that:
+      - be_fabrics | default([]) | length > 0
+      - be_fabric_features | default({}) | length > 0
+      - be_switch_inventory_hosts | length > 0
+      - nd_admin_username | default('') | length > 0
+      - vault_nd_admin_password | default('') | length > 0
+      - be_fabrics | map(attribute='name') | unique | list | length == be_fabrics | length
+      - be_fabrics | map(attribute='bgp_as') | unique | list | length == be_fabrics | length
+      - be_fabrics | map(attribute='key') | unique | list | length == be_fabrics | length
+      - be_target_fabric_keys | default([]) | length > 0
+      - be_target_fabric_keys | unique | list | length == be_target_fabric_keys | length
+      - be_target_fabric_keys | difference(be_fabrics | map(attribute='key') | list) | length == 0
+    fail_msg: >-
+      Backend fabric deployment requires unique inventory-defined fabric and switch
+      records, plus the gitignored ND administrator credential.
+  no_log: true
+
+- name: "BE fabric: select independently deployable target fabrics"
+  ansible.builtin.set_fact:
+    be_active_fabrics: >-
+      {{ be_fabrics
+         | selectattr('key', 'in', be_target_fabric_keys)
+         | list }}
+  no_log: true
+
+- name: "BE fabric: require every requested target to resolve"
+  ansible.builtin.assert:
+    that:
+      - be_active_fabrics | length == be_target_fabric_keys | length
+    fail_msg: >-
+      Every be_target_fabric_keys entry must identify one canonical backend
+      fabric.
+
+- name: "BE fabric: create an ephemeral Nexus Dashboard API session"
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}/api/v1/infra/login"
+    method: POST
+    body_format: json
+    body:
+      userName: "{{ nd_admin_username }}"
+      userPasswd: "{{ vault_nd_admin_password }}"
+      domain: DefaultAuth
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: false
+    timeout: 30
+  delegate_to: localhost
+  register: be_platform_login
+  check_mode: false
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: retain only the ephemeral session cookie"
+  ansible.builtin.set_fact:
+    be_platform_headers:
+      Cookie: "{{ be_platform_login.cookies_string }}"
+  no_log: true
+
+- name: "BE fabric: wait for Fabric Management enablement to complete"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/api/v1/infra/systemSoftware/services
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  delegate_to: localhost
+  register: be_system_services
+  until: >-
+    (
+      be_system_services.json.services
+      | selectattr('name', 'equalto', 'fabric-management')
+      | map(attribute='deploymentState.deploymentStatus.status')
+      | first
+      | default('')
+    ) == 'completed' and
+    (
+      be_system_services.json.services
+      | selectattr('name', 'equalto', 'fabric-management')
+      | map(attribute='operState.state')
+      | first
+      | default('')
+      | lower
+    ) == 'healthy'
+  retries: 60
+  delay: 30
+  check_mode: false
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: fetch live template defaults from the target ND release"
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{ be_template_path }}"
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_live_template
+  until: be_live_template.status == 200
+  retries: 12
+  delay: 10
+  check_mode: false
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: list existing Nexus Dashboard fabrics"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip }}{{
+        be_manage_fabrics_path
+      }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_existing_fabrics
+  check_mode: false
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: initialize existing fabric identity list"
+  ansible.builtin.set_fact:
+    be_existing_fabric_identities: []
+  no_log: true
+
+- name: "BE fabric: collect existing fabric identities"
+  ansible.builtin.include_tasks: collect_existing_fabric.yml
+  loop: "{{ be_existing_fabrics.json.fabrics | default([]) }}"
+  loop_control:
+    loop_var: be_existing_summary
+    label: "{{ be_existing_summary.name }}"
+  no_log: true
+
+- name: "BE fabric: preflight desired fabric identities"
+  ansible.builtin.include_tasks: preflight_fabric.yml
+  loop: "{{ be_active_fabrics }}"
+  loop_control:
+    loop_var: be_fabric
+    label: "{{ be_fabric.name }}"
+
+- name: "BE fabric: initialize live-default and desired-config maps"
+  ansible.builtin.set_fact:
+    be_template_defaults: {}
+    be_fabric_create_configs: []
+    be_fabric_topology_configs: []
+    be_fabric_robot_password_configs: []
+  no_log: true
+
+- name: "BE fabric: collect every live template default"
+  ansible.builtin.include_tasks: collect_template_default.yml
+  loop: "{{ be_live_template.json.parameters }}"
+  loop_control:
+    loop_var: be_template_parameter
+    label: "{{ be_template_parameter.name }}"
+
+- name: "BE fabric: build desired config from live defaults plus locked deltas"
+  ansible.builtin.include_tasks: build_fabric_config.yml
+  loop: "{{ be_active_fabrics }}"
+  loop_control:
+    loop_var: be_fabric
+    label: "{{ be_fabric.name }}"
+
+- name: "BE fabric: create both fabrics with the proven core payload"
+  when: not ansible_check_mode
+  block:
+    - name: "BE fabric: submit the core fabric configuration"
+      cisco.dcnm.dcnm_fabric:
+        state: merged
+        skip_validation: true
+        config: "{{ be_fabric_create_configs }}"
+      register: be_fabric_create_result
+      no_log: true
+  rescue:
+    - name: "BE fabric: sanitize the core-create failure"
+      ansible.builtin.set_fact:
+        be_core_failure_return_codes: >-
+          {{
+            ansible_failed_result.response | default([])
+            | select('mapping')
+            | map(attribute='RETURN_CODE', default='unknown')
+            | list
+          }}
+        be_core_failure_controller_messages: >-
+          {{
+            ansible_failed_result.response | default([])
+            | select('mapping')
+            | map(attribute='MESSAGE', default='')
+            | reject('equalto', '')
+            | list
+          }}
+      no_log: true
+
+    - name: "BE fabric: stop after the first core-create failure"
+      ansible.builtin.fail:
+        msg: >-
+          Core NDFC fabric creation failed.
+          Controller return codes: {{ be_core_failure_return_codes }}.
+          Controller messages: {{ be_core_failure_controller_messages }}.
+
+- name: "BE fabric: reconcile topology and fabric behavior selectively"
+  ansible.builtin.include_tasks: reconcile_fabric_topology.yml
+  loop: "{{ be_active_fabrics }}"
+  loop_control:
+    loop_var: be_fabric
+    label: "{{ be_fabric.name }}"
+  no_log: true
+
+- name: "BE fabric: reconcile robot password in an isolated secret stage"
+  ansible.builtin.include_tasks: reconcile_fabric_stage.yml
+  vars:
+    be_reconcile_stage:
+      name: robot password
+      configs: "{{ be_fabric_robot_password_configs }}"
+  when: not ansible_check_mode
+  no_log: true
+
+- name: "BE fabric: reconcile and verify Premier license tier"
+  ansible.builtin.include_tasks: reconcile_license.yml
+  loop: "{{ be_active_fabrics }}"
+  loop_control:
+    loop_var: be_fabric
+    label: "{{ be_fabric.name }}"
+  when: not ansible_check_mode
+
+- name: "BE fabric: preflight every switch before onboarding any switch"
+  ansible.builtin.include_tasks: preflight_switch.yml
+  loop: "{{ be_switch_inventory_hosts }}"
+  loop_control:
+    loop_var: be_switch_host
+    label: "{{ be_switch_host }}"
+  when:
+    - not ansible_check_mode
+    - be_onboard_switches | bool
+    - hostvars[be_switch_host].be_switch.fabric_key in be_target_fabric_keys
+
+- name: "BE fabric: onboard switches into each owning fabric"
+  ansible.builtin.include_tasks: onboard_fabric.yml
+  loop: "{{ be_active_fabrics }}"
+  loop_control:
+    loop_var: be_fabric
+    label: "{{ be_fabric.name }}"
+  when:
+    - not ansible_check_mode
+    - be_onboard_switches | bool
+
+- name: "BE fabric: report deployment gate"
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        'Check-mode preparation is complete; fabric creation and switch onboarding were intentionally skipped.'
+        if ansible_check_mode
+        else (
+          'Fabric creation, Premier license reconciliation, verification, and switch onboarding are complete.'
+          if be_onboard_switches | bool
+          else
+          'Fabric creation and Premier license reconciliation are complete; switch onboarding was explicitly disabled.'
+        )
+      }}

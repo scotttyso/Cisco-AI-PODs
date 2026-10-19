@@ -1,0 +1,61 @@
+    <ProductSection ovf:required="false">
+      <Info>Cisco AI PODs automation appliance settings</Info>
+      <Product>Cisco AI PODs Automation Appliance</Product>
+      <Vendor>Cisco Systems</Vendor>
+      <Version>@VERSION@</Version>
+      <Category>Networking</Category>
+      <Property ovf:key="guestinfo.hostname" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>Hostname</Label>
+        <Description>Short hostname or fully qualified domain name.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.domain" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>Domain Name</Label>
+        <Description>DNS domain appended to a short hostname, for example example.com.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.ip_source" ovf:type="string" ovf:qualifiers="ValueMap{&quot;STATIC&quot;,&quot;DHCP&quot;}" ovf:userConfigurable="true" ovf:value="STATIC">
+        <Label>IP Source</Label>
+        <Description>STATIC is recommended because this appliance also hosts the DHCP service.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.ip_address" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>IPv4 Address</Label>
+        <Description>Required for STATIC.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.prefix" ovf:type="int" ovf:qualifiers="MinValue(1) MaxValue(32)" ovf:userConfigurable="true" ovf:value="24">
+        <Label>Network Prefix</Label>
+        <Description>Prefix length, for example 24.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.gateway" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>Default Gateway</Label>
+        <Description>Required for STATIC.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.dns_servers" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>DNS Servers</Label>
+        <Description>Comma separated, for example 10.0.0.53,10.0.0.54.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.dns_search" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>DNS Search Domains</Label>
+        <Description>Comma separated. Defaults to the domain name.</Description>
+      </Property>
+      <Category>Time</Category>
+      <Property ovf:key="guestinfo.ntp_servers" ovf:type="string" ovf:userConfigurable="true" ovf:value="">
+        <Label>NTP Servers</Label>
+        <Description>Comma separated, for example 0.pool.ntp.org,1.pool.ntp.org.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.timezone" ovf:type="string" ovf:userConfigurable="true" ovf:value="Etc/UTC">
+        <Label>Timezone</Label>
+        <Description>IANA timezone, for example America/New_York.</Description>
+      </Property>
+      <Category>Credentials</Category>
+      <Property ovf:key="guestinfo.admin_password" ovf:type="string" ovf:password="true" ovf:userConfigurable="true" ovf:value="">
+        <Label>OS Administrator Password</Label>
+        <Description>Replaces the expired build password (12+ characters). Leave blank to change it at first login.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.ui_admin_user" ovf:type="string" ovf:userConfigurable="true" ovf:value="admin">
+        <Label>Automation UI Username</Label>
+        <Description>Account created for the web interface.</Description>
+      </Property>
+      <Property ovf:key="guestinfo.ui_admin_password" ovf:type="string" ovf:password="true" ovf:userConfigurable="true" ovf:value="">
+        <Label>Automation UI Password</Label>
+        <Description>12+ characters. Leave blank to create the account later with sudo aipod-config.</Description>
+      </Property>
+    </ProductSection>

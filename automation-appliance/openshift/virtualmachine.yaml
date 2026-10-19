@@ -1,0 +1,62 @@
+# Clones the uploaded appliance golden image (see README) and attaches it to the
+# management bridge so the appliance can serve DHCP to CIMC / switch management ports.
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: aipod-automation
+  namespace: aipod-automation
+  labels:
+    app: aipod-automation
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: aipod-automation-rootdisk
+      spec:
+        source:
+          pvc:
+            namespace: aipod-images
+            name: aipod-automation-rocky10
+        storage:
+          resources:
+            requests:
+              storage: 256Gi
+  template:
+    metadata:
+      labels:
+        app: aipod-automation
+    spec:
+      domain:
+        cpu:
+          cores: 4
+        memory:
+          guest: 32Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: mgmt
+              bridge: {}
+              model: virtio
+          rng: {}
+      networks:
+        - name: mgmt
+          multus:
+            networkName: aipod-mgmt
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: aipod-automation-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            secretRef:
+              name: aipod-automation-cloudinit

@@ -1,0 +1,9 @@
+---
+- name: "BE fabric: record topology mismatch"
+  ansible.builtin.set_fact:
+    be_topology_mismatches: >-
+      {{ be_topology_mismatches + [be_topology_item.key] }}
+  when: >-
+    (be_topology_after.json.nvPairs[be_topology_item.key] | default('') | string | lower)
+    != (be_topology_item.value | string | lower)
+  no_log: true

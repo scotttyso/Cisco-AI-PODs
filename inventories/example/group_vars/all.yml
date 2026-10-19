@@ -1,0 +1,38 @@
+---
+# Example-wide Ansible vars shared by more than one subsystem.
+# ND-only non-secret values stay in group_vars/nd_cluster.yml.
+# Node-specific addressing stays in host_vars/.
+#
+# Intersight SaaS site settings: consumed by ND claim and later UCS/storage
+# claim. Ansible keys are intersight_*. The composed aipod.yaml form is the
+# nested `intersight:` object in schemas/aipod.schema.json.
+# Device ID and Claim Code are runtime-discovered — never stored here.
+#
+# Secrets: vault_intersight_api_key_id / vault_intersight_api_private_key
+# in group_vars/vault.yml. Unique per-host secrets → host_vars/<host>/vault.yml.
+# See inventories/README.md.
+
+intersight_api_uri: https://intersight.com
+intersight_account_name: ExampleAccount
+intersight_resource_group_name: Example_RG
+intersight_organization_name: Example_ORG
+
+# Shared desired site services. DNS search suffixes are explicit, not inferred
+# from the host domain. Timezone is intent; native ND setup does not apply it.
+# ND and UCS consume aipod directly; no duplicated service mappings.
+aipod:
+  domain_name: example.com
+  dns_servers:
+    - 192.0.2.53
+    - 192.0.2.54
+  dns_search_domains:
+    - example.com
+  ntp_servers:
+    - 198.51.100.124
+    - 198.51.100.125
+  ntp_preferred_server: 198.51.100.124
+  timezone: America/New_York
+
+# C880-specific intent, not a shared site service. No SOL writer is implemented.
+ucs_c880:
+  sol_enabled: true

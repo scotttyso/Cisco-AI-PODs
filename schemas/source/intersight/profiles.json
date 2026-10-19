@@ -190,6 +190,9 @@
                 {
                     "description": "Definition of the list of properties defined in 'chassis.Profile.targets', excluding properties defined in parent classes.",
                     "properties": {
+                        "serial_number": {
+                            "$ref": "#/definitions/serial_number"
+                        },
                         "user_label": {
                             "default": "",
                             "description": "The default value is ``.  User label assigned to the Chassis Profile.",
@@ -204,12 +207,11 @@
                             "x-intersight-api": "UserLabel"
                         }
                     },
-                    "required": [],
+                    "required": [
+                        "serial_number"
+                    ],
                     "title": "target",
                     "type": "object"
-                },
-                {
-                    "$ref": "#/definitions/serial_number"
                 }
             ],
             "title": "targets",

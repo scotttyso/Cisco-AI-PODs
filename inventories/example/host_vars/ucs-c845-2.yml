@@ -1,0 +1,9 @@
+---
+ucs:
+  platform: standalone
+  role: gpu
+  claim_target: ucs-c845-2
+  cimc:
+    ip: 203.0.113.42
+    user: admin
+    pass_ref: UCS_C845_2_CIMC_PASSWORD

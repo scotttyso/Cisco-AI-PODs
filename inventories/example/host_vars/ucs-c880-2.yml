@@ -1,0 +1,12 @@
+---
+ucs:
+  platform: standalone
+  role: gpu
+  hostname: Example-UCS-C880-2
+  intersight_claim_supported: false
+  cimc:
+    ip: 203.0.113.82
+    netmask: 255.255.255.0
+    gateway: 203.0.113.254
+    user: admin
+    pass_ref: UCS_C880_2_CIMC_PASSWORD

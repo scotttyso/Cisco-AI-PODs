@@ -1,0 +1,8 @@
+---
+be_switch:
+  fabric_key: backend
+  hostname: EXAMPLE-BE-SPINE-1
+  role: spine
+  mgmt_ip: 203.0.113.61
+  username: admin
+  pass_ref: EXAMPLE_BE_BACKEND_SPINE_1_PASSWORD

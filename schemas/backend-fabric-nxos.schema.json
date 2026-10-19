@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/backend-fabric-nxos/v1",
+  "title": "AI POD subsystem 02 - Backend fabrics (NX-OS / NDFC)",
+  "description": "Canonical composed inventory contract for independently managed backend AI fabrics and their Nexus switch endpoints.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fabrics", "features", "switches"],
+  "properties": {
+    "fabrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/fabric" }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unified_fabric_type", "bgp_as_mode", "enable_evpn", "fabric_mtu", "link_state_routing", "enable_ai_ml_qos_policy", "enable_telemetry", "telemetry_collection_mode", "telemetry_streaming_protocol", "telemetry_vrf", "telemetry_source_interface", "use_robot_password", "switch_password_ref", "add_switches_without_reload", "bfd", "ptp", "ptp_source_loopback_id", "ptp_domain_id", "real_time_backup"],
+      "properties": {
+        "unified_fabric_type": { "const": "aimlVxlanEbgp" },
+        "bgp_as_mode": { "const": "Multi-AS" },
+        "enable_evpn": { "const": true },
+        "fabric_mtu": { "type": "integer", "minimum": 1500, "maximum": 9216 },
+        "link_state_routing": { "const": "ebgp" },
+        "enable_ai_ml_qos_policy": { "type": "boolean" },
+        "enable_telemetry": { "const": true },
+        "telemetry_collection_mode": { "const": "in_band" },
+        "telemetry_streaming_protocol": { "const": "ipv4" },
+        "telemetry_vrf": { "const": "Telemetry_VRF" },
+        "telemetry_source_interface": { "const": "loopback0" },
+        "use_robot_password": { "const": true },
+        "switch_password_ref": { "$ref": "_shared/credentials.schema.json#/$defs/secret_ref" },
+        "add_switches_without_reload": { "type": "boolean" },
+        "bfd": { "type": "boolean" },
+        "ptp": { "type": "boolean" },
+        "ptp_source_loopback_id": { "type": "integer", "minimum": 0, "maximum": 1023 },
+        "ptp_domain_id": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "real_time_backup": { "type": "boolean" }
+      }
+    },
+    "switches": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/switch" }
+    }
+  },
+  "$defs": {
+    "fabric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "bgp_as", "underlay_first_octet", "qos_policy", "license_tier"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "bgp_as": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "underlay_first_octet": { "type": "integer", "minimum": 1, "maximum": 223 },
+        "replication_mode": { "type": "string", "enum": ["Ingress", "Multicast"] },
+        "ptp": { "type": "boolean" },
+        "qos_policy": { "enum": ["AI_Fabric_QOS_400G", "AI_Fabric_QOS_800G"] },
+        "license_tier": { "const": "Premier" },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "latitude", "longitude"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+            "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+          }
+        }
+      }
+    },
+    "switch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inventory_host", "fabric_key", "hostname", "role", "mgmt_ip", "username", "pass_ref"],
+      "properties": {
+        "inventory_host": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$" },
+        "fabric_key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "hostname": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]*$" },
+        "role": { "enum": ["spine", "leaf"] },
+        "mgmt_ip": { "$ref": "_shared/network-primitives.schema.json#/$defs/ipv4" },
+        "username": { "$ref": "_shared/credentials.schema.json#/$defs/username" },
+        "pass_ref": { "$ref": "_shared/credentials.schema.json#/$defs/secret_ref" },
+        "breakout_commands": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^interface breakout module [0-9]+ port [0-9]+(?:-[0-9]+)? map 400g-2x$"
+          }
+        },
+        "fabric_link_interfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^Ethernet[0-9]+/[0-9]+/[12]$"
+          }
+        }
+      }
+    }
+  }
+}

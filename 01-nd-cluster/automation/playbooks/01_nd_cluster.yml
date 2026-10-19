@@ -1,0 +1,167 @@
+---
+# Subsystem 01 - Nexus Dashboard 4.x cluster install.
+#
+# Customer-facing entrypoint for the ND subsystem. Mirrors the procedures in
+# 01-nd-cluster/docs/MOP-ND4-install.md. Tier 2 playbook in the four-tier
+# model (aipod-architecture skill):
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/network.yml  (imports this + 02/03 when landed)
+#   Tier 2: this file
+#   Tier 1: roles/nd_cluster (capability task files)
+#
+# Wired into the four-tier chain via domains/network.yml. The Phase 2 wedge
+# tasks below shell out to the Phase 1 Python and require the cisco.aipod
+# collection to be resolvable (dev: ansible.cfg collections path; prod:
+# built collection).
+
+- name: "Subsystem 01 - Deploy Cisco Nexus Dashboard"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    nd_nodes: "{{ groups['nd_cluster'] | map('extract', hostvars, 'nd_node') | list }}"
+    nd_cimc_passwords_by_ref:
+      ND1_CIMC_PASSWORD: "{{ vault_nd1_cimc_password }}"
+      ND2_CIMC_PASSWORD: "{{ vault_nd2_cimc_password }}"
+      ND3_CIMC_PASSWORD: "{{ vault_nd3_cimc_password }}"
+
+  tasks:
+
+    - name: "Pre-flight (always first; verify-only; fails fast)"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: preflight
+      tags:
+        - preflight
+      vars:
+        cluster:        "{{ nd_cluster_spec | cisco.aipod.aipod_nd_cluster_spec(aipod | default(none)) }}"
+        nodes:          "{{ nd_nodes }}"
+        admin_username: "{{ nd_admin_username }}"
+        admin_pass_ref: "{{ nd_admin_pass_ref }}"
+        nd_admin_password:     "{{ vault_nd_admin_password }}"
+        cimc_passwords_by_ref: "{{ nd_cimc_passwords_by_ref }}"
+
+    - name: "Bootstrap ND-1 from the verified installed release"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: bootstrap_node
+      vars:
+        cluster:                    "{{ nd_cluster_spec | cisco.aipod.aipod_nd_cluster_spec(aipod | default(none)) }}"
+        node:                       "{{ nd_nodes | selectattr('role', 'equalto', 'bootstrap') | first }}"
+        admin_pass_ref:             "{{ nd_admin_pass_ref }}"
+        nd_admin_password:          "{{ vault_nd_admin_password }}"
+        cimc_passwords_by_ref:      "{{ nd_cimc_passwords_by_ref }}"
+      when: nd_cluster_spec.start_mode == 'factory_preinstalled'
+
+- name: "Subsystem 01 - Image all Nexus Dashboard nodes in parallel"
+  hosts: nd_cluster
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    nd_cimc_passwords_by_ref:
+      ND1_CIMC_PASSWORD: "{{ vault_nd1_cimc_password }}"
+      ND2_CIMC_PASSWORD: "{{ vault_nd2_cimc_password }}"
+      ND3_CIMC_PASSWORD: "{{ vault_nd3_cimc_password }}"
+
+  tasks:
+    - name: "Image this ND node from the selected ISO"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: image_node
+      vars:
+        cluster:                    "{{ nd_cluster_spec | cisco.aipod.aipod_nd_cluster_spec(aipod | default(none)) }}"
+        node:                       "{{ nd_node }}"
+        admin_pass_ref:             "{{ nd_admin_pass_ref }}"
+        nd_admin_password:          "{{ vault_nd_admin_password }}"
+        cimc_passwords_by_ref:      "{{ nd_cimc_passwords_by_ref }}"
+      when: nd_cluster_spec.start_mode == 'iso_reimage'
+
+- name: "Subsystem 01 - Form the Nexus Dashboard cluster through HTTPAPI"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: ansible.netcommon.httpapi
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    ansible_connection: ansible.netcommon.httpapi
+    ansible_host: "{{ nd_node.mgmt.ip }}"
+    ansible_network_os: cisco.nd.nd
+    ansible_user: "{{ nd_admin_username }}"
+    ansible_password: "{{ vault_nd_admin_password }}"
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: "{{ nd_runtime.verify_tls }}"
+    ansible_httpapi_use_proxy: false
+    ansible_httpapi_login_domain: DefaultAuth
+    ansible_command_timeout: "{{ nd_runtime.cluster_bringup_timeout_s }}"
+    nd_nodes: "{{ groups['nd_cluster'] | map('extract', hostvars, 'nd_node') | list }}"
+    nd_cimc_passwords_by_ref:
+      ND1_CIMC_PASSWORD: "{{ vault_nd1_cimc_password }}"
+      ND2_CIMC_PASSWORD: "{{ vault_nd2_cimc_password }}"
+      ND3_CIMC_PASSWORD: "{{ vault_nd3_cimc_password }}"
+
+  tasks:
+    - name: "Form 3-node cluster from ND-1"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: form_cluster
+      vars:
+        cluster:                    "{{ nd_cluster_spec | cisco.aipod.aipod_nd_cluster_spec(aipod | default(none)) }}"
+        runtime:                    "{{ nd_runtime }}"
+        nodes:                      "{{ nd_nodes }}"
+        admin_username:             "{{ nd_admin_username }}"
+        admin_pass_ref:             "{{ nd_admin_pass_ref }}"
+        nd_admin_password:          "{{ vault_nd_admin_password }}"
+        cimc_passwords_by_ref:      "{{ nd_cimc_passwords_by_ref }}"
+
+    # persistent_ips and remote_auth are placeholders today (Phase 3 work).
+    # Uncomment once the corresponding native modules land.
+    #
+    # - name: "Apply persistent IP pool (day-2 capable)"
+    #   ansible.builtin.import_role:
+    #     name: cisco.aipod.nd_cluster
+    #     tasks_from: persistent_ips
+    #   vars:
+    #     cluster:        "{{ nd.cluster }}"
+    #     admin_pass_ref: "{{ nd.admin_pass_ref }}"
+
+- name: "Subsystem 01 - Claim the Nexus Dashboard cluster in Cisco Intersight"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  tasks:
+    - name: "Claim or verify the Nexus Dashboard target"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: intersight_claim
+      tags:
+        - intersight_claim
+      vars:
+        runtime: "{{ nd_runtime }}"
+        admin_username: "{{ nd_admin_username }}"
+        nd_admin_password: "{{ vault_nd_admin_password }}"

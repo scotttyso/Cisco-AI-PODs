@@ -6,13 +6,116 @@
         "email": "tyscott@cisco.com"
     },
     "definitions": {
+        "dhcp": {
+            "title": "DHCP Bootstrap Server",
+            "description": "Kea DHCPv4 service on the deployment server that bootstraps switch, CIMC / BMC, and Fabric Interconnect management addresses.\n\nRequired fields are:\n  * `subnets`\n\nOptional fields are:\n  * `interfaces`\n  * `authoritative`\n  * `domain_name`\n  * `domain_name_servers`\n  * `ntp_servers`\n  * `global_options`\n  * `default_lease_time`\n  * `max_lease_time`\n  * `reservations`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "interfaces": {
+                    "title": "Listen Interfaces",
+                    "description": "Host interfaces Kea listens on (the ports facing the bootstrap network or the DHCP relay). Required to install Kea; listening on every interface (`*`) is refused.",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "authoritative": {
+                    "title": "Authoritative",
+                    "description": "The default value is `true`.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "domain_name": {
+                    "title": "Domain Name",
+                    "description": "Domain name option (15). Filled from the Initial Inventory shared services.",
+                    "type": "string"
+                },
+                "domain_name_servers": {
+                    "title": "DNS Servers",
+                    "description": "DNS servers option (6). Filled from the Initial Inventory shared services.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "ntp_servers": {
+                    "title": "NTP Servers",
+                    "description": "NTP servers option (42). Filled from the Initial Inventory shared services.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "global_options": {
+                    "title": "Global Options",
+                    "description": "Extra Kea option-data entries for every subnet, for example `domain-search`.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "./dhcp.json#/definitions/options"
+                    }
+                },
+                "default_lease_time": {
+                    "title": "Default Lease Time",
+                    "description": "The default value is `3600` seconds.",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "max_lease_time": {
+                    "title": "Maximum Lease Time",
+                    "description": "The default value is `86400` seconds.",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "subnets": {
+                    "title": "Subnets",
+                    "description": "Subnets Kea serves. At least one is required.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "./dhcp.json#/definitions/subnets"
+                    }
+                },
+                "reservations": {
+                    "title": "Reservations",
+                    "description": "Fixed addresses keyed by MAC address. Built from the Initial Inventory.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "./dhcp.json#/definitions/reservations"
+                    }
+                }
+            },
+            "required": [
+                "subnets"
+            ]
+        },
         "cisco_ai_pods": {
             "allOf": [
                 {
                     "additionalProperties": false,
                     "properties": {
+                        "dhcp": {
+                            "$ref": "#/definitions/dhcp"
+                        },
                         "everpure": {
                             "$ref": "#/definitions/everpure"
+                        },
+                        "hgx_servers": {
+                            "$ref": "./hgx.json#/definitions/hgx_servers"
                         },
                         "intersight": {
                             "$ref": "#/definitions/intersight"
@@ -35,7 +138,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",
@@ -290,6 +393,9 @@
                         "domain_name": {
                             "$ref": "./shared.json#/definitions/domain_name"
                         },
+                        "ldap": {
+                            "$ref": "./shared.json#/definitions/ldap"
+                        },
                         "ntp_servers": {
                             "$ref": "./shared.json#/definitions/ntp_servers"
                         },
@@ -302,7 +408,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `proxy_servers`\n  * `timezone`",
+            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ldap`\n  * `ntp_servers`\n  * `proxy_servers`\n  * `timezone`",
             "required": [],
             "title": "Shared Services",
             "type": "object",

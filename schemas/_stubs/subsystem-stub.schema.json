@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/_stubs/subsystem-stub/v1",
+  "title": "AI POD subsystem stub",
+  "description": "Placeholder schema for subsystems that are not yet automated. Accepts any object so the composed inventory can list the subsystem without failing. Each subsystem REPLACES this $ref with its real schema as automation lands. Until then, validation only confirms the subsystem is an object - it does not verify field shapes.",
+  "type": "object",
+  "additionalProperties": true
+}

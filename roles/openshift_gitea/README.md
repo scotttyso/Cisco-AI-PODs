@@ -49,8 +49,13 @@ The instance is created with these defaults (adjust templates if needed):
 - **Admin email:** `opentlc-mgr@redhat.com`
 - **SSL:** Enabled
 - **User creation:** Enabled
-- **User format:** `lab-user-<N>`
+- **User:** `lab-user` (the format has no `%d`, so the single user is not numbered)
 - **Initial users:** 1
+
+The route host is `gitea-with-admin-gitea-operator.apps.<cluster_name>.<base_dns_domain>`. When
+`openshift.operators.gitea.enable` is true and `gitops_repo_url` is empty, the `openshift_gitops` role uses
+`https://gitea-with-admin-gitea-operator.apps.<cluster_name>.<base_dns_domain>/lab-user/openshift-gitops-repo.git`.
+Create the `openshift-gitops-repo` repository for `lab-user` and push the generated GitOps directory to it.
 
 ## Access Gitea
 
@@ -61,10 +66,13 @@ oc get route -n gitea-operator
 
 Retrieve admin password:
 ```bash
-# Option 1: From operator logs
+# Option 1: From the Gitea resource status
+oc get gitea gitea-with-admin -n gitea-operator -o jsonpath='{.status.adminPassword}{"\n"}{.status.userPassword}{"\n"}'
+
+# Option 2: From operator logs
 oc logs deploy/gitea-operator-controller-manager -n gitea-operator | grep -i password
 
-# Option 2: From Gitea pod env (after deployment)
+# Option 3: From Gitea pod env (after deployment)
 oc exec -n gitea-operator deploy/gitea-<name> -- env | grep ADMIN
 ```
 

@@ -1,0 +1,9 @@
+---
+# Tier 3 — Compute domain
+# Subsystems: 05 mgmt-nodes-ucs → 06 workload-nodes-ucs
+
+- name: "Tier 3 — Compute / subsystem 05"
+  ansible.builtin.import_playbook: ../../05-mgmt-nodes-ucs/automation/playbooks/05_mgmt_nodes_ucs.yml
+
+- name: "Tier 3 — Compute / subsystem 06"
+  ansible.builtin.import_playbook: ../../06-workload-nodes-ucs/automation/playbooks/06_workload_nodes_ucs.yml

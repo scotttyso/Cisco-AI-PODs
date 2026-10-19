@@ -1,0 +1,42 @@
+---
+# Image one ND node via CIMC vMedia according to its cluster role.
+# Idempotency is enforced by the Phase 1 state markers.
+#
+# The image/first-boot path remains Python because cisco.nd starts at the ND
+# setup API; both layers consume the same canonical Ansible inventory.
+
+- name: "ND/image_node: validate start mode and node role"
+  ansible.builtin.assert:
+    that:
+      - cluster.start_mode in ['factory_preinstalled', 'iso_reimage']
+      - node.role in ['bootstrap', 'secondary']
+    fail_msg: >-
+      image_node requires cluster.start_mode=factory_preinstalled|iso_reimage
+      and node.role=bootstrap|secondary.
+
+- name: "ND/image_node: image {{ node.hostname }}"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/main.py
+      {{ 'node1' if node.role == 'bootstrap' else 'secondary' }}
+      {{ ('--node ' ~ (node.hostname | quote)) if node.role == 'secondary' else '' }}
+      --ansible-inventory {{ inventory_file }}
+    chdir: "{{ nd_python_root }}"
+  # Export exactly the env-var names the Python wedge resolves: the admin
+  # password ref and this node's CIMC password ref (verbatim from inventory,
+  # e.g. ND_ADMIN_PASSWORD / ND1_CIMC_PASSWORD). Keying on *_pass_ref directly
+  # avoids reconstructing the name from the hostname and works regardless of
+  # the operator's chosen ref naming.
+  environment: >-
+    {{
+      {node.cimc.pass_ref: cimc_passwords_by_ref[node.cimc.pass_ref]}
+      | combine(
+          {admin_pass_ref: nd_admin_password}
+          if node.role == 'bootstrap'
+          else {}
+        )
+    }}
+  register: image_result
+  changed_when: "'changed=true' in image_result.stdout"
+  failed_when: image_result.rc != 0
+  when: cluster.start_mode == 'iso_reimage'

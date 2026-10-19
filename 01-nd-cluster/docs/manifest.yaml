@@ -1,0 +1,122 @@
+# Screenshot embed manifest for the Nexus Dashboard chapter.
+#
+# This file declares which screenshots get embedded into the chapter
+# and where. It exists because the IDE's markdown auto-formatter
+# repeatedly mangles inline image syntax (`![alt](path){width=...}`)
+# in the source markdown — turning embeds into orphan alt-text fragments
+# and silently breaking the docx build. (Observed multiple times
+# 2026-04-29.)
+#
+# How it works:
+#   docs/build/inject_screenshots.py reads this file during the build
+#   pipeline (after the merge step, before pandoc) and inserts an image
+#   reference immediately after the matching procedure step in the
+#   merged markdown. The chapter source (.md) carries no image syntax;
+#   YAML keys are stable; both sides of the pipeline are immune to
+#   markdown auto-formatting.
+#
+# Schema:
+#   embeds: list of objects, each with:
+#     procedure (int):  procedure number (1 .. 3)
+#     step (int):       step number within that procedure (1-based)
+#     image (string):   path relative to chapter source. Chapter source lives at
+#                       01-nd-cluster/docs/MOP-ND4-install.md and screenshots
+#                       are colocated under docs/screenshots/, so the relative
+#                       path is just `screenshots/<file>.png` (no `../`).
+#     alt (string):     alt text — used for accessibility metadata in docx;
+#                       NOT rendered as a visible caption (image_caption_strip
+#                       Lua filter suppresses caption emission).
+#     width (string):   optional pandoc width attribute. Default: "6in".
+#     pagination (str): optional Word pagination hint. One of:
+#                         keep_with_prev  glue this image to the paragraph
+#                                         immediately above it (typically
+#                                         the step prose). If they don't
+#                                         fit on the same page together,
+#                                         Word moves the pair to the next
+#                                         page. Use on the FIRST slice of
+#                                         a multi-part split.
+#                         break_before    always start this image on a
+#                                         new page. Use on the SECOND
+#                                         (and subsequent) slices of a
+#                                         multi-part split so the
+#                                         continuation never gets stranded
+#                                         awkwardly low on the prior page.
+#                       Both apply via filters/pagination_hints.lua, which
+#                       wraps the appropriate paragraph in a Div with
+#                       custom-style so the docx writer emits <w:keepNext/>
+#                       or <w:pageBreakBefore/>. Without this hint the
+#                       image's pagination is pure geometry and degrades
+#                       when the chapter is integrated into a larger
+#                       master template that shifts surrounding content.
+#
+# Anchor matching:
+#   The injector finds the line that begins with `<step>. ` inside the
+#   matching `### Procedure <N>. ...` heading region and inserts a
+#   blank line + 4-space-indented image embed beneath it. Step numbers
+#   must match what the operator sees rendered.
+#
+# Adding a new screenshot:
+#   1. Capture the PNG into 01-nd-cluster/docs/screenshots/
+#   2. Append a block here under `embeds:`
+#   3. Re-run the build — no source markdown changes needed.
+
+embeds:
+  - procedure: 1
+    step: 5
+    image: screenshots/proc1-step05-cimc-summary-with-vkvm-toolbar.png
+    alt: CIMC home pane after login, with the Launch vKVM control in the top toolbar.
+
+  # Note: 2026-05-01 — Procedure 3 step numbers shifted by +1 after a tech-review
+  # pass split old step 13 ("click Incomplete") into two steps (Cluster
+  # Connectivity L2/BGP + Edit). Filenames retain the original "step32"/"step35"
+  # identifiers for stability; the `step:` keys below are the live (post-shift)
+  # anchor values the injector uses.
+
+  - procedure: 3
+    step: 33
+    image: screenshots/proc3-step32-system-software-healthy.png
+    alt: System Software view showing the cluster Running at release 4.3.1 with all three nodes registered as primaries.
+
+  - procedure: 3
+    step: 36
+    image: screenshots/proc3-step35-admin-system-status.png
+    alt: Admin > System Status (Overview tab) showing AIPOD-ND-CLUSTER with nd-1, nd-2 and nd-3 all active as Primary nodes.
+
+  # Step 37 / System Settings > General is a single very tall surface
+  # (~2100px after trim). Embedding it whole at width=6in renders ~11in
+  # tall in Word and overflows into a dedicated page that still cuts
+  # mid-panel. We split it 1/3 + 2/3 with split_tall_screenshot.py so
+  # the small top slice (~3.2in tall at 6in width) tucks beneath the
+  # step 37 prose on the current page, and the larger bottom slice
+  # (~6.7in tall) — which contains the persistent IP donuts — flows
+  # onto the next page where it fits comfortably within the ~9in usable
+  # text area. To re-split after re-capture:
+  #   python3 docs/build/split_tall_screenshot.py \
+  #     01-nd-cluster/docs/screenshots/proc3-step35-persistent-ip-allocation.png \
+  #     --parts 2 --target-fractions 0.33 --min-band-rows 4
+  - procedure: 3
+    step: 37
+    image: screenshots/proc3-step35-persistent-ip-allocation-1of2.png
+    alt: Admin > System Settings > General (1 of 2) — header, tabs, Cluster details and DNS.
+    # keep_with_prev: glue this slice (3.21in tall) under the step 37
+    # prose. Word will not page-break between the prose and this image;
+    # if both don't fit on the current page, Word moves them as a unit
+    # to the next page. Survives master-template integration where step
+    # 37 may land at a different vertical position.
+    pagination: keep_with_prev
+
+  - procedure: 3
+    step: 37
+    image: screenshots/proc3-step35-persistent-ip-allocation-2of2.png
+    alt: Admin > System Settings > General (2 of 2) — NTP, Proxy, Routes, External pools (persistent IP donuts) and Advanced settings.
+    # break_before: always start this slice (6.68in tall) on a new page.
+    # The big slice fits cleanly within Word's ~9in usable area and
+    # this guarantee prevents it from ever being orphaned with too
+    # little space below the keep_with_prev pair above.
+    pagination: break_before
+
+# Reserved (capture pending — see docs/capture/subsystems/01-nd-cluster/):
+#   - procedure: 3
+#     step: 15
+#     image: screenshots/proc3-step15-edit-node-nd1.png
+#     alt: Edit node dialog for ND-1 with Hostname, Type, General and Management Network sections populated.

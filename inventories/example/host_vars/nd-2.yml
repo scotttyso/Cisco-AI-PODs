@@ -1,0 +1,18 @@
+---
+nd_node:
+  hostname: EXAMPLE-ND-2
+  type: Primary
+  role: secondary
+  cimc:
+    ip: 198.51.100.88
+    user: admin
+    pass_ref: ND2_CIMC_PASSWORD
+  mgmt:
+    ip: 192.0.2.8
+    mask: 24
+    gateway: 192.0.2.254
+  data:
+    ip: 203.0.113.18
+    mask: 24
+    gateway: 203.0.113.254
+    vlan: null

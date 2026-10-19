@@ -1,0 +1,10 @@
+---
+# The NIM Operator CSV supports the AllNamespaces install mode, so the group has no targetNamespaces.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: nvidia-nim-operator-group
+  namespace: nvidia-nim-operator
+spec: {}

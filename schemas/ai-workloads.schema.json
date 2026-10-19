@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/ai-workloads/v1",
+  "title": "AI POD subsystem 09 - Validation workloads",
+  "description": "Stub schema for the validation workloads on top of mlops (subsystem 08). Per D15/S3, scope is STRICTLY limited to validation workloads:\n  - NCCL allreduce benchmark (validates GPU + NVLink + RDMA backend fabric)\n  - small training reference (validates storage + scheduler + driver stack)\n  - inference reference (validates the inference operator path)\n\nProduction / customer workloads remain out of scope and are a partner/customer concern. The CVD's 'validated' claim requires a workload that demonstrates validation; this scope mirrors the Pure AIPod CVD's validation approach.\n\nReplace with the real shape when automation lands; until then, any object is accepted.",
+  "type": "object",
+  "additionalProperties": true
+}

@@ -1,0 +1,319 @@
+{
+  "$id": "dhcp.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cisco AI PODs - DHCP Bootstrap",
+  "description": "Kea DHCPv4 bootstrap service definitions.",
+  "definitions": {
+    "options": {
+      "title": "Kea Option",
+      "description": "A raw Kea option-data entry, for options the other fields do not cover.\n\nRequired fields are:\n  * `name`\n\nOptional fields are:\n  * `data`\n  * `value`\n  * `code`\n  * `space`\n  * `csv-format`\n  * `always-send`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Option Name",
+          "description": "Kea option name, for example `domain-search` or `interface-mtu`.",
+          "type": "string",
+          "minLength": 1
+        },
+        "data": {
+          "title": "Option Data",
+          "description": "Option value as Kea expects it (comma-separated for lists). `value` is accepted as an alias.",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "value": {
+          "title": "Option Value",
+          "description": "Alias for `data`.",
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "code": {
+          "title": "Option Code",
+          "description": "Option code, required for custom options.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 254
+        },
+        "space": {
+          "title": "Option Space",
+          "description": "Option space. The default value is `dhcp4`.",
+          "type": "string",
+          "default": "dhcp4"
+        },
+        "csv-format": {
+          "title": "CSV Format",
+          "description": "Whether `data` is comma-separated text (true) or hex (false).",
+          "type": "boolean"
+        },
+        "always-send": {
+          "title": "Always Send",
+          "description": "Send the option even when the client did not request it.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "reservations": {
+      "title": "DHCP Reservation",
+      "description": "A fixed address for one device MAC address. The Automation UI builds these from the Initial Inventory.\n\nRequired fields are:\n  * `mac`\n  * `ip`\n\nOptional fields are:\n  * `hostname`\n  * `subnet`\n  * `routers`\n  * `domain_name_servers`\n  * `tftp_server`\n  * `bootfile`\n  * `options`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mac": {
+          "title": "MAC Address",
+          "description": "Client hardware address, for example `00:25:b5:00:00:01`.",
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$"
+        },
+        "ip": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "IP Address",
+          "description": "Reserved address; must fall inside the subnet."
+        },
+        "hostname": {
+          "title": "Hostname",
+          "description": "Hostname sent to the client (option 12).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$"
+        },
+        "subnet": {
+          "title": "Subnet",
+          "description": "Name of the subnet that owns the reservation. Defaults to the subnet that contains `ip`.",
+          "type": "string"
+        },
+        "routers": {
+          "title": "Routers",
+          "description": "Per-host default gateway override.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "format": "ipv4",
+            "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+            "type": "string"
+          }
+        },
+        "domain_name_servers": {
+          "title": "DNS Servers",
+          "description": "Per-host DNS server override.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "format": "ipv4",
+            "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+            "type": "string"
+          }
+        },
+        "tftp_server": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "TFTP / POAP Server",
+          "description": "Per-host TFTP server override."
+        },
+        "bootfile": {
+          "title": "Boot File",
+          "description": "Per-host boot file override.",
+          "type": "string",
+          "minLength": 1
+        },
+        "options": {
+          "title": "Host Options",
+          "description": "Extra Kea option-data entries for this host.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/options"
+          }
+        }
+      },
+      "required": [
+        "mac",
+        "ip"
+      ]
+    },
+    "subnets": {
+      "title": "DHCP Subnet",
+      "description": "A subnet served by Kea. Bootstrap subnets usually only hand out reservations.\n\nRequired fields are:\n  * `name`\n  * `network`\n  * `netmask`\n\nOptional fields are:\n  * `routers`\n  * `domain_name`\n  * `domain_name_servers`\n  * `ntp_servers`\n  * `broadcast_address`\n  * `mtu`\n  * `tftp_server`\n  * `bootfile`\n  * `ranges`\n  * `deny_unknown_clients`\n  * `default_lease_time`\n  * `max_lease_time`\n  * `options`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Subnet Name",
+          "description": "Unique name; reservations reference it with `subnet`.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "network": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "Network Address",
+          "description": "Network address, for example `198.18.0.0`."
+        },
+        "netmask": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "Netmask",
+          "description": "Subnet mask, for example `255.255.255.0`."
+        },
+        "routers": {
+          "title": "Routers",
+          "description": "Default gateways handed to clients (option 3).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "format": "ipv4",
+            "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+            "type": "string"
+          }
+        },
+        "domain_name": {
+          "title": "Domain Name",
+          "description": "Overrides the global domain name for this subnet.",
+          "type": "string"
+        },
+        "domain_name_servers": {
+          "title": "DNS Servers",
+          "description": "Overrides the global DNS servers for this subnet.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "format": "ipv4",
+            "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+            "type": "string"
+          }
+        },
+        "ntp_servers": {
+          "title": "NTP Servers",
+          "description": "Overrides the global NTP servers for this subnet.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "format": "ipv4",
+            "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+            "type": "string"
+          }
+        },
+        "broadcast_address": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "Broadcast Address",
+          "description": "Broadcast address option (28)."
+        },
+        "mtu": {
+          "title": "Interface MTU",
+          "description": "Interface MTU option (26).",
+          "type": "integer",
+          "minimum": 576,
+          "maximum": 9216
+        },
+        "tftp_server": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "TFTP / POAP Server",
+          "description": "TFTP server for POAP and PXE (next-server, options 66 and 150)."
+        },
+        "bootfile": {
+          "title": "Boot File",
+          "description": "Boot file name (option 67), for example the POAP script.",
+          "type": "string",
+          "minLength": 1
+        },
+        "ranges": {
+          "title": "Address Pools",
+          "description": "Dynamic pools. Leave empty to serve reservations only.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/subnets.ranges"
+          }
+        },
+        "deny_unknown_clients": {
+          "title": "Deny Unknown Clients",
+          "description": "The default value is `false`. When true, pools only serve clients that have a reservation.",
+          "type": "boolean",
+          "default": false
+        },
+        "default_lease_time": {
+          "title": "Default Lease Time",
+          "description": "Overrides the global default lease time (seconds).",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 31536000
+        },
+        "max_lease_time": {
+          "title": "Maximum Lease Time",
+          "description": "Overrides the global maximum lease time (seconds).",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 31536000
+        },
+        "options": {
+          "title": "Subnet Options",
+          "description": "Extra Kea option-data entries for this subnet.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/options"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "network",
+        "netmask"
+      ]
+    },
+    "subnets.ranges": {
+      "title": "Address Pool",
+      "description": "A dynamic address range inside the subnet.\n\nRequired fields are:\n  * `start`\n  * `end`",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "Pool Start",
+          "description": "First address in the pool."
+        },
+        "end": {
+          "format": "ipv4",
+          "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+          "type": "string",
+          "title": "Pool End",
+          "description": "Last address in the pool."
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    }
+  }
+}

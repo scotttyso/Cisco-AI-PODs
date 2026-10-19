@@ -1,0 +1,159 @@
+---
+# A destructive ND reimage creates a new Device Registration and can leave the
+# older target visible as NotConnected. This capability is intentionally
+# narrower than reclaim: it never touches the Connected target, and it only
+# removes same-name/same-type targets tied to a different registration.
+
+- name: "ND/Intersight cleanup: read same-name targets"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /asset/Targets
+    query_params:
+      $filter: "Name eq '{{ nd_cluster_spec.name }}'"
+    return_list: true
+  register: nd_intersight_named_targets_before
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight cleanup: classify current and stale targets"
+  ansible.builtin.set_fact:
+    nd_intersight_current_targets: >-
+      {{
+        nd_intersight_named_targets_before.api_response
+        | default([])
+        | selectattr('RegisteredDevice.Moid', 'defined')
+        | selectattr('RegisteredDevice.Moid', 'equalto', nd_intersight_registration_moid)
+        | selectattr('Status', 'equalto', 'Connected')
+        | list
+      }}
+    nd_intersight_stale_targets: >-
+      {{
+        nd_intersight_named_targets_before.api_response
+        | default([])
+        | selectattr('RegisteredDevice.Moid', 'defined')
+        | rejectattr('RegisteredDevice.Moid', 'equalto', nd_intersight_registration_moid)
+        | selectattr('Status', 'equalto', 'NotConnected')
+        | selectattr('ReadOnly', 'equalto', false)
+        | list
+      }}
+  no_log: true
+
+- name: "ND/Intersight cleanup: require exactly one protected current target"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_current_targets | length == 1
+      - >-
+        nd_intersight_stale_targets
+        | rejectattr('TargetType', 'equalto', nd_intersight_current_targets[0].TargetType)
+        | list
+        | length == 0
+    fail_msg: >-
+      Stale-target cleanup stopped because it could not prove there is exactly
+      one Connected target for the registration currently reported by Nexus
+      Dashboard, or a candidate has a different target type. No target was
+      deleted.
+  no_log: true
+
+- name: "ND/Intersight cleanup: remember stale registrations in memory"
+  ansible.builtin.set_fact:
+    nd_intersight_stale_registration_moids: >-
+      {{
+        nd_intersight_stale_targets
+        | map(attribute='RegisteredDevice.Moid')
+        | unique
+        | list
+      }}
+  no_log: true
+
+- name: "ND/Intersight cleanup: initialize preserved resource-group selectors"
+  ansible.builtin.set_fact:
+    nd_intersight_preserved_selectors: []
+  no_log: true
+
+- name: "ND/Intersight cleanup: preserve selectors unrelated to stale registrations"
+  ansible.builtin.set_fact:
+    nd_intersight_preserved_selectors: >-
+      {{ nd_intersight_preserved_selectors + [item] }}
+  loop: "{{ nd_intersight_resource_group_after.api_response.Selectors | default([]) }}"
+  loop_control:
+    label: selector
+  when: >-
+    nd_intersight_stale_registration_moids
+    | select('in', item.Selector | default(''))
+    | list
+    | length == 0
+  no_log: true
+
+- name: "ND/Intersight cleanup: remove only stale registration selectors"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /resource/Groups
+    query_params:
+      $filter: "Name eq '{{ intersight_resource_group_name }}'"
+    api_body:
+      Name: "{{ intersight_resource_group_name }}"
+      Qualifier: >-
+        {{ nd_intersight_resource_group_after.api_response.Qualifier | default('Allow-Selectors') }}
+      Selectors: "{{ nd_intersight_preserved_selectors }}"
+    state: present
+  when:
+    - nd_intersight_stale_targets | length > 0
+    - >-
+      nd_intersight_preserved_selectors | length
+      != (nd_intersight_resource_group_after.api_response.Selectors | default([]) | length)
+  no_log: true
+
+- name: "ND/Intersight cleanup: delete exact disconnected duplicate targets"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /asset/Targets
+    query_params:
+      $filter: "Moid eq '{{ item.Moid }}'"
+    state: absent
+  loop: "{{ nd_intersight_stale_targets }}"
+  loop_control:
+    label: disconnected-duplicate
+  no_log: true
+
+- name: "ND/Intersight cleanup: re-read same-name targets"
+  cisco.intersight.intersight_rest_api:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    resource_path: /asset/Targets
+    query_params:
+      $filter: "Name eq '{{ nd_cluster_spec.name }}'"
+    return_list: true
+  register: nd_intersight_named_targets_after
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight cleanup: verify only the current target remains"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_named_targets_after.api_response | default([]) | length == 1
+      - >-
+        nd_intersight_named_targets_after.api_response[0].RegisteredDevice.Moid
+        == nd_intersight_registration_moid
+      - nd_intersight_named_targets_after.api_response[0].Status == 'Connected'
+    fail_msg: >-
+      Intersight target cleanup did not converge to one Connected target for
+      the current Nexus Dashboard registration.
+  no_log: true
+
+- name: "ND/Intersight cleanup: report safe reconciliation result"
+  ansible.builtin.debug:
+    msg: >-
+      Removed {{ nd_intersight_stale_targets | length }} disconnected duplicate
+      Nexus Dashboard target(s). The current Connected target and unrelated
+      resource-group selectors were preserved.

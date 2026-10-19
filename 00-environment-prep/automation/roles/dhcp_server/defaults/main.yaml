@@ -1,0 +1,32 @@
+---
+# Path to the YAML file holding the dhcp data model. When empty the role expects
+# the `dhcp` variable to already be defined by the playbook / host_vars.
+dhcp_vars_file: ""
+
+# ISC Kea DHCPv4. EL10 and Ubuntu 24.04 no longer ship ISC dhcpd.
+dhcp_config_path: /etc/kea/kea-dhcp4.conf
+dhcp_lease_file: /var/lib/kea/kea-leases4.csv
+dhcp_packages_by_family:
+  RedHat: [kea]
+  Debian: [kea-dhcp4-server]
+dhcp_service_by_family:
+  RedHat: kea-dhcp4
+  Debian: kea-dhcp4-server
+dhcp_packages: "{{ dhcp_packages_by_family[ansible_facts.os_family] | default(['kea']) }}"
+dhcp_service_name: "{{ dhcp_service_by_family[ansible_facts.os_family] | default('kea-dhcp4') }}"
+dhcp_service_enabled: true
+dhcp_service_state: started
+# Detected from kea-dhcp4 -V when Kea is installed; selects version-specific syntax.
+dhcp_kea_version: "2.4.1"
+
+# Render and validate the configuration without installing or starting Kea.
+dhcp_render_only: false
+dhcp_render_dest: ""
+
+# Host firewall: firewalld on EL, ufw on Ubuntu when it is installed.
+dhcp_manage_firewall: true
+dhcp_firewall_zone: ""
+dhcp_firewall_services:
+  - dhcp
+
+dhcp: {}

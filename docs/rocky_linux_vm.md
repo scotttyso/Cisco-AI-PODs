@@ -32,7 +32,7 @@ From the root of a Cisco-AI-PODs checkout, copy the maintained application, inve
 sudo install -d -o automation-ui -g automation-ui -m 755 \
     /home/automation-ui/automation-app/scripts \
     /home/automation-ui/automation-app/schemas/source
-sudo cp scripts/automation_ui.py scripts/build_initial_inventory.py \
+sudo cp scripts/automation_ui.py 00-environment-prep/automation/scripts/build_initial_inventory.py \
     scripts/requirements-webui.txt /home/automation-ui/automation-app/scripts/
 sudo cp schemas/source/*.json /home/automation-ui/automation-app/schemas/source/
 sudo chown -R automation-ui:automation-ui /home/automation-ui/automation-app
@@ -129,8 +129,8 @@ For production, install a trusted certificate (including its intermediate chain)
 For an initial test deployment without a trusted certificate, generate a temporary self-signed certificate instead. Replace the example DNS name and IP address with your VM's values. Do not run the certificate-generation command over existing certificate or key files.
 
 ```bash
-TLS_HOST=ai-staging.rich.ciscolabs.com
-TLS_IP=64.100.14.52
+TLS_HOST=appliance.example.com
+TLS_IP=203.0.113.52
 
 sudo install -d -m 755 /etc/pki/nginx
 sudo install -d -m 700 /etc/pki/nginx/private
@@ -160,7 +160,7 @@ Paste the following configuration parameters, replacing `server_name` with your 
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name ai-staging.rich.ciscolabs.com 64.100.14.52;
+    server_name appliance.example.com 203.0.113.52;
 
     ssl_certificate /etc/pki/nginx/automation-ui.crt;
     ssl_certificate_key /etc/pki/nginx/private/automation-ui.key;
@@ -243,9 +243,9 @@ curl -sS -o /dev/null -w 'Backend: HTTP %{http_code}\n' http://127.0.0.1:8080/lo
 
 # Validate HTTPS locally using the self-signed certificate as the trust anchor
 curl -sS --cacert /etc/pki/nginx/automation-ui.crt \
-    --resolve ai-staging.rich.ciscolabs.com:443:127.0.0.1 \
+    --resolve appliance.example.com:443:127.0.0.1 \
     -o /dev/null -w 'HTTPS: HTTP %{http_code}\n' \
-    https://ai-staging.rich.ciscolabs.com/login
+    https://appliance.example.com/login
 
 sudo firewall-cmd --zone=public --query-service=https
 sudo firewall-cmd --permanent --zone=public --query-service=https
@@ -282,7 +282,7 @@ To import inventory, select multiple `.xlsx` files together, or import additiona
 
 Click cells to edit hostname, IP address, MAC address, product ID, or serial number. Select rows with the checkboxes and use the delete control to remove them from the draft. Short valid hexadecimal MACs are left-padded with zeros to 12 digits and formatted as six colon-separated octets. Invalid hex, overlong MACs, duplicate IPs, and duplicate MACs block generation.
 
-Complete DNS servers, DNS search domains, domain name, NTP servers, and timezone under **Shared services**. DNS servers, search domains, NTP servers, and the proxy bypass list have individual value inputs with **plus** and **minus** controls. Enter one value per input; plus adds another input, and minus removes that value. The plus control is disabled at the schema's maximum item count. Removing the last value leaves a blank input available, and blank values are omitted from the generated arrays. **Proxy settings** includes optional HTTP/HTTPS URLs, username, password, password reference, and bypass list. Empty optional values are omitted rather than emitted as invalid empty schema values.
+Complete DNS servers, DNS search domains, domain name, NTP servers, and timezone under **Shared services**. DNS servers, search domains, NTP servers, and the proxy bypass list have individual value inputs with **plus** and **minus** controls. Enter one value per input; plus adds another input, and minus removes that value. The plus control is disabled at the schema's maximum item count. Removing the last value leaves a blank input available, and blank values are omitted from the generated arrays. **Proxy settings** includes optional HTTP/HTTPS URLs, username, password, password reference, and bypass list. Empty optional values are omitted rather than emitted as invalid empty schema values. **LDAP / Active Directory** holds the URL, bind DN, base DNs, and the bind password (stored in the environment vault); the OpenShift LDAP page is pre-filled from it.
 
 **Validate** and **Generate YAML** use `definitions/shared_services` in `schemas/source/cisco-ai-pods.json`, including its references to `shared.json`. This source schema is the validation authority; retain the source files together when deploying. Generation calls the inventory builder and writes both `initial_inventory` and `shared_services`, then offers a YAML preview and download. Drafts are isolated per browser page and are discarded when the page reloads; generated files remain on the server.
 

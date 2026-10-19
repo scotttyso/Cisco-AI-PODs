@@ -1,0 +1,164 @@
+---
+# Form the ND 4.3.x cluster with the supported cisco.nd.nd_setup module.
+# Hardware power state and serials are refreshed from CIMC immediately before
+# the module runs. Every node must report PowerState=On. Serial identity is
+# bound to the inventory hostname + CIMC IP in a gitignored state artifact.
+
+- name: "ND/form_cluster: wait for ND-1 HTTPS socket"
+  ansible.builtin.wait_for:
+    host: "{{ (nodes | selectattr('role', 'equalto', 'bootstrap') | first).mgmt.ip }}"
+    port: 443
+    state: started
+    delay: 5
+    connect_timeout: 5
+    timeout: "{{ runtime.cluster_bringup_timeout_s }}"
+  changed_when: false
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/form_cluster: wait for ND-1 login service"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ (nodes | selectattr('role', 'equalto', 'bootstrap') | first).mgmt.ip }}/login
+    method: POST
+    body_format: json
+    body:
+      userName: "{{ admin_username }}"
+      userPasswd: "{{ nd_admin_password }}"
+      domain: DefaultAuth
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: false
+    timeout: 30
+  register: nd_login_ready
+  until: nd_login_ready.status | default(0) == 200
+  retries: 120
+  delay: 10
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/form_cluster: inspect existing setup state before create"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ (nodes | selectattr('role', 'equalto', 'bootstrap') | first).mgmt.ip }}/clusterstatus/install
+    method: GET
+    headers:
+      Cookie: "{{ nd_login_ready.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code:
+      - 200
+      - 404
+    return_content: true
+    timeout: 30
+  register: nd_setup_before_create
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/form_cluster: normalize existing setup state"
+  ansible.builtin.set_fact:
+    nd_existing_setup_state: >-
+      {{
+        (nd_setup_before_create.json.state | default(''))
+        if nd_setup_before_create.status == 200
+        else ''
+      }}
+
+- name: "ND/form_cluster: reject a failed prior setup"
+  ansible.builtin.assert:
+    that:
+      - (nd_existing_setup_state | lower) not in ['failed', 'failure', 'error', 'errored', 'aborted']
+    fail_msg: >-
+      Nexus Dashboard reports prior setup state={{ nd_existing_setup_state }}.
+      Do not submit another one-shot cluster create request; inspect the
+      installation activity and use the documented factory-reset recovery.
+
+- name: "ND/form_cluster: require powered-on nodes and bind appliance serials"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/discover_serials.py
+      --ansible-inventory {{ inventory_file }}
+      --out {{ nd_serial_artifact }}
+    chdir: "{{ nd_python_root }}"
+  environment:
+    ND1_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND1_CIMC_PASSWORD }}"
+    ND2_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND2_CIMC_PASSWORD }}"
+    ND3_CIMC_PASSWORD: "{{ cimc_passwords_by_ref.ND3_CIMC_PASSWORD }}"
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/form_cluster: load runtime serial artifact"
+  ansible.builtin.set_fact:
+    nd_serials: "{{ lookup('ansible.builtin.file', nd_serial_artifact) | from_json }}"
+
+- name: "ND/form_cluster: require every node to be powered on"
+  ansible.builtin.assert:
+    that:
+      - nd_serials.nodes[node.hostname].power_state == 'On'
+    fail_msg: >-
+      {{ node.hostname }} CIMC {{ node.cimc.ip }} reports
+      PowerState={{ nd_serials.nodes[node.hostname].power_state }}.
+      Power on every ND node before cluster formation.
+    quiet: true
+  loop: "{{ nodes }}"
+  loop_control:
+    loop_var: node
+    label: "{{ node.hostname }}"
+
+- name: "ND/form_cluster: map canonical inventory to cisco.nd.nd_setup"
+  ansible.builtin.set_fact:
+    nd_setup_args: >-
+      {{ cluster | cisco.aipod.aipod_nd_setup_args(
+           nodes,
+           runtime,
+           admin_username,
+           admin_pass_ref,
+           nd_serials,
+           nd_admin_password,
+           cimc_passwords_by_ref
+         ) }}
+  no_log: true
+
+- name: "ND/form_cluster: create the 3-node cluster with cisco.nd.nd_setup"
+  cisco.nd.nd_setup: "{{ nd_setup_args }}"
+  register: bringup_result
+  no_log: true
+  when: (nd_existing_setup_state | lower) not in ['inprogress', 'completed']
+
+- name: "ND/form_cluster: wait for setup completion across service restarts"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/wait_setup_completion.py
+      --ansible-inventory {{ inventory_file }}
+      --timeout {{ runtime.cluster_bringup_timeout_s }}
+    chdir: "{{ nd_python_root }}"
+  environment: >-
+    {{ {admin_pass_ref: nd_admin_password} }}
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+
+- name: "ND/form_cluster: run post-install assertions"
+  ansible.builtin.command:
+    cmd: >-
+      {{ ansible_playbook_python }} scripts/main.py validate
+      --ansible-inventory {{ inventory_file }}
+    chdir: "{{ nd_python_root }}"
+  environment:
+    ND_ADMIN_PASSWORD: "{{ nd_admin_password }}"
+  changed_when: false
+  no_log: true
+  delegate_to: localhost
+  vars:
+    ansible_connection: local

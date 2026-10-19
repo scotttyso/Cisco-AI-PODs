@@ -1,0 +1,14 @@
+---
+# Subsystem 04 - Storage (Everpure FlashArray / FlashBlade)
+#
+# Tier 2 playbook in the four-tier model (aipod-architecture skill):
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/storage.yml
+#   Tier 2: this file
+#   Tier 1: 04-storage-everpure/automation/roles/everpure
+#
+# Reads host_vars/everpure/*.ezai.yaml (override with -e host_vars_dir=<dir>) and the
+# everpure section of the Ansible Vault (-e vault_file=<vault>).
+
+- name: "Subsystem 04 - Storage Everpure"
+  ansible.builtin.import_playbook: ../../../playbooks/deploy_storage.yaml

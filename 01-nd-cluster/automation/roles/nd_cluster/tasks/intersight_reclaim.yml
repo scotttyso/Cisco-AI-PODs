@@ -1,0 +1,129 @@
+---
+# Explicit destructive recovery/test path. It is intentionally separate from
+# intersight_claim.yml and requires a one-run extra variable. It never reads a
+# persisted inventory flag, so a routine deployment cannot unclaim a target.
+
+- name: "ND/Intersight reclaim: require explicit one-run confirmation"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_allow_reclaim | default(false) | bool
+    fail_msg: >-
+      Reclaim is destructive because it unclaims the Nexus Dashboard target.
+      Re-run with -e nd_intersight_allow_reclaim=true only after confirming
+      the target, account, and intended maintenance window.
+
+- name: "ND/Intersight reclaim: normalize the Cisco Intersight API base URI"
+  ansible.builtin.set_fact:
+    nd_intersight_api_uri: >-
+      {{
+        intersight_api_uri | regex_replace('/+$', '')
+        ~ (
+          ''
+          if (intersight_api_uri | regex_replace('/+$', '')) is match('.*/api/v1$')
+          else '/api/v1'
+        )
+      }}
+  no_log: true
+
+- name: "ND/Intersight reclaim: log in to discover the current registration"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/login"
+    method: POST
+    body_format: json
+    body:
+      userName: "{{ admin_username }}"
+      userPasswd: "{{ nd_admin_password }}"
+      domain: DefaultAuth
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: false
+    timeout: 30
+  register: nd_intersight_reclaim_login
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight reclaim: read connector registration and ownership"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/status"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_reclaim_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_reclaim_status
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight reclaim: require ownership by the selected account"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (nd_intersight_reclaim_status.json.connectivity.overview.accountOwnershipState
+          | default('') | lower | trim) == 'claimed'
+      - >-
+        (nd_intersight_reclaim_status.json.connectivity.overview.accountOwnershipName
+          | default('')) == intersight_account_name
+      - >-
+        nd_intersight_reclaim_status.json.connectivity.overview.deviceRegistrationMoid
+          | default('') | length > 0
+    fail_msg: >-
+      The Nexus Dashboard target is not claimed by the selected account, so
+      this explicit reclaim action will not modify it.
+  no_log: true
+
+- name: "ND/Intersight reclaim: read the connector claim Device ID"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/about"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_reclaim_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_reclaim_about
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight reclaim: require a usable connector claim Device ID"
+  ansible.builtin.assert:
+    that:
+      - nd_intersight_reclaim_about.json.id | default('') | length > 0
+    fail_msg: >-
+      Nexus Dashboard did not return a usable connector Device ID, so this
+      explicit reclaim action will not modify the Intersight target.
+  no_log: true
+
+- name: "ND/Intersight reclaim: unclaim the current Nexus Dashboard target"
+  cisco.intersight.intersight_target_claim:
+    api_uri: "{{ nd_intersight_api_uri }}"
+    api_key_id: "{{ vault_intersight_api_key_id }}"
+    api_private_key: "{{ vault_intersight_api_private_key }}"
+    validate_certs: true
+    device_id: "{{ nd_intersight_reclaim_about.json.id }}"
+    state: absent
+  no_log: true
+
+- name: "ND/Intersight reclaim: wait for Nexus Dashboard to report unclaimed"
+  ansible.builtin.uri:
+    url: "https://{{ nd_node.mgmt.ip }}/api/v1/infra/intersight/status"
+    method: GET
+    headers:
+      Cookie: "{{ nd_intersight_reclaim_login.cookies_string }}"
+    validate_certs: "{{ runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: nd_intersight_status_after_unclaim
+  until: >-
+    (nd_intersight_status_after_unclaim.json.connectivity.overview.accountOwnershipState
+      | default('') | lower | trim) in ['unclaimed', 'not claimed']
+  retries: 30
+  delay: 10
+  changed_when: false
+  no_log: true
+
+- name: "ND/Intersight reclaim: claim the target again"
+  ansible.builtin.include_tasks: intersight_claim.yml

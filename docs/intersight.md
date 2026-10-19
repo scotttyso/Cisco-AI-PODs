@@ -31,6 +31,24 @@ Or run the full Cisco AI PODs workflow (all domains):
 python3 scripts/deploy_ai_pod.py
 ```
 
+## Variable Layout
+
+The examples (and the WebUI, which saves to the same paths under `host_vars/intersight/`) are split by page, because
+pools and many policies differ between UCS domains and servers:
+
+| Folder | WebUI page | Contents |
+|--------|------------|----------|
+| `system/system.ezai.yaml` | both | Organizations, shared by every deployment |
+| `domains/` | UCS Domains | Domain, management, and environment policies; VSAN policy (Fibre Channel only); domain and chassis templates and profiles |
+| `servers/x-series/` | UCS Servers | X-Series pools and policies, optional Fibre Channel pools / policies / SAN connectivity, server templates, and blade server profiles |
+| `servers/standalone/` | UCS Servers | Standalone C-Series policies, templates, and profiles |
+| `servers/C885A/` | UCS Servers | C885A policies and profiles |
+
+Delete the files you do not deploy (for example the Fibre Channel files or templates); in the WebUI use the delete
+button on the Variables toolbar. `scripts/deploy_ai_pod.py --intersight-scope domains|servers` deploys
+`system.ezai.yaml` plus one folder. Files from different folders are merged, and identical policy entries that
+appear in both folders are kept once.
+
 ## Folder Contents
 
 - `playbooks/deploy_ai_pod_phase1.yaml`: Full-stack entry point playbook (Intersight runs through `scripts/deploy_ai_pod.py`)

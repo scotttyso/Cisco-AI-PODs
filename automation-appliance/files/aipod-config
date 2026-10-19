@@ -1,0 +1,312 @@
+#!/usr/bin/python3
+"""Configure the Cisco AI PODs automation appliance hostname, network, DNS, NTP and credentials.
+
+Settings are read from /etc/aipod/appliance.env (cloud-init on OpenShift Virtualization or a
+manual file), from VMware vApp/guestinfo properties, or prompted for interactively.
+"""
+import argparse
+import getpass
+import ipaddress
+import os
+import re
+import shlex
+import shutil
+import socket
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+STATE_DIR = Path("/etc/aipod")
+ENV_FILE = STATE_DIR / "appliance.env"
+BUILD_ENV = STATE_DIR / "build.env"
+MARKER = STATE_DIR / ".configured"
+TLS_CERT = Path("/etc/pki/nginx/automation-ui.crt")
+TLS_KEY = Path("/etc/pki/nginx/private/automation-ui.key")
+TLS_MARKER = Path("/etc/pki/nginx/.aipod-self-signed")
+CHRONY_CONF = Path("/etc/chrony.conf")
+CONNECTION = "aipod-primary"
+OVF_NS = "{http://schemas.dmtf.org/ovf/environment/1}"
+KEYS = ("HOSTNAME", "DOMAIN", "IP_SOURCE", "IP_ADDRESS", "PREFIX", "GATEWAY", "DNS_SERVERS",
+        "DNS_SEARCH", "NTP_SERVERS", "TIMEZONE", "ADMIN_PASSWORD", "UI_ADMIN_USER", "UI_ADMIN_PASSWORD")
+SECRETS = {"ADMIN_PASSWORD", "UI_ADMIN_PASSWORD"}
+LABEL = re.compile(r"(?!-)[A-Za-z0-9-]{1,63}(?<!-)")
+MIN_PASSWORD = 12
+
+
+def run(*command, **kwargs):
+    return subprocess.run(command, check=True, text=True, **kwargs)
+
+
+def output(*command):
+    return run(*command, capture_output=True).stdout
+
+
+def read_env(path):
+    values = {}
+    if path.is_file():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                values[key.strip().upper()] = " ".join(shlex.split(value))
+    return values
+
+
+def guestinfo(key):
+    result = subprocess.run(["vmtoolsd", "--cmd", f"info-get {key}"], capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def vmware_values():
+    virt = subprocess.run(["systemd-detect-virt", "--vm"], capture_output=True, text=True).stdout.strip()
+    if virt != "vmware" or not shutil.which("vmtoolsd"):
+        return {}
+    values = {}
+    environment = guestinfo("guestinfo.ovfEnv")
+    if environment:
+        for prop in ET.fromstring(environment).iter(f"{OVF_NS}Property"):
+            key = prop.get(f"{OVF_NS}key", "").removeprefix("guestinfo.").upper()
+            values[key] = prop.get(f"{OVF_NS}value", "")
+    # Plain guestinfo.<key> advanced settings work for VMs deployed from the vSphere template.
+    for key in KEYS:
+        if not values.get(key):
+            values[key] = guestinfo(f"guestinfo.{key.lower()}")
+    return values
+
+
+def gather():
+    values = {**vmware_values(), **read_env(ENV_FILE)}
+    return {key: value.strip() for key, value in values.items() if key in KEYS and value and value.strip()}
+
+
+def split_list(value):
+    return [item for item in re.split(r"[,\s]+", value or "") if item]
+
+
+def valid_name(name):
+    return bool(name) and len(name) <= 253 and all(LABEL.fullmatch(label) for label in name.split("."))
+
+
+def validate(values):
+    host = values.get("HOSTNAME", "").strip(".")
+    domain = values.get("DOMAIN", "").strip(".")
+    if domain and not valid_name(domain):
+        raise ValueError(f"invalid domain name {domain!r}")
+    if "." in host:
+        fqdn = host
+        domain = domain or host.split(".", 1)[1]
+    else:
+        fqdn = f"{host}.{domain}" if host and domain else host
+    if fqdn and not valid_name(fqdn):
+        raise ValueError(f"invalid hostname {fqdn!r}")
+
+    config = {"fqdn": fqdn, "domain": domain, "ip_source": values.get("IP_SOURCE", "DHCP").upper()}
+    if config["ip_source"] not in ("DHCP", "STATIC"):
+        raise ValueError("IP_SOURCE must be DHCP or STATIC")
+    if config["ip_source"] == "STATIC":
+        try:
+            interface = ipaddress.IPv4Interface(f"{values['IP_ADDRESS']}/{values.get('PREFIX', '24')}")
+            gateway = ipaddress.IPv4Address(values["GATEWAY"])
+        except (KeyError, ValueError) as error:
+            raise ValueError(f"STATIC requires valid IP_ADDRESS, PREFIX and GATEWAY ({error})") from error
+        if gateway not in interface.network:
+            raise ValueError(f"gateway {gateway} is outside {interface.network}")
+        config.update(interface=interface, gateway=str(gateway))
+
+    try:
+        config["dns"] = [str(ipaddress.ip_address(server)) for server in split_list(values.get("DNS_SERVERS"))]
+    except ValueError as error:
+        raise ValueError(f"invalid DNS server: {error}") from error
+    config["search"] = split_list(values.get("DNS_SEARCH")) or ([domain] if domain else [])
+    config["ntp"] = split_list(values.get("NTP_SERVERS"))
+    for name in config["search"] + config["ntp"]:
+        if not valid_name(name.strip(".")):
+            raise ValueError(f"invalid DNS search domain or NTP server {name!r}")
+
+    config["timezone"] = values.get("TIMEZONE", "")
+    zone = Path("/usr/share/zoneinfo") / config["timezone"]
+    if config["timezone"] and (".." in config["timezone"] or not zone.is_file()):
+        raise ValueError(f"unknown timezone {config['timezone']!r}")
+
+    config["ui_user"] = values.get("UI_ADMIN_USER") or "admin"
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", config["ui_user"]):
+        raise ValueError("UI_ADMIN_USER may only contain letters, numbers, underscores or hyphens")
+    for key in SECRETS:
+        secret = values.get(key, "")
+        if secret and (len(secret) < MIN_PASSWORD or "\n" in secret):
+            raise ValueError(f"{key} must be a single line of at least {MIN_PASSWORD} characters")
+        config[key.lower()] = secret
+    return config
+
+
+def primary_device():
+    for line in output("nmcli", "-t", "-f", "DEVICE,TYPE", "device").splitlines():
+        device, _, kind = line.rpartition(":")
+        if kind == "ethernet":
+            return device
+    raise RuntimeError("no Ethernet interface found")
+
+
+def configure_network(config):
+    device = primary_device()
+    for line in output("nmcli", "-t", "-f", "NAME,DEVICE", "connection", "show").splitlines():
+        name, _, connected = line.rpartition(":")
+        if connected == device or name == CONNECTION:
+            run("nmcli", "connection", "delete", name.replace("\\:", ":"))
+    settings = ["ipv4.method", "auto", "ipv6.method", "auto"]
+    if config["ip_source"] == "STATIC":
+        settings = ["ipv4.method", "manual", "ipv4.addresses", str(config["interface"]),
+                    "ipv4.gateway", config["gateway"], "ipv6.method", "disabled"]
+    if config["dns"]:
+        settings += ["ipv4.dns", ",".join(config["dns"]), "ipv4.ignore-auto-dns", "yes"]
+    if config["search"]:
+        settings += ["ipv4.dns-search", ",".join(config["search"])]
+    run("nmcli", "connection", "add", "type", "ethernet", "con-name", CONNECTION, "ifname", device,
+        "connection.autoconnect", "yes", *settings)
+    run("nmcli", "--wait", "30", "connection", "up", CONNECTION)
+
+
+def configure_hosts(config):
+    hosts = Path("/etc/hosts")
+    lines = [line for line in hosts.read_text().splitlines() if not line.endswith("# aipod")]
+    if config["fqdn"] and config["ip_source"] == "STATIC":
+        short = config["fqdn"].split(".")[0]
+        lines.append(f"{config['interface'].ip} {config['fqdn']} {short} # aipod")
+    hosts.write_text("\n".join(lines) + "\n")
+
+
+def configure_ntp(servers):
+    lines = [line for line in CHRONY_CONF.read_text().splitlines() if not re.match(r"\s*(pool|server)\s", line)]
+    lines += [f"server {server} iburst" for server in servers]
+    CHRONY_CONF.write_text("\n".join(lines) + "\n")
+    run("systemctl", "try-restart", "chronyd.service")
+
+
+def set_ui_admin(build, username, password):
+    repo = build["REPO_DIR"]
+    code = ("import json, sys\n"
+            "from automation_ui import AUTH_FILE, AUTH_LOCK, password_hash, write_private_file\n"
+            "user, password = sys.stdin.read().split('\\n', 1)\n"
+            "with AUTH_LOCK:\n"
+            "    users = json.loads(AUTH_FILE.read_text()) if AUTH_FILE.exists() else {}\n"
+            "    users[user] = password_hash(password)\n"
+            "    write_private_file(AUTH_FILE, json.dumps(users))\n")
+    run("runuser", "-u", build["APP_USER"], "--", "env", f"AI_PODS_APP_DIR={build['APP_STATE_DIR']}",
+        f"PYTHONPATH={repo}/scripts", f"{repo}/.venv/bin/python3", "-c", code,
+        input=f"{username}\n{password}", cwd=repo)
+
+
+def current_addresses():
+    return output("hostname", "-I").split()
+
+
+def ensure_certificate(fqdn, addresses, force):
+    if TLS_CERT.exists() and (not TLS_MARKER.exists() or not force):
+        return  # Keep operator-installed certificates and existing self-signed ones unless refreshing.
+    names = dict.fromkeys(name for name in (fqdn, fqdn.split(".")[0], "localhost") if name)
+    san = ",".join([f"DNS:{name}" for name in names] + [f"IP:{address}" for address in addresses])
+    TLS_KEY.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    run("openssl", "req", "-x509", "-nodes", "-newkey", "rsa:3072", "-sha256", "-days", "365",
+        "-keyout", str(TLS_KEY), "-out", str(TLS_CERT), "-subj", f"/CN={fqdn or 'localhost'}",
+        "-addext", f"subjectAltName={san}", capture_output=True)
+    TLS_KEY.chmod(0o600)
+    TLS_CERT.chmod(0o644)
+    TLS_MARKER.touch()
+    run("restorecon", "-RF", str(TLS_CERT.parent))
+
+
+def apply(config, build):
+    if config["fqdn"]:
+        run("hostnamectl", "set-hostname", config["fqdn"])
+    configure_network(config)
+    configure_hosts(config)
+    if config["ntp"]:
+        configure_ntp(config["ntp"])
+    if config["timezone"]:
+        run("timedatectl", "set-timezone", config["timezone"])
+    if config["admin_password"]:
+        run("chpasswd", input=f"{build['ADMIN_USER']}:{config['admin_password']}\n")
+    if config["ui_admin_password"]:
+        set_ui_admin(build, config["ui_user"], config["ui_admin_password"])
+    ensure_certificate(config["fqdn"] or socket.getfqdn(), current_addresses(), force=True)
+    run("systemctl", "try-reload-or-restart", "nginx.service")
+    if ENV_FILE.exists():
+        kept = [line for line in ENV_FILE.read_text().splitlines()
+                if line.split("=", 1)[0].strip().upper() not in SECRETS]
+        ENV_FILE.write_text("\n".join(kept) + "\n")
+    MARKER.touch()
+
+
+def prompt(values):
+    def ask(key, label):
+        answer = input(f"{label} [{values.get(key, '')}]: ").strip()
+        if answer:
+            values[key] = answer
+
+    def ask_secret(key, label):
+        while True:
+            secret = getpass.getpass(f"{label} (blank to skip): ")
+            if not secret or secret == getpass.getpass("Confirm: "):
+                values[key] = secret
+                return
+            print("Passwords do not match.")
+
+    values.setdefault("HOSTNAME", socket.gethostname().split(".")[0])
+    values.setdefault("IP_SOURCE", "STATIC")
+    ask("HOSTNAME", "Hostname")
+    ask("DOMAIN", "Domain name")
+    ask("IP_SOURCE", "IP source (DHCP/STATIC)")
+    if values["IP_SOURCE"].upper() == "STATIC":
+        values.setdefault("PREFIX", "24")
+        ask("IP_ADDRESS", "IPv4 address")
+        ask("PREFIX", "Prefix length")
+        ask("GATEWAY", "Default gateway")
+    ask("DNS_SERVERS", "DNS servers (comma separated)")
+    ask("DNS_SEARCH", "DNS search domains (comma separated, default domain name)")
+    ask("NTP_SERVERS", "NTP servers (comma separated)")
+    ask("TIMEZONE", "Timezone (for example America/New_York)")
+    ask_secret("ADMIN_PASSWORD", "New OS administrator password")
+    ask("UI_ADMIN_USER", "Automation UI admin username (default admin)")
+    ask_secret("UI_ADMIN_PASSWORD", "Automation UI admin password")
+    return values
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--firstboot", action="store_true", help="non-interactive mode used by aipod-firstboot.service")
+    group.add_argument("--env-file", type=Path, help="apply settings from a KEY=VALUE file")
+    arguments = parser.parse_args()
+    if os.geteuid() != 0:
+        parser.error("run as root, for example: sudo aipod-config")
+    build = read_env(BUILD_ENV)
+
+    if arguments.firstboot:
+        ensure_certificate(socket.getfqdn(), current_addresses(), force=False)
+        values = gather()
+        if not values:
+            print("No appliance settings found; run 'sudo aipod-config' to configure this appliance.")
+            return 0
+    elif arguments.env_file:
+        values = read_env(arguments.env_file)
+    else:
+        values = prompt(gather())
+
+    try:
+        config = validate(values)
+    except ValueError as error:
+        print(f"Invalid appliance settings: {error}", file=sys.stderr)
+        return 1
+
+    if not arguments.firstboot:
+        print("\nThe network connection is recreated; SSH sessions may disconnect.")
+        if input("Apply these settings? [y/N]: ").strip().lower() != "y":
+            return 1
+    apply(config, build)
+    print(f"Appliance configured. Automation UI: https://{config['fqdn'] or ' '.join(current_addresses())}/")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

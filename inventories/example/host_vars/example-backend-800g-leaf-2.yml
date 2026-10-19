@@ -1,0 +1,19 @@
+---
+be_switch:
+  fabric_key: backend_800g
+  hostname: EXAMPLE-BE-800G-LEAF-2
+  role: leaf
+  mgmt_ip: 203.0.113.68
+  username: admin
+  pass_ref: EXAMPLE_BE_800G_LEAF_2_PASSWORD
+  breakout_commands:
+    - interface breakout module 1 port 1-64 map 400g-2x
+  fabric_link_interfaces:
+    - Ethernet1/14/2
+    - Ethernet1/15/1
+    - Ethernet1/15/2
+    - Ethernet1/16/1
+    - Ethernet1/16/2
+    - Ethernet1/17/1
+    - Ethernet1/17/2
+    - Ethernet1/18/1

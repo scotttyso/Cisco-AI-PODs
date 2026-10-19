@@ -51,7 +51,7 @@
   
   vars:
     # Default values - override with -e flags
-    nd_url: "{{ lookup('env', 'ND_URL') | default('https://nd-lan.rich.ciscolabs.com') }}"
+    nd_url: "{{ lookup('env', 'ND_URL') | default('https://nd.example.com') }}"
     nd_username: "{{ lookup('env', 'ND_USERNAME') | default('admin') }}"
     vault_file: "{{ playbook_dir }}/vault-ai-pod.yaml"
     platform_type: "nx-os"

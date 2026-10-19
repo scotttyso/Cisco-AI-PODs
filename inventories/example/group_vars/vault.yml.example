@@ -1,0 +1,75 @@
+---
+# ── AI POD secret-variable template (lab) ────────────────────────────────────
+# This .example is the ONLY secret-variable file tracked in git. It holds keys,
+# never real values. Copy it to vault.yml, which is gitignored and must never be
+# committed. The AI POD lab may use plaintext vault.yml.
+#
+# Convention: every vaulted secret is named vault_<product>_*. The playbook
+# reads these keys directly. ND admin goes to cisco.nd.nd_setup; per-node CIMC
+# values are injected into Python only for the task that needs them.
+# Intersight API credentials are site-shared (ND and later UCS/storage claim).
+#
+# The inventory never holds a password — only a *_pass_ref that names the env
+# var (see schemas/_examples/aipod.yaml.example):
+#   nd_admin_pass_ref: ND_ADMIN_PASSWORD  <- vault_nd_admin_password
+#   cimc.pass_ref: ND1_CIMC_PASSWORD      <- vault_nd1_cimc_password
+#
+# ── Operator steps ───────────────────────────────────────────────────────────
+#   1. cp vault.yml.example vault.yml
+#   2. edit vault.yml — fill in real passwords
+#   3. chmod 600 vault.yml
+#
+# Customer/operator option (recommended):
+#   ansible-vault encrypt vault.yml
+# If encrypted, use ansible-vault edit and supply the vault password when
+# running the playbook. Encryption is optional; gitignore protection is not.
+
+# ND cluster admin  ->  env ND_ADMIN_PASSWORD
+vault_nd_admin_password: "CHANGE_ME"
+
+# Per-node CIMC  ->  env ND1_CIMC_PASSWORD / ND2_CIMC_PASSWORD / ND3_CIMC_PASSWORD
+vault_nd1_cimc_password: "CHANGE_ME"
+vault_nd2_cimc_password: "CHANGE_ME"
+vault_nd3_cimc_password: "CHANGE_ME"
+
+# UCS-X Direct, C845, and C880 CIMC credentials. Keep a separate password key
+# per endpoint even when a lab deliberately uses matching values. The paired
+# UCS-X endpoints are one Intersight domain claim; C845 and C880 systems are
+# standalone claim targets.
+vault_ucsx_mgmt_1_a_cimc_password: "CHANGE_ME"
+vault_ucsx_mgmt_1_b_cimc_password: "CHANGE_ME"
+vault_ucsx_gpu_1_a_cimc_password: "CHANGE_ME"
+vault_ucsx_gpu_1_b_cimc_password: "CHANGE_ME"
+vault_ucsx_aid_1_a_cimc_password: "CHANGE_ME"
+vault_ucsx_aid_1_b_cimc_password: "CHANGE_ME"
+vault_ucs_c845_1_cimc_password: "CHANGE_ME"
+vault_ucs_c845_2_cimc_password: "CHANGE_ME"
+vault_ucs_c880_1_cimc_password: "CHANGE_ME"
+vault_ucs_c880_2_cimc_password: "CHANGE_ME"
+vault_ucs_c880_3_cimc_password: "CHANGE_ME"
+vault_ucs_c880_4_cimc_password: "CHANGE_ME"
+
+# Backend-fabric switch credentials. Keep per-switch keys even when this lab
+# deliberately uses one matching password so customer environments can differ.
+vault_example_be_fabric_switch_password: "CHANGE_ME"
+vault_example_be_backend_spine_1_password: "CHANGE_ME"
+vault_example_be_backend_spine_2_password: "CHANGE_ME"
+vault_example_be_backend_leaf_1_password: "CHANGE_ME"
+vault_example_be_backend_leaf_2_password: "CHANGE_ME"
+vault_example_be_800g_spine_1_password: "CHANGE_ME"
+vault_example_be_800g_spine_2_password: "CHANGE_ME"
+vault_example_be_800g_leaf_1_password: "CHANGE_ME"
+vault_example_be_800g_leaf_2_password: "CHANGE_ME"
+
+# Intersight SaaS API (site-shared)  ->  used by claim automation only
+# Device ID and Claim Code are runtime-discovered; do not put them here.
+vault_intersight_api_key_id: "CHANGE_ME"
+# Paste the matching, unencrypted private-key PEM from the Intersight API key
+# you created. The currently pinned cisco.intersight collection requires the
+# traditional EC PEM delimiters (BEGIN/END EC PRIVATE KEY). YAML literal block
+# preserves line breaks; indent every PEM line two spaces. Do not use the
+# public-key download, a fingerprint, or a one-line escaped PEM.
+vault_intersight_api_private_key: |
+  -----BEGIN EC PRIVATE KEY-----
+  <user_provided_base64_lines>
+  -----END EC PRIVATE KEY-----

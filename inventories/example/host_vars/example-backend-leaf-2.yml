@@ -1,0 +1,8 @@
+---
+be_switch:
+  fabric_key: backend
+  hostname: EXAMPLE-BE-LEAF-2
+  role: leaf
+  mgmt_ip: 203.0.113.64
+  username: admin
+  pass_ref: EXAMPLE_BE_BACKEND_LEAF_2_PASSWORD

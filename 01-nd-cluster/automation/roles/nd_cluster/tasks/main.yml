@@ -1,0 +1,19 @@
+---
+# Dispatcher. Selects the capability based on `nd_action` so the role
+# can be included with `tasks_from:` for clarity OR with `vars:`
+# for compatibility.
+#
+# Preferred from a section playbook:
+#   - import_role:
+#       name: cisco.aipod.nd_cluster
+#       tasks_from: form_cluster
+#
+# Equivalent dispatcher form:
+#   - import_role:
+#       name: cisco.aipod.nd_cluster
+#     vars:
+#       nd_action: form_cluster
+
+- name: "ND: dispatch action {{ nd_action }}"
+  ansible.builtin.include_tasks: "{{ nd_action }}.yml"
+  when: nd_action in ['preflight', 'image_node', 'bootstrap_node', 'form_cluster', 'capture_baseline', 'intersight_claim', 'intersight_reclaim', 'persistent_ips', 'remote_auth']

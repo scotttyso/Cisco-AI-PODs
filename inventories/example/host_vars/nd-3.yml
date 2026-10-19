@@ -1,0 +1,18 @@
+---
+nd_node:
+  hostname: EXAMPLE-ND-3
+  type: Primary
+  role: secondary
+  cimc:
+    ip: 198.51.100.89
+    user: admin
+    pass_ref: ND3_CIMC_PASSWORD
+  mgmt:
+    ip: 192.0.2.9
+    mask: 24
+    gateway: 192.0.2.254
+  data:
+    ip: 203.0.113.19
+    mask: 24
+    gateway: 203.0.113.254
+    vlan: null

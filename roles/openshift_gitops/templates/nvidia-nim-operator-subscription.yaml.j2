@@ -1,0 +1,23 @@
+{% set _nim = openshift.operators.nvidia_nim_operator | default({}) %}
+{% set _certified = nvidia_ai_enterprise.infrastructure_software['NVIDIA NIM Operator'] %}
+{% set _version = _nim.nim_operator_version | default(_certified) %}
+---
+# NVIDIA AI Enterprise {{ nvidia_ai_enterprise.nvidia_ai_enterprise_version }} certifies NIM Operator {{ _certified }}.
+{% if _version != _certified %}
+# Pinned to {{ _version }} by openshift.operators.nvidia_nim_operator.nim_operator_version.
+{% endif %}
+# Verify with: oc get packagemanifest nim-operator-certified -n openshift-marketplace
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: nim-operator-certified
+  namespace: nvidia-nim-operator
+spec:
+  channel: stable
+  installPlanApproval: {{ _nim.install_plan_approval | default('Manual') }}
+  name: nim-operator-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: nim-operator-certified.v{{ _version }}

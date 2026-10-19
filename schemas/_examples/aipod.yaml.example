@@ -1,0 +1,116 @@
+# Example AI POD-wide composed inventory.
+#
+# Demonstrates the composed shape validated by schemas/aipod.schema.json.
+# A real partner inventory would live in their own repo (e.g.
+# partner-acme/aipod-deployments/inventories/<customer>/aipod.yaml) and
+# depend on a pinned cisco.aipod collection version (Phase 2).
+#
+# Subsystems are OPTIONAL at the top level. A customer doing only the
+# network domain drops the others entirely. Inside each subsystem, the
+# subsystem's schema enforces what is required.
+#
+# Top-level keys mirror the subsystem names with hyphens replaced by
+# underscores (YAML convention): nd-cluster -> nd_cluster,
+# frontend-fabric-nxos -> frontend_fabric_nxos, etc.
+
+# Optional site-wide identity used by logs and labels.
+site:
+  site_id: AIPOD-LAB-RTP
+  site_name: "AI POD Reference Lab - RTP"
+  owner: "ai-pod-team@cisco.com"
+  environment: lab
+
+# Optional shared Intersight SaaS settings. Ansible group_vars/all.yml uses
+# the flattened intersight_* keys for the same values.
+intersight:
+  api_uri: https://intersight.com
+  account_name: ExampleAccount
+  resource_group_name: Example_RG
+  organization_name: Example_ORG
+
+# Subsystem 01 - Nexus Dashboard. Fully specified by schemas/nd-cluster.schema.json.
+# Mirrors the canonical site-inventory contract under inventories/<environment>/.
+nd_cluster:
+  cluster:
+    start_mode: iso_reimage
+    name: AIPOD-ND-CLUSTER
+    implementation_type: LAN
+    timezone: EST
+    iso:
+      url: http://192.0.2.150/software/Nexus-Dashboard/nd-dk9.4.2.1.10.iso
+      sha512: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000abcd
+    network:
+      mgmt_subnet:  192.0.2.0/24
+      mgmt_gateway: 192.0.2.254
+      data_subnet:  203.0.113.0/24
+      data_gateway: 203.0.113.254
+      # CIMC/OOB subnet - optional; declared so CIMC placement validates.
+      oob_subnet:   198.51.100.0/24
+    internal_networks:
+      app_network: 172.17.0.1/16
+      service_network: 100.80.0.0/16
+    dns:
+      servers:
+        - 192.0.2.53
+        - 192.0.2.54
+      search_domains:
+        - cisco.com
+    ntp:
+      servers:
+        - { host: 198.51.100.124, preferred: true }
+        - { host: 198.51.100.125 }
+    proxy:
+      skip: true
+    external_services:
+      management_service_ips: []
+      data_service_ips:
+        - 203.0.113.20
+        - 203.0.113.21
+        - 203.0.113.22
+        - 203.0.113.23
+        - 203.0.113.24
+
+  admin_username: admin
+  admin_pass_ref: ND_ADMIN_PASSWORD
+
+  nodes:
+    - hostname: ND-1
+      type: Primary
+      role: bootstrap
+      cimc: { ip: 198.51.100.87, user: admin, pass_ref: ND1_CIMC_PASSWORD }
+      mgmt: { ip: 192.0.2.7,   mask: 24, gateway: 192.0.2.254 }
+      data: { ip: 203.0.113.17,  mask: 24, gateway: 203.0.113.254 }
+    - hostname: ND-2
+      type: Primary
+      role: secondary
+      cimc: { ip: 198.51.100.88, user: admin, pass_ref: ND2_CIMC_PASSWORD }
+      mgmt: { ip: 192.0.2.8,   mask: 24, gateway: 192.0.2.254 }
+      data: { ip: 203.0.113.18,  mask: 24, gateway: 203.0.113.254 }
+    - hostname: ND-3
+      type: Primary
+      role: secondary
+      cimc: { ip: 198.51.100.89, user: admin, pass_ref: ND3_CIMC_PASSWORD }
+      mgmt: { ip: 192.0.2.9,   mask: 24, gateway: 192.0.2.254 }
+      data: { ip: 203.0.113.19,  mask: 24, gateway: 203.0.113.254 }
+
+# Subsystems 02-09 are stubbed in the composed schema. Uncomment and populate
+# as automation lands per subsystem; the schema $ref will switch from
+# subsystem-stub to the subsystem's real schema and validation will tighten
+# automatically.
+#
+# frontend_fabric_nxos:
+#   ...
+# backend_fabric_nxos:
+#   ...
+# storage_everpure:
+#   ...
+# mgmt_nodes_ucs:
+#   ...
+# workload_nodes_ucs:
+#   ...
+# openshift_cluster:
+#   ...
+# mlops:
+#   ...
+# ai_workloads:
+#   ...

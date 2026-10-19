@@ -1,0 +1,23 @@
+---
+- name: "BE fabric: derive {{ be_manage_field.key }} for {{ be_fabric.name }}"
+  ansible.builtin.set_fact:
+    be_management_pool_overrides: >-
+      {{
+        be_management_pool_overrides | combine(
+          {
+            be_manage_field.key:
+              (
+                be_manage_field.value
+                | regex_replace(
+                    '^10\.',
+                    (be_fabric.underlay_first_octet | string) ~ '.'
+                  )
+              )
+          }
+        )
+      }}
+  when:
+    - be_manage_field.key in be_manage_pool_keys
+    - be_manage_field.value is string
+    - be_manage_field.value is match('^10\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$')
+  no_log: true

@@ -1,7 +1,7 @@
 ---
 # Multiple Nexus Dashboard Fabric Definitions
 # Define multiple fabrics with their settings and switches in a single file
-# yaml-language-server: $schema=/home/tyscott/scotttyso/Cisco-AI-PODs/schema/cisco-ai-pods.json
+# yaml-language-server: $schema=../../schema/cisco-ai-pods.json
 nexus_dashboard:
   fabrics:
     - name: "production-classic"
@@ -124,6 +124,24 @@ nexus_dashboard:
     - name: "ai-vxlan-evpn"
       type: "aiVxlanEvpn"
       licenseTier: "premier"
+      # Stage 02 backend-fabric workflow settings (not sent to the ND API as-is).
+      backend_settings:
+        key: backend
+        underlayFirstOctet: 20
+        replicationMode: Multicast
+        qosPolicy: AI_Fabric_QOS_400G
+        ptp: true
+        ptpSourceLoopbackId: 0
+        ptpDomainId: 0
+        bfd: true
+        enableAiMlQosPolicy: true
+        useRobotPassword: true
+        addSwitchesWithoutReload: true
+        realTimeBackup: true
+        location:
+          name: "San Jose, US"
+          latitude: 37.3382
+          longitude: -121.8863
       fabric_settings:
         bgpAsn: 65002
         fabricMtu: 9216
@@ -146,21 +164,29 @@ nexus_dashboard:
           serialNumber: "SAL4000ABCD"
           softwareVersion: "10.3(3)"
           switchRole: "leaf"
+          username: admin
+          fabricLinkInterfaces: ["Ethernet1/1", "Ethernet1/2"]
         - ip: "10.4.1.11"
           hostname: "ai-evpn-leaf2"
           model: "N9K-C93180YC-FX"
           serialNumber: "SAL4000ABCE"
           softwareVersion: "10.3(3)"
           switchRole: "leaf"
+          username: admin
+          fabricLinkInterfaces: ["Ethernet1/1", "Ethernet1/2"]
         - ip: "10.4.1.1"
           hostname: "ai-evpn-spine1"
           model: "N9K-C93180YC-FX"
           serialNumber: "SAL4000SPINE1"
           softwareVersion: "10.3(3)"
           switchRole: "spine"
+          username: admin
+          fabricLinkInterfaces: ["Ethernet1/1", "Ethernet1/2"]
         - ip: "10.4.1.2"
           hostname: "ai-evpn-spine2"
           model: "N9K-C93180YC-FX"
           serialNumber: "SAL4000SPINE2"
           softwareVersion: "10.3(3)"
           switchRole: "spine"
+          username: admin
+          fabricLinkInterfaces: ["Ethernet1/1", "Ethernet1/2"]

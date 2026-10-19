@@ -1,0 +1,51 @@
+---
+# Future-only paired SG2 upgrade. Do not substitute this playbook into an
+# already-running serial install. The Python helper owns its ND session and
+# never retries an ambiguous write.
+- name: "Subsystem 02 - Future paired SG2 software upgrade"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    nd_paired_phase: plan
+    nd_paired_controller: "{{ hostvars[groups['nd_bootstrap'][0]] }}"
+    nd_paired_helper: >-
+      {{ lookup('ansible.builtin.first_found', [
+           playbook_dir ~ '/../scripts/sg2_nd_paired_upgrade.py',
+           playbook_dir ~ '/../roles/backend_fabric_nxos/files/automation/scripts/sg2_nd_paired_upgrade.py'
+         ]) }}
+
+  tasks:
+    - name: Require explicit supported phase and ND credentials
+      ansible.builtin.assert:
+        that:
+          - nd_paired_phase in ['plan', 'groups', 'stage', 'install', 'verify']
+          - vault_nd_admin_password | default('') | length > 0
+        fail_msg: Paired SG2 upgrade phase or ND credentials are unavailable.
+      no_log: true
+
+    - name: Execute one guarded paired SG2 phase through ND
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python,
+              nd_paired_helper,
+              '--phase', nd_paired_phase,
+              '--vault', aipod_vault_file | default(inventory_dir ~ '/group_vars/vault.yml'),
+              '--nd-host', nd_paired_controller.nd_node.mgmt.ip]
+             + (['--verify-tls'] if nd_paired_controller.nd_runtime.verify_tls | bool else []) }}
+      register: nd_paired_result
+      changed_when: false
+      no_log: true
+
+    - name: Report the completed phase without revealing ND runtime data
+      ansible.builtin.debug:
+        msg: >-
+          Paired SG2 {{ nd_paired_phase }} phase completed. For install or verify,
+          independently verify mapped 2x400G links, optics, LLDP and underlay.

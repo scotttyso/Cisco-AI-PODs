@@ -1,0 +1,9 @@
+---
+# Staging site inventory. Playbooks today run with connection: local.
+# Add site hosts and addressing through this environment's group_vars/ and
+# host_vars/ directories.
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: auto_silent

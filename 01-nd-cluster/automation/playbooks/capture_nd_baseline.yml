@@ -1,0 +1,48 @@
+---
+# Read-only parity snapshot. Set nd_baseline_kind=manual before teardown and
+# nd_baseline_kind=automated after the automation run.
+
+- name: "Capture a normalized Nexus Dashboard parity baseline"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: ansible.netcommon.httpapi
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  vars:
+    ansible_connection: ansible.netcommon.httpapi
+    ansible_host: "{{ nd_node.mgmt.ip }}"
+    ansible_network_os: cisco.nd.nd
+    ansible_user: "{{ nd_admin_username }}"
+    ansible_password: "{{ vault_nd_admin_password }}"
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: "{{ nd_runtime.verify_tls }}"
+    ansible_httpapi_use_proxy: false
+    ansible_httpapi_login_domain: DefaultAuth
+    ansible_command_timeout: 120
+    nd_nodes: "{{ groups['nd_cluster'] | map('extract', hostvars, 'nd_node') | list }}"
+    nd_baseline_kind: manual
+    nd_cimc_passwords_by_ref:
+      ND1_CIMC_PASSWORD: "{{ vault_nd1_cimc_password }}"
+      ND2_CIMC_PASSWORD: "{{ vault_nd2_cimc_password }}"
+      ND3_CIMC_PASSWORD: "{{ vault_nd3_cimc_password }}"
+
+  tasks:
+    - name: "Capture the requested read-only baseline"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: capture_baseline
+      vars:
+        cluster: "{{ nd_cluster_spec | cisco.aipod.aipod_nd_cluster_spec(aipod | default(none)) }}"
+        runtime: "{{ nd_runtime }}"
+        nodes: "{{ nd_nodes }}"
+        admin_username: "{{ nd_admin_username }}"
+        admin_pass_ref: "{{ nd_admin_pass_ref }}"
+        nd_admin_password: "{{ vault_nd_admin_password }}"
+        cimc_passwords_by_ref: "{{ nd_cimc_passwords_by_ref }}"
+        nd_baseline_dir: >-
+          {{ playbook_dir }}/../state/baselines

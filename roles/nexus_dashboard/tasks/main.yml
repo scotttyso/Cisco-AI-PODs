@@ -22,7 +22,7 @@
       cisco.nd.nd_fabric:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
         name: "{{ fabric_name }}"
         fabric_type: "{{ fabric_type }}"
         managed_settings: "{{ fabric_config.fabric_settings | default({}) }}"
@@ -42,7 +42,7 @@
       cisco.nd.nd_fabric:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
         name: "{{ item.name }}"
         fabric_type: "{{ item.type }}"
         managed_settings: "{{ item.fabric_settings | default({}) }}"
@@ -63,7 +63,7 @@
       cisco.nd.nd_device:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
         fabric_name: "{{ fabric_name }}"
         devices: "{{ fabric_config.switches | default([]) }}"
         discovery_username: "{{ switch_username | default('admin') }}"
@@ -87,7 +87,7 @@
       cisco.nd.nd_device:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
         fabric_name: "{{ item.name }}"
         devices: "{{ item.switches | default([]) }}"
         discovery_username: "{{ switch_username | default('admin') }}"
@@ -112,7 +112,7 @@
       cisco.nd.nd_fabric_info:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
       register: fabrics_result
       no_log: true
 
@@ -131,7 +131,7 @@
       cisco.nd.nd_device_info:
         host: "{{ nd_url }}"
         username: "{{ nd_username }}"
-        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password) }}"
+        password: "{{ nd_password | default(vault_credentials.nexus_dashboard.nd_password | default(vault_credentials.nexus_dashboard.nexus_dashboard_password)) }}"
         fabric_name: "{{ fabric_name }}"
       register: switches_result
       no_log: true

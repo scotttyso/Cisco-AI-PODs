@@ -56,6 +56,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.4.0",
             "NVIDIA GPU Operator": "26.3.3",
             "NVIDIA Network Operator": "26.4.0",
+            "NVIDIA NIM Operator": "3.1.1",
             "NVIDIA Run:ai": "2.25",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2640/platform-support.html
             "DOCA OFED Driver Container": "doca3.4.0-26.04-0.8.6.0-0",
@@ -88,6 +89,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.3.0",
             "NVIDIA GPU Operator": "26.3.0",
             "NVIDIA Network Operator": "26.1.0",
+            "NVIDIA NIM Operator": "3.1.0",
             "NVIDIA Run:ai": "2.24",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2610/platform-support.html
             "DOCA OFED Driver Container": "doca3.3.0-26.01-1.0.0.0-0",
@@ -120,6 +122,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.4.0",
             "NVIDIA GPU Operator": "26.3.3",
             "NVIDIA Network Operator": "26.4.0",
+            "NVIDIA NIM Operator": "3.1.1",
             "NVIDIA Run:ai": "2.25",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2640/platform-support.html
             "DOCA OFED Driver Container": "doca3.4.0-26.04-0.8.6.0-0",
@@ -148,6 +151,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.4.0",
             "NVIDIA GPU Operator": "26.3.3",
             "NVIDIA Network Operator": "26.4.0",
+            "NVIDIA NIM Operator": "3.1.1",
             "NVIDIA Run:ai": "2.23",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2640/platform-support.html
             "DOCA OFED Driver Container": "doca3.4.0-26.04-0.8.6.0-0",
@@ -177,6 +181,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.3.0",
             "NVIDIA GPU Operator": "26.3.1",
             "NVIDIA Network Operator": "26.1.1",
+            "NVIDIA NIM Operator": "3.1.0",
             "NVIDIA Run:ai": "2.25",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2610/platform-support.html
             "DOCA OFED Driver Container": "doca3.3.0-26.01-1.0.0.0-0",
@@ -206,6 +211,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.2.0",
             "NVIDIA GPU Operator": "25.10.1",
             "NVIDIA Network Operator": "25.10.0",
+            "NVIDIA NIM Operator": "3.0.2",
             "NVIDIA Run:ai": "2.24",
             # Source: https://docs.nvidia.com/networking/display/kubernetes25100/platform-support.html
             "DOCA OFED Driver Container": "doca3.2.0-25.10-1.2.8.0-2",
@@ -235,6 +241,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.1.0",
             "NVIDIA GPU Operator": "25.10.0",
             "NVIDIA Network Operator": "25.7.0",
+            "NVIDIA NIM Operator": "3.0.1",
             "NVIDIA Run:ai": "2.20",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2570/platform-support.html
             "DOCA OFED Driver Container": "doca3.1.0-25.07-0.9.7.0-0",
@@ -264,6 +271,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.1.0",
             "NVIDIA GPU Operator": "25.10.0",
             "NVIDIA Network Operator": "25.7.0",
+            "NVIDIA NIM Operator": "3.0.1",
             "NVIDIA Run:ai": "2.19",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2570/platform-support.html
             "DOCA OFED Driver Container": "doca3.1.0-25.07-0.9.7.0-0",
@@ -292,6 +300,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.1.0",
             "NVIDIA GPU Operator": "25.3.2",
             "NVIDIA Network Operator": "25.7.0",
+            "NVIDIA NIM Operator": "3.0.0",
             "NVIDIA Run:ai": "2.18",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2570/platform-support.html
             "DOCA OFED Driver Container": "doca3.1.0-25.07-0.9.7.0-0",
@@ -320,6 +329,7 @@ NVIDIA_SUPPORT_MATRIX = {
             "NVIDIA DOCA Driver for Networking": "3.0.0",
             "NVIDIA GPU Operator": "25.3.2",
             "NVIDIA Network Operator": "25.4.0",
+            "NVIDIA NIM Operator": "2.0.2",
             "NVIDIA Run:ai": "2.17",
             # Source: https://docs.nvidia.com/networking/display/kubernetes2540/platform-support.html
             "DOCA OFED Driver Container": "25.04-0.6.1.0-2",
@@ -711,6 +721,7 @@ class NVIDIASupportMatrix:
                 ),
                 "GPU Operator": supported_software.get("NVIDIA GPU Operator", "N/A"),
                 "Network Operator": supported_software.get("NVIDIA Network Operator", "N/A"),
+                "NIM Operator": supported_software.get("NVIDIA NIM Operator", "N/A"),
                 "Run:ai": supported_software.get("NVIDIA Run:ai", "N/A"),
                 "DOCA OFED Driver Container": (
                     doca_components.get("DOCA OFED Driver Container") or "run --fetch-live"
@@ -747,6 +758,7 @@ class NVIDIASupportMatrix:
             ["NVIDIA DOCA Driver for Networking", sw.get("NVIDIA DOCA Driver for Networking", "N/A")],
             ["NVIDIA GPU Operator", sw.get("NVIDIA GPU Operator", "N/A")],
             ["NVIDIA Network Operator", sw.get("NVIDIA Network Operator", "N/A")],
+            ["NVIDIA NIM Operator", sw.get("NVIDIA NIM Operator", "N/A")],
             ["NVIDIA Run:ai", sw.get("NVIDIA Run:ai", "N/A")],
             ["DOCA OFED Driver Container",
              doca_components.get("DOCA OFED Driver Container") or "run --fetch-live"],
@@ -802,6 +814,7 @@ class NVIDIASupportMatrix:
                 "NVIDIA DOCA Driver for Networking": sw.get("NVIDIA DOCA Driver for Networking"),
                 "NVIDIA GPU Operator": sw.get("NVIDIA GPU Operator"),
                 "NVIDIA Network Operator": sw.get("NVIDIA Network Operator"),
+                "NVIDIA NIM Operator": sw.get("NVIDIA NIM Operator"),
                 "NVIDIA Run:ai": sw.get("NVIDIA Run:ai"),
                 "DOCA OFED Driver Container": (
                     doca_components.get("DOCA OFED Driver Container") or "run --fetch-live"

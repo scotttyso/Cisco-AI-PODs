@@ -1,0 +1,30 @@
+# Creates br-mgmt on worker nodes from a spare NIC. Replace ens2f1 with the node interface
+# connected to the management/staging network trunk.
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: br-mgmt
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  desiredState:
+    interfaces:
+      - name: br-mgmt
+        type: linux-bridge
+        state: up
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+        bridge:
+          options:
+            stp:
+              enabled: false
+          port:
+            - name: ens2f1
+              vlan:
+                mode: trunk
+                trunk-tags:
+                  - id-range:
+                      min: 1
+                      max: 4094

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/frontend-fabric-nxos/v1",
+  "title": "AI POD subsystem 03 - Frontend fabric (NX-OS / NDFC)",
+  "description": "Stub schema for the frontend (north-south) VXLAN EVPN spine-leaf fabric on Cisco Nexus 9000 NX-OS, deployed via NDFC fabric templates from the ND cluster (subsystem 01). Replace with the real shape when automation lands; until then, any object is accepted so the composed inventory can include this subsystem.",
+  "type": "object",
+  "additionalProperties": true
+}

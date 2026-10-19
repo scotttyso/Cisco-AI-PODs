@@ -1,0 +1,20 @@
+---
+# Subsystem 03 - Management fabric (NX-OS / Nexus Dashboard)
+#
+# Tier 2 playbook in the four-tier model:
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: playbooks/domains/network.yml
+#   Tier 2: this file
+#   Tier 1: roles/ (not yet scaffolded)
+#
+# SKELETON - wires domain hierarchy; automation not implemented yet.
+
+- name: "Subsystem 03 - Management fabric (skeleton)"
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Skip - Tier 2 automation not yet implemented"
+      ansible.builtin.debug:
+        msg: >-
+          Management fabric skeleton. Implement roles/ and capability tasks under
+          03-mgmt-fabric-nxos/automation/ before removing this skip.

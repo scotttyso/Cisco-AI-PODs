@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/telemetry/backend-fabric-nxos/v1",
+  "title": "AI POD subsystem 02 backend fabric NX-OS telemetry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "telemetry_type", "profile", "fabric", "phase", "timestamp_utc", "summary", "switches_table", "console_drawer"],
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["1.0"]},
+    "telemetry_type": {"type": "string", "enum": ["backend_fabric_upgrade_telemetry"]},
+    "profile": {"type": "string", "enum": ["cs", "sg2"]},
+    "fabric": {"type": "string"},
+    "phase": {"type": "string", "enum": ["offline_plan", "plan", "groups", "stage", "stage-left", "install", "install-left", "verify", "rehearsal"]},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "badge", "reason", "switch_outcome", "nd_status", "switches_total", "target_release_count", "image_validated_count", "update_completed_count", "reboot_observed_count", "target_version"],
+      "properties": {
+        "decision": {"type": "string"},
+        "badge": {"$ref": "#/$defs/badge"},
+        "reason": {"type": "string"},
+        "switch_outcome": {"type": ["string", "null"], "enum": ["already_at_target", "already_at_target_rebooted", "target_release_verified", "verification_mismatch", null]},
+        "nd_status": {"type": ["string", "null"]},
+        "switches_total": {"type": "integer", "minimum": 0},
+        "target_release_count": {"type": "integer", "minimum": 0},
+        "image_validated_count": {"type": "integer", "minimum": 0},
+        "update_completed_count": {"type": "integer", "minimum": 0},
+        "reboot_observed_count": {"type": "integer", "minimum": 0},
+        "target_version": {"type": "string"}
+      }
+    },
+    "switches_table": {"type": "array", "items": {"$ref": "#/$defs/switch_row"}},
+    "console_drawer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "total_lines", "lines", "collapsible", "default_expanded"],
+      "properties": {
+        "title": {"type": "string"}, "total_lines": {"type": "integer", "minimum": 0},
+        "lines": {"type": "array", "items": {"type": "string"}},
+        "collapsible": {"const": true}, "default_expanded": {"const": false}
+      }
+    },
+    "artifacts": {"$ref": "#/$defs/artifacts"}
+  },
+  "$defs": {
+    "badge": {
+      "type": "object", "additionalProperties": false, "required": ["label", "variant"],
+      "properties": {"label": {"type": "string"}, "variant": {"type": "string", "enum": ["success", "warning", "danger", "info", "primary", "secondary"]}}
+    },
+    "switch_row": {
+      "type": "object", "additionalProperties": false,
+      "required": ["switch_name", "role", "update_pair", "version_before", "version_after", "nd_group_status", "nd_switch_status", "image_validation_status", "reboot_observed", "outcome", "badge"],
+      "properties": {
+        "switch_name": {"type": "string"}, "role": {"type": "string", "enum": ["spine", "leaf"]},
+        "update_pair": {"type": "string"},
+        "version_before": {"type": ["string", "null"]}, "version_after": {"type": ["string", "null"]},
+        "nd_group_status": {"type": ["string", "null"]}, "nd_switch_status": {"type": ["string", "null"]},
+        "image_validation_status": {"type": ["string", "null"]}, "reboot_observed": {"type": ["boolean", "null"]},
+        "outcome": {"type": ["string", "null"], "enum": ["already_at_target", "already_at_target_rebooted", "target_release_verified", "verification_mismatch", null]},
+        "badge": {"$ref": "#/$defs/badge"}
+      }
+    },
+    "artifacts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["run_id", "run_dir", "raw_log", "telemetry_file", "status_file"],
+      "properties": {"run_id": {"type": "string"}, "run_dir": {"type": "string"}, "raw_log": {"type": "string"}, "telemetry_file": {"type": "string"}, "status_file": {"type": "string"}}
+    }
+  }
+}

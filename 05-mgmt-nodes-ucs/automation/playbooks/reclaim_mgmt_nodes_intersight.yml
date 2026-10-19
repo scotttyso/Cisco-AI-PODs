@@ -1,0 +1,15 @@
+---
+# Explicit test/recovery path. Never imported by the normal subsystem play.
+- name: "Subsystem 05 - explicitly unclaim and reclaim UCS management targets"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - >-
+      {{ aipod_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+  tasks:
+    - name: Run the explicitly gated UCS management reclaim workflow
+      ansible.builtin.include_role:
+        name: cisco.aipod.mgmt_nodes_ucs
+        tasks_from: reclaim

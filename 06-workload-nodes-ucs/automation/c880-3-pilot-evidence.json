@@ -1,0 +1,9 @@
+{
+  "host": "ucs-c880-3",
+  "manual_procedures_1_to_6_recorded": true,
+  "independent_firmware_postcheck_passed": true,
+  "independent_health_postcheck_passed": true,
+  "upgrade_method_and_image_source_verified": true,
+  "pilot_run_utc": "2026-10-03T21:13:42.585778+00:00",
+  "evidence_source": "06-workload-nodes-ucs/automation/C880-PILOT-STATUS.md"
+}

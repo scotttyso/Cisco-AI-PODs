@@ -1,0 +1,117 @@
+---
+# Mandatory at both the playbook preparation boundary and the role entry.
+# No cached pass, polling, automatic repair, or bypass variable.
+- name: "BE fabric: hold all deployment until core cables are ready"
+  run_once: true
+  any_errors_fatal: true
+  block:
+    - name: "BE fabric: require explicit physical preflight inputs"
+      ansible.builtin.assert:
+        that:
+          - be_core_inventory_dir | length > 0
+          - be_target_fabric_keys | length > 0
+          - be_target_fabric_keys | difference(be_fabrics | map(attribute='key') | list) | length == 0
+          - be_fabrics | map(attribute='key') | select('match', '^[a-z][a-z0-9_]*\Z') | list | length == be_fabrics | length
+          - be_core_cabling_plans is mapping
+          - be_core_cabling_plans | dict2items | map(attribute='key') | difference(be_fabrics | map(attribute='key') | list) | length == 0
+          - be_core_sg2_plan | default('') | length == 0 or ('sg2' in (be_fabrics | map(attribute='key') | list) and 'sg2' not in (be_core_cabling_plans | dict2items | map(attribute='key') | list))
+          - be_target_fabric_keys | unique | length == be_target_fabric_keys | length
+        fail_msg: >-
+          Fabric-template deployment is held. Select inventory-defined fabrics and
+          provide any desired cabling plans. Nothing is deployed.
+
+    - name: "BE fabric: locate the packaged or repository core checker"
+      ansible.builtin.set_fact:
+        be_core_checker: "{{ lookup('ansible.builtin.first_found', be_core_checker_locations) }}"
+      vars:
+        be_core_checker_locations:
+          files:
+            - "{{ role_path }}/files/automation/scripts/check_be_core_connectivity.py"
+            - "{{ role_path }}/../../scripts/check_be_core_connectivity.py"
+
+    - name: "BE fabric: initialize cabling-plan arguments"
+      ansible.builtin.set_fact:
+        be_core_plan_args: []
+
+    - name: "BE fabric: add per-fabric cabling-plan arguments"
+      ansible.builtin.set_fact:
+        be_core_plan_args: "{{ be_core_plan_args + ['--plan', item.key ~ '=' ~ item.value] }}"
+      loop: "{{ be_core_cabling_plans | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: "BE fabric: collect fresh serial paced physical evidence"
+      ansible.builtin.command:
+        argv: >-
+          {{ [ansible_playbook_python, be_core_checker,
+              be_core_inventory_dir, '--gate-json', '--require-inventory-match',
+              '--fabrics'] + be_target_fabric_keys
+             + be_core_plan_args
+             + (['--sg2-plan', be_core_sg2_plan]
+                if be_core_sg2_plan | default('') | length > 0 else [])
+             + (['--vault-file', aipod_vault_file]
+                if aipod_vault_file is defined else []) }}
+      delegate_to: localhost
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      register: be_core_probe
+      check_mode: false
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: "BE fabric: require a readable cable gate response"
+      ansible.builtin.assert:
+        that:
+          - be_core_probe.rc in [0, 1, 2]
+          - (be_core_probe.stdout | trim).startswith('{')
+        fail_msg: >-
+          Fabric-template deployment is held: the cable check could not verify
+          every required switch and port. Check inventory, cabling plan, Python
+          dependencies, SSH reachability/known host keys and vault permissions;
+          correct the issue and rerun. No automatic retry or template deployment.
+
+    - name: "BE fabric: retain sanitized physical gate result"
+      ansible.builtin.set_fact:
+        be_core_connectivity: "{{ be_core_probe.stdout | from_json }}"
+
+    - name: "BE fabric: report cable health separately from automation input health"
+      ansible.builtin.debug:
+        msg:
+          physical_cables: >-
+            {{ be_core_connectivity.fabrics | default([])
+               | map(attribute='physical_gate') | list }}
+          selected_fabrics: "{{ be_target_fabric_keys }}"
+          cable_findings: >-
+            {{ be_core_connectivity.fabrics | default([])
+               | map(attribute='issues') | list }}
+          unreadable_switches: "{{ be_core_connectivity.read_failures | default([]) }}"
+          incomplete_checks: >-
+            {{ be_core_connectivity.fabrics | default([])
+               | map(attribute='incomplete_evidence', default=[]) | list }}
+          input_error: "{{ be_core_connectivity.input_error | default(false) }}"
+          automation_port_list_differences: "{{ be_core_connectivity.inventory_warnings | default([]) }}"
+
+    - name: "BE fabric: refuse template deployment until cables and inputs pass"
+      ansible.builtin.assert:
+        that:
+          - be_core_probe.rc == 0
+          - be_core_connectivity.deployment_ready | bool
+          - not be_core_connectivity.mutations_performed | bool
+          - be_core_connectivity.require_inventory_match | bool
+          - be_core_connectivity.fabrics | length == be_target_fabric_keys | length
+          - be_core_connectivity.fabrics | map(attribute='fabric') | list | sort == be_target_fabric_keys | sort
+          - be_core_connectivity.fabrics | map(attribute='physical_gate') | unique | list == ['PASS']
+          - be_core_connectivity.inventory_warnings | length == 0
+          - be_core_connectivity.read_failures | length == 0
+        fail_msg: >-
+          Fabric-template deployment is held. Required cables must be connected,
+          report matching neighbors at both ends, and match any supplied cabling plan.
+          Inventory core-port lists must also match supplied plans. See the separate
+          cable findings and input differences above; correct them and rerun.
+          No template is submitted and there is no automatic retry.
+        success_msg: >-
+          Core cables and automation port lists passed this read-only sample.
+          This permits the next deployment checks; it is not BGP, optics,
+          traffic or overall fabric-health sign-off.

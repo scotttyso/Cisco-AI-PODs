@@ -1,0 +1,18 @@
+---
+nd_node:
+  hostname: EXAMPLE-ND-1
+  type: Primary
+  role: bootstrap
+  cimc:
+    ip: 198.51.100.87
+    user: admin
+    pass_ref: ND1_CIMC_PASSWORD
+  mgmt:
+    ip: 192.0.2.7
+    mask: 24
+    gateway: 192.0.2.254
+  data:
+    ip: 203.0.113.17
+    mask: 24
+    gateway: 203.0.113.254
+    vlan: null

@@ -1,0 +1,18 @@
+---
+- name: "BE fabric: append intended role for imported switch"
+  ansible.builtin.set_fact:
+    be_manage_role_updates: >-
+      {{
+        be_manage_role_updates + [
+          {
+            'role': be_switch_config.role,
+            'switchId': (
+              be_imported_switches.json
+              | selectattr('ipAddress', 'equalto', be_switch_config.seed_ip)
+              | map(attribute='serialNumber')
+              | first
+            )
+          }
+        ]
+      }}
+  no_log: true

@@ -1,0 +1,84 @@
+---
+- name: Find Variable Files Under host_vars
+  ansible.builtin.find:
+    paths: "{{ host_vars_dir | default(playbook_dir ~ '/../host_vars') }}/everpure"
+    patterns:
+      - "*.ezai.yaml"
+    file_type: file
+  register: everpure_var_files
+
+- name: Merge Variable Files Into a Single Dictionary
+  ansible.builtin.set_fact:
+    merged_vars: "{{ merged_vars | default({}) | combine((lookup('ansible.builtin.file', item.path) | from_yaml), recursive=True) }}"
+  loop: "{{ everpure_var_files.files | sort(attribute='path') }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Set Merged Everpure Object
+  ansible.builtin.set_fact:
+    everpure: "{{ merged_vars.everpure | default({}) }}"
+
+- name: Validate everpure is Defined
+  ansible.builtin.assert:
+    that:
+      - everpure is defined
+      - (everpure.flash_arrays is defined) or (everpure.flash_blades is defined)
+    fail_msg: "everpure data was not loaded or has no flash_arrays/flash_blades entries."
+
+- name: Validate Everpure Environment Variables
+  block:
+    - name: Create temporary directory for validation
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: everpure_validation_
+      register: temp_dir
+
+    - name: Save everpure Dictionary to Temporary File
+      ansible.builtin.copy:
+        content: "{{ everpure | to_nice_json }}"
+        dest: "{{ temp_dir.path }}/everpure.json"
+        mode: '0644'
+      changed_when: false
+
+    - name: Run Everpure Environment Variables Validator
+      ansible.builtin.command:
+        cmd: "python3 {{ role_path }}/library/validate_everpure_env_vars.py --config {{ temp_dir.path }}/everpure.json"
+      register: validation_result
+      failed_when: validation_result.rc != 0
+      changed_when: false
+
+    - name: Display validation results
+      ansible.builtin.debug:
+        msg: "{{ validation_result.stdout }}"
+      when: validation_result.stdout is defined and validation_result.stdout | length > 0
+
+  always:
+    - name: Clean up Temporary Directory
+      ansible.builtin.file:
+        path: "{{ temp_dir.path }}"
+        state: absent
+      when: temp_dir.path is defined
+
+- name: FlashArray
+  ansible.builtin.include_tasks:
+    file: "{{ role_path }}/tasks/flash_array/main.yaml"
+  vars:
+    api_token: "{{ lookup('ansible.builtin.env', 'everpure_api_token_{{ item.api_token_id }}') }}"
+    array_fqdn: "{{ item.array_fqdn }}"
+    array_url: "{{ item.array_url }}"
+  when: everpure.flash_arrays is defined
+  loop: "{{ everpure.flash_arrays }}"
+  loop_control:
+    label: "{{ item.array_fqdn }}"
+
+- name: FlashBlade
+  ansible.builtin.include_tasks:
+    file: "{{ role_path }}/tasks/flash_blade/main.yaml"
+  vars:
+    api_token: "{{ lookup('ansible.builtin.env', 'everpure_api_token_{{ item.api_token_id }}') }}"
+    array_fqdn: "{{ item.array_fqdn }}"
+    array_url: "{{ item.array_url }}"
+  when: everpure.flash_blades is defined
+  loop: "{{ everpure.flash_blades }}"
+  loop_control:
+    label: "{{ item.array_fqdn }}"

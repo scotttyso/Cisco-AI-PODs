@@ -1,0 +1,68 @@
+---
+# =========================================================
+#   Policies -> C885A Profiles - Variables
+# =========================================================
+intersight:
+  configure:
+    default:
+      profiles:
+        server:
+          - action: Deploy
+            attach_template: false
+            bios_policy: MLPerf-Inference-C885A-M8-AMD
+            certificate_management_policy: LDAP-Certificates
+            ipmi_over_lan_policy: IPMI    # Not Really Necessary unless you want to disable IPMI over LAN
+            local_user_policy: LocalUsers # Don't Include the user defined below as this could lockout the script
+            ntp_policy: NTP
+            power_policy: Power
+            server_family: UCSC885A
+            ssh_policy: SSH               # Not Really Necessary unless you want to disable SSH
+            target_platform: Standalone
+            targets:
+              - name: hgx-node-1.example.com
+                serial_number: WZP29100001
+                username: root
+                password: 1
+                server_address: 198.18.1.101
+              - name: hgx-node-2.example.com
+                serial_number: WZP29100002
+                username: root
+                password: 1
+                server_address: 198.18.1.102
+              - name: hgx-node-3.example.com
+                serial_number: WZP29100003
+                username: root
+                password: 1
+                server_address: 198.18.1.103
+              - name: hgx-node-4.example.com
+                serial_number: WZP29100004
+                username: root
+                password: 1
+                server_address: 198.18.1.104
+              - name: hgx-node-5.example.com
+                serial_number: WZP29100005
+                username: root
+                password: 1
+                server_address: 198.18.1.105
+              - name: hgx-node-6.example.com
+                serial_number: WZP29100006
+                username: root
+                password: 1
+                server_address: 198.18.1.106
+              - name: hgx-node-7.example.com
+                serial_number: WZP29100007
+                username: root
+                password: 1
+                server_address: 198.18.1.107
+              - name: hgx-node-8.example.com
+                serial_number: WZP29100008
+                username: root
+                password: 1
+                server_address: 198.18.1.108
+shared_services:
+  dns_servers:
+    - 208.67.222.222
+    - 208.67.220.220
+  # Option Below if you want to use a proxy server for Device Registration to Intersight, etc.
+  # proxy_servers:
+  #   https_proxy: https://proxy.example.com:8080

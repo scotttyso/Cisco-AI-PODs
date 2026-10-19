@@ -1,0 +1,23 @@
+---
+# Tier 4 — Solution playbook for the full Cisco AI POD automation program.
+#
+# Imports five Tier 3 domain playbooks in deployment order. Each domain
+# playbook imports its Tier 2 subsystem playbooks. See playbooks/README.md.
+#
+# DRAFT / SKELETON. Subsystem 01 runs real tasks; subsystems 02–09 are
+# Tier 2 skeletons (debug skip) until their roles land.
+
+- name: "Tier 4 — deploy_aipod (full program)"
+  ansible.builtin.import_playbook: domains/network.yml
+
+- name: "Tier 4 — Storage domain"
+  ansible.builtin.import_playbook: domains/storage.yml
+
+- name: "Tier 4 — Compute domain"
+  ansible.builtin.import_playbook: domains/compute.yml
+
+- name: "Tier 4 — Platform domain"
+  ansible.builtin.import_playbook: domains/platform.yml
+
+- name: "Tier 4 — AI Workload domain"
+  ansible.builtin.import_playbook: domains/ai_workload.yml

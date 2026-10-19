@@ -8,7 +8,7 @@ openshift:
     - H200 SXM
     - H100 NVL
     - RTX PRO 6000 Blackwell Server Edition
-  nvidia_ai_enterprise_version: 8.1
+  nvidia_ai_enterprise_version: '8.1'
   operators:
     cilium:
       cluster_network:
@@ -16,12 +16,19 @@ openshift:
         v4_host_prefix: 23
       enable_kube_proxy_replacement: true
       enable_hubble_metrics: true
-      # Obtain Latest Download Link from https://docs.isovalent.com/ink/install/openshift.html
-      download_url: https://docs.isovalent.com/v25.11/public/clife/clife-v1.18.8.tar.gz
+      # iserver downloads the Isovalent Enterprise manifests for this version (registry access required).
+      version: 1.19.7
+      # Alternatively, pin a manifest bundle from https://docs.isovalent.com/ink/install/openshift.html
+      # download_url: https://docs.isovalent.com/v25.11/public/clife/clife-v1.18.8.tar.gz
     gitea:
       enable: true
     nvidia_gpu_operator:
       enable_rdma: true
+    # Optional: the NIM Operator defaults to the version certified for nvidia_ai_enterprise_version
+    # (NVAIE 8.1 -> 3.1.1) with Manual install plan approval.
+    # nvidia_nim_operator:
+    #   install_plan_approval: Manual
+    #   nim_operator_version: 3.1.1
     nvidia_network_operator:
       mac_vlan:
         - exclude_ips:
@@ -56,6 +63,7 @@ openshift:
             - 198.18.18.1/32
           ip_range: 198.18.18.0/24
           master_interface: ens208f0np0
+      network_operator_version: v26.4.0
       persistent_net_rules:
         - hostname: hgx-worker-01
           interfaces:
@@ -118,12 +126,11 @@ openshift:
       - aap
       - external-secrets-operator
       - cisco-intersight
-      - kubernetes-nmstate-operator
-      - node-feature-discovery-operator
       - nvidia-gpu-operator
       - nvidia-network-operator
+      - openshift-cnv
+      - openshift-nfd
       - openshift-nmstate
-      - openshift-virtualization
       - redhat-ods-operator
     portworx:
       enabled: true

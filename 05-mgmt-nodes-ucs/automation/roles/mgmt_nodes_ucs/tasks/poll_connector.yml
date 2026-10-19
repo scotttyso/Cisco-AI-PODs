@@ -1,0 +1,113 @@
+---
+- name: "UCS/Intersight: select representative endpoint for claim polling"
+  ansible.builtin.set_fact:
+    ucs_poll_endpoint: "{{ ucs_claim_target.endpoints[0] }}"
+  no_log: true
+
+- name: "UCS/Intersight: log in for UCS-X Direct claim polling"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_poll_endpoint.ip }}/Login"
+    method: POST
+    body_format: json
+    body:
+      User: "{{ ucs_poll_endpoint.user }}"
+      Password: "{{ lookup('vars', ucs_poll_endpoint.password_var) }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_poll_domain_login
+  when: ucs_claim_target.platform == 'domain'
+  no_log: true
+
+- name: "UCS/Intersight: create temporary Redfish session for claim polling"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_poll_endpoint.ip }}/redfish/v1/SessionService/Sessions"
+    method: POST
+    body_format: json
+    body:
+      UserName: "{{ ucs_poll_endpoint.user }}"
+      Password: "{{ lookup('vars', ucs_poll_endpoint.password_var) }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 201
+    return_content: false
+    timeout: 30
+  register: ucs_poll_standalone_login
+  when: ucs_claim_target.platform == 'standalone'
+  no_log: true
+
+- name: "UCS/Intersight: poll connector ownership state"
+  ansible.builtin.uri:
+    url: "https://{{ ucs_poll_endpoint.ip }}/connector/Systems"
+    method: GET
+    headers: >-
+      {{
+        {'Cookie': 'sessionId=' ~ (ucs_poll_domain_login.content | from_json).SessionId}
+        if ucs_claim_target.platform == 'domain'
+        else {'X-Auth-Token': ucs_poll_standalone_login.x_auth_token}
+      }}
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: 200
+    return_content: true
+    timeout: 30
+  register: ucs_poll_connector_raw
+  until: >-
+    (
+      (
+        ((ucs_poll_connector_raw.content | from_json) | first)
+        if ((ucs_poll_connector_raw.content | from_json) is sequence and
+            (ucs_poll_connector_raw.content | from_json) is not mapping)
+        else (ucs_poll_connector_raw.content | from_json)
+      ).AccountOwnershipState | default('') | lower | trim == ucs_poll_expected_state
+    ) or (
+      ucs_poll_expected_state == 'unclaimed' and
+      (
+        ((ucs_poll_connector_raw.content | from_json) | first)
+        if ((ucs_poll_connector_raw.content | from_json) is sequence and
+            (ucs_poll_connector_raw.content | from_json) is not mapping)
+        else (ucs_poll_connector_raw.content | from_json)
+      ).AccountOwnershipState | default('') | lower | trim == 'not claimed'
+    )
+  retries: "{{ ucs_connector_poll_retries }}"
+  delay: "{{ ucs_connector_poll_delay_seconds }}"
+  changed_when: false
+  no_log: true
+
+- name: "UCS/Intersight: normalize polled connector state"
+  ansible.builtin.set_fact:
+    ucs_polled_connector: >-
+      {{
+        ((ucs_poll_connector_raw.content | from_json) | first)
+        if ((ucs_poll_connector_raw.content | from_json) is sequence and
+            (ucs_poll_connector_raw.content | from_json) is not mapping)
+        else (ucs_poll_connector_raw.content | from_json)
+      }}
+  no_log: true
+
+- name: "UCS/Intersight: verify claimed account after polling"
+  ansible.builtin.assert:
+    that:
+      - ucs_polled_connector.AccountOwnershipName | default('') == intersight_account_name
+    fail_msg: >-
+      The target reported Claimed, but not by the selected Intersight account.
+  when: ucs_poll_expected_state == 'claimed'
+  no_log: true
+
+- name: "UCS/Intersight: delete temporary polling Redfish session"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        ucs_poll_standalone_login.location
+        if ucs_poll_standalone_login.location is match('^https?://')
+        else 'https://' ~ ucs_poll_endpoint.ip ~ ucs_poll_standalone_login.location
+      }}
+    method: DELETE
+    headers:
+      X-Auth-Token: "{{ ucs_poll_standalone_login.x_auth_token }}"
+    validate_certs: "{{ ucs_connector_validate_certs }}"
+    status_code: [200, 204]
+    return_content: false
+    timeout: 30
+  when: ucs_claim_target.platform == 'standalone'
+  changed_when: false
+  no_log: true

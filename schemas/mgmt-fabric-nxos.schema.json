@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/mgmt-fabric-nxos/v1",
+  "title": "AI POD subsystem 03 - Management fabric (NX-OS / Nexus Dashboard)",
+  "description": "Stub schema for the out-of-band management network fabric onboarded to Nexus Dashboard (subsystem 01). Replace with the real shape when automation lands; until then, any object is accepted so the composed inventory can include this subsystem.",
+  "type": "object",
+  "additionalProperties": true
+}

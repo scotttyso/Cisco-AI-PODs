@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "telemetry_type": "backend_fabric_upgrade_telemetry",
+  "profile": "sg2",
+  "fabric": "backend-fabric-example",
+  "phase": "offline_plan",
+  "timestamp_utc": "2026-01-01T00:00:00+00:00",
+  "summary": {
+    "decision": "already_at_target",
+    "badge": {"label": "Already at target", "variant": "success"},
+    "reason": "Sanitized example generated without ND access or credentials.",
+    "switch_outcome": "already_at_target",
+    "nd_status": "not requested",
+    "switches_total": 4,
+    "target_release_count": 4,
+    "image_validated_count": 4,
+    "update_completed_count": 0,
+    "reboot_observed_count": 0,
+    "target_version": "10.6(4)"
+  },
+  "switches_table": [
+    {"switch_name": "switch-1", "role": "spine", "update_pair": "Update-Pair-Left", "version_before": "10.6(4)", "version_after": "10.6(4)", "nd_group_status": "success", "nd_switch_status": "success", "image_validation_status": "success", "reboot_observed": false, "outcome": "already_at_target", "badge": {"label": "Already at target", "variant": "success"}},
+    {"switch_name": "switch-2", "role": "leaf", "update_pair": "Update-Pair-Left", "version_before": "10.6(4)", "version_after": "10.6(4)", "nd_group_status": "success", "nd_switch_status": "success", "image_validation_status": "success", "reboot_observed": false, "outcome": "already_at_target", "badge": {"label": "Already at target", "variant": "success"}},
+    {"switch_name": "switch-3", "role": "spine", "update_pair": "Update-Pair-Right", "version_before": "10.6(4)", "version_after": "10.6(4)", "nd_group_status": "success", "nd_switch_status": "success", "image_validation_status": "success", "reboot_observed": false, "outcome": "already_at_target", "badge": {"label": "Already at target", "variant": "success"}},
+    {"switch_name": "switch-4", "role": "leaf", "update_pair": "Update-Pair-Right", "version_before": "10.6(4)", "version_after": "10.6(4)", "nd_group_status": "success", "nd_switch_status": "success", "image_validation_status": "success", "reboot_observed": false, "outcome": "already_at_target", "badge": {"label": "Already at target", "variant": "success"}}
+  ],
+  "console_drawer": {"title": "Raw Orchestrator Logs", "total_lines": 1, "lines": ["[00:00:00.000] Generated offline backend-fabric telemetry example"], "collapsible": true, "default_expanded": false}
+}

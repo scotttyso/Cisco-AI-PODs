@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../../../../schema/cisco-ai-pods.json
+---
+# =========================================================
+#   Pools
+# =========================================================
+intersight:
+  configure:
+    default:
+      pools:
+        ip:
+          - ipv4_blocks:
+              - from: 198.18.0.128
+                gateway: 198.18.0.1
+                netmask: 255.255.254.0
+                primary_dns: 198.18.5.53
+                secondary_dns: 198.18.6.53
+                size: 64
+            name: Inband
+          - ipv4_blocks:
+              - from: 198.18.2.128
+                gateway: 198.18.2.1
+                netmask: 255.255.254.0
+                primary_dns: 198.18.5.53
+                secondary_dns: 198.18.6.53
+                size: 64
+            name: OoBand
+        mac:
+          - mac_blocks:
+              - from: 00:25:B5:C1:10:00
+                size: 256
+              - from: 00:25:B5:C1:11:00
+                size: 256
+            name: Single
+        uuid:
+          - name: UUID
+            prefix: 000025B5-C15C-0000
+            uuid_blocks:
+              - from: 25B5-000000000000
+                size: 256

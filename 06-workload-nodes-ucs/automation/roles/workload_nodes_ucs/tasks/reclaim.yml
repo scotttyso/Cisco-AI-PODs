@@ -1,0 +1,16 @@
+---
+- name: "UCS/Intersight reclaim: require explicit one-run confirmation"
+  ansible.builtin.assert:
+    that:
+      - ucs_intersight_allow_reclaim | default(false) | bool
+    fail_msg: >-
+      Reclaim unclaims the selected UCS target. Re-run with
+      -e ucs_intersight_allow_reclaim=true only after confirming the target,
+      account, connector health, and intended maintenance window.
+
+- name: "UCS/Intersight reclaim: select the explicit reclaim path"
+  ansible.builtin.set_fact:
+    ucs_intersight_reclaim_mode: true
+
+- name: "UCS/Intersight reclaim: unclaim and reclaim selected targets"
+  ansible.builtin.include_tasks: intersight_claim.yml

@@ -1,0 +1,74 @@
+---
+- name: "BE fabric: read add-switch lifecycle state for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_add_mode_before
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: derive requested add-switch lifecycle state"
+  ansible.builtin.set_fact:
+    be_add_mode_requested: >-
+      {{ 'Enable' if (be_add_without_reload_enabled | bool) else 'Disable' }}
+  no_log: true
+
+- name: "BE fabric: update add-switch lifecycle state for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name
+      }}/{{ be_add_mode_before.json.templateName }}
+    method: PUT
+    headers: "{{ be_platform_headers }}"
+    body_format: json
+    body:
+      FABRIC_NAME: "{{ be_fabric.name }}"
+      FABRIC_TYPE: BGP
+      BGP_AS: "{{ be_fabric.bgp_as | string }}"
+      GRFIELD_DEBUG_FLAG: "{{ be_add_mode_requested }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 120
+  delegate_to: localhost
+  register: be_add_mode_update
+  when: >-
+    (be_add_mode_before.json.nvPairs.GRFIELD_DEBUG_FLAG | default('Disable') | lower)
+    != (be_add_mode_requested | lower)
+  no_log: true
+
+- name: "BE fabric: read back add-switch lifecycle state for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}
+    method: GET
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 60
+  delegate_to: localhost
+  register: be_add_mode_after
+  changed_when: false
+  no_log: true
+
+- name: "BE fabric: require requested add-switch lifecycle state"
+  ansible.builtin.assert:
+    that:
+      - >-
+        (be_add_mode_after.json.nvPairs.GRFIELD_DEBUG_FLAG | default('Disable') | lower)
+        == (be_add_mode_requested | lower)
+    fail_msg: >-
+      {{ be_fabric.name }} did not retain add-switches-without-reload=
+      {{ be_add_without_reload_enabled | bool }}.
+  no_log: true

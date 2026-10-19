@@ -1,0 +1,29 @@
+---
+# =========================================================
+#   Templates
+# =========================================================
+intersight:
+  configure:
+    default:
+      templates:
+        chassis:
+          - create_template: true
+            imc_access_policy: KVMAccess
+            power_policy: X9508
+            name: X9508
+            thermal_policy: X9508
+        domain:
+          - certificate_management_policy: LDAP-Certificates
+            create_template: true
+            name: XDirect
+            network_connectivity_policy: DNS
+            ntp_policy: NTP
+            ldap_policy: LDAP
+            port_policies:
+              - A
+              - B
+            switch_control_policy: SwCtrl
+            syslog_policy: Syslog
+            system_qos_policy: QoS
+            vlan_policies:
+              - VLANs

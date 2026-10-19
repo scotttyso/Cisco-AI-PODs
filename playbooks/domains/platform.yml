@@ -1,0 +1,9 @@
+---
+# Tier 3 — Platform domain
+# Subsystems: 07 openshift-cluster → 08 mlops
+
+- name: "Tier 3 — Platform / subsystem 07"
+  ansible.builtin.import_playbook: ../../07-openshift-cluster/automation/playbooks/07_openshift_cluster.yml
+
+- name: "Tier 3 — Platform / subsystem 08"
+  ansible.builtin.import_playbook: ../../08-mlops/automation/playbooks/08_mlops.yml

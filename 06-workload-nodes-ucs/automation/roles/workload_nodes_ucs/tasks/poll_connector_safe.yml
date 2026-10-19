@@ -1,0 +1,33 @@
+---
+- name: "UCS/Intersight: poll ownership with guaranteed session cleanup"
+  block:
+    - name: "UCS/Intersight: run ownership polling"
+      ansible.builtin.include_tasks: poll_connector_body.yml
+  always:
+    - name: "UCS/Intersight: delete temporary polling Redfish session"
+      ansible.builtin.uri:
+        url: >-
+          {{
+            ucs_poll_standalone_login.location
+            if ucs_poll_standalone_login.location is match('^https?://')
+            else 'https://' ~ ucs_poll_endpoint.ip ~ ucs_poll_standalone_login.location
+          }}
+        method: DELETE
+        headers:
+          X-Auth-Token: "{{ ucs_poll_standalone_login.x_auth_token }}"
+        validate_certs: "{{ ucs_connector_validate_certs }}"
+        status_code: [200, 204, 404]
+        return_content: false
+        timeout: 30
+      register: ucs_poll_standalone_logout
+      until: ucs_poll_standalone_logout.status | default(0) in [200, 204, 404]
+      retries: 3
+      delay: 2
+      when:
+        - ucs_claim_target.platform == 'standalone'
+        - ucs_poll_standalone_login is defined
+        - ucs_poll_standalone_login.status | default(0) in [200, 201]
+        - ucs_poll_standalone_login.location | default('') | length > 0
+        - ucs_poll_standalone_login.x_auth_token | default('') | length > 0
+      changed_when: false
+      no_log: true

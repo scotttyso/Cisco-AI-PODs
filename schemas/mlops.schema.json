@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/mlops/v1",
+  "title": "AI POD subsystem 08 - MLOps platform",
+  "description": "Stub schema for the MLOps platform (OpenShift AI / Kubeflow / NVIDIA NIM microservices for inference / NeMo for training pipelines) deployed on top of openshift-cluster (subsystem 07). Replace with the real shape when automation lands; until then, any object is accepted.",
+  "type": "object",
+  "additionalProperties": true
+}

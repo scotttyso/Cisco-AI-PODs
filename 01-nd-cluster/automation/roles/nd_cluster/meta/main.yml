@@ -1,0 +1,40 @@
+---
+# Role metadata for cisco.aipod.nd_cluster.
+#
+# DRAFT / SKELETON. Not packaged or released yet. See README.md for status.
+
+galaxy_info:
+  role_name: nd_cluster
+  namespace: cisco
+  author: Cisco AI POD CVD Team
+  description: |
+    Deploy and manage a Cisco Nexus Dashboard 4.x cluster on UCS C-series
+    appliances. Phase 2 wedge: wraps the validated Phase 1 Python automation
+    under 01-nd-cluster/automation/scripts/. Phase 3 will replace
+    shell-outs with native modules from cisco.aipod.
+
+  license: Apache-2.0
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - cisco
+    - nexus
+    - nexusdashboard
+    - aipod
+    - networking
+    - datacenter
+
+# Required collections. The shell-out wedge needs only ansible.builtin and
+# community.general; native module replacements in Phase 3 will pull in
+# cisco.nd or equivalent.
+collections:
+  - ansible.builtin
+  - community.general
+  - cisco.intersight
+
+dependencies: []

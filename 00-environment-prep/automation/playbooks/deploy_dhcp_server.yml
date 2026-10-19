@@ -1,0 +1,20 @@
+---
+# Configure ISC Kea DHCPv4 on the deployment host used to bootstrap CIMC,
+# management, and Nexus POAP addressing.
+#
+# Usage (from the repository root):
+#   ansible-playbook 00-environment-prep/automation/playbooks/deploy_dhcp_server.yml \
+#     -i <inventory> -e dhcp_vars_file=$(pwd)/00-environment-prep/automation/examples/dhcp.yaml
+#
+# Render and validate only (no package install or service changes):
+#   ... -e dhcp_render_only=true -e dhcp_render_dest=/tmp/kea-dhcp4.conf
+- name: Configure DHCP Services for AI Pod Staging
+  hosts: "{{ dhcp_hosts | default('dhcp_servers') }}"
+  become: "{{ not (dhcp_render_only | default(false) | bool) }}"
+  gather_facts: true
+
+  vars:
+    dhcp_vars_file: "{{ lookup('ansible.builtin.env', 'dhcp_vars_file') | default(playbook_dir ~ '/../examples/dhcp.yaml', true) }}"
+
+  roles:
+    - role: "{{ playbook_dir }}/../roles/dhcp_server"

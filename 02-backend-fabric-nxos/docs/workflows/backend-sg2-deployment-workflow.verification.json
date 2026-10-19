@@ -1,0 +1,632 @@
+{
+  "source": {
+    "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+    "sha256": "62577a3c2e789167b68587c1dc87518ffce203fbcec3223ef107e5e2855aabbd",
+    "unchangedAfterGeneration": true
+  },
+  "outputs": [
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/workflows/backend-sg2-deployment-workflow.svg",
+      "bytes": 11469,
+      "sha256": "d7ee84da95e918a17c95ae36e9aaf4d1947543f98f823a4d7d7b92f10eb49e9b"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/workflows/backend-sg2-deployment-workflow.png",
+      "bytes": 248322,
+      "sha256": "fb08c2ce2926d260e127f2fc0dddbc21e630aa5e049422c376ce7bd10c1c9887"
+    }
+  ],
+  "canvas": {
+    "svg": [
+      600,
+      338
+    ],
+    "png": [
+      2400,
+      1352
+    ],
+    "intendedEmbedWidthInches": 6,
+    "bodyPointSize": 7.4,
+    "procedureBox": [
+      113,
+      60.16
+    ],
+    "procedure7BodyPointSize": 6.811200000000001,
+    "procedure7LineHeight": 10.75,
+    "endBox": [
+      106,
+      35
+    ],
+    "decisionDiamond": [
+      113,
+      80
+    ]
+  },
+  "textPositioning": {
+    "horizontal": "text-anchor=\"middle\"",
+    "vertical": "Explicit alphabetic baseline; no dominant-baseline attribute",
+    "firstBaseline": "centerY - ((lineCount - 1) / 2) * lineHeight + 0.37 * fontSize; header/body centers share the existing block layout",
+    "singleLineBaseline": "centerY + 0.37 * fontSize",
+    "fontSizesAndLineHeightsUnchanged": true,
+    "legacyProcedure7OneUnitDownwardNudgeRemoved": true
+  },
+  "procedureEvidence": [
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 152,
+      "text": "### Procedure 1. Create the Backend Fabric Using the Nexus Dashboard AI Template"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 201,
+      "text": "### Procedure 2. Discover and Add Spine and Leaf Switches to the Backend Fabric"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 258,
+      "text": "### Procedure 3. Configure Switch Roles and Deploy Fabric"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 291,
+      "text": "### Procedure 4. Upgrade Backend Switches to target release using Nexus Dashboard"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 373,
+      "text": "### Procedure 5. (Optional) Configure Custom AI QoS Policies"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 397,
+      "text": "### Procedure 6. (Optional) Enable Bidirectional Forwarding Detection on the Underlay"
+    },
+    {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 445,
+      "text": "### Procedure 7. Verify Backend Fabric Health, Connectivity, and BGP EVPN Adjacencies"
+    }
+  ],
+  "supportingEvidence": {
+    "prerequisites": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 14,
+      "text": "## Assumptions and Prerequisites"
+    },
+    "dnsNtpAssumption": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 21,
+      "text": "- DNS and NTP services are operational and reachable from the switch management interfaces."
+    },
+    "breakout": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 138,
+      "text": "### Deploy prerequisites: Configure 2×400G breakout on switches"
+    },
+    "upgradeDecision": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 22,
+      "text": "- If an upgrade is required, the target NX-OS software image (per the HW&SW compatibility matrix in [Table X]{custom-style=\"Highlight\"}) should be staged on an SCP/SFTP server, such as the AI POD automation node. This server should be reachable from Nexus Dashboard, and the SHA-512 of the NX-OS image matches the digest published on cisco.com."
+    },
+    "reload": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 203,
+      "text": "Nexus Dashboard discovers and onboards backend switches using out-of-band management (`mgmt0`) connectivity. The edge-facing fabric interfaces do not need to be up during discovery, but all core-facing links should ideally be connected correctly, with breakouts configured. Also, adding switches triggers a greenfield reload that erases all prior switch configuration except the switch hostname, management IP address, default gateway, and boot variables. Interface breakout configuration is also retained. The reload and configuration behaviour is determined by the **Add switches without reload** (default = disabled) template settings and **Preserve config** variable (greyed out/cannot be changed) in the **Add Switches/Discovery** page."
+    },
+    "bfdVerification": {
+      "path": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/MOP-02-1-backend-fabric-sg2-deploy.md",
+      "line": 472,
+      "text": "2. If BFD was enabled in the optional BFD procedure, confirm the BFD sessions on the underlay are up."
+    }
+  },
+  "approvedLabelChanges": {
+    "authority": "Archana, 2026-10-16: SVG and SG2 generator editing authorized; no chapter/Word/build writes or SVG import.",
+    "breakoutHeader": "Deploy prerequisite",
+    "procedure1Template": "ND AI template",
+    "dnsNtp": "DNS/NTP remain chapter prerequisite assumptions, represented in the Prerequisites box; no chapter prerequisite change.",
+    "manualFigureCleanup": "Removed the automation-preflight footnote and matching description sentence; trimmed the bottom band from 356 to 338 units without moving any workflow content.",
+    "conditionalGrammar": "Unchanged: upgrade required? decision before P4; P5/P6 are operator-optional."
+  },
+  "styleExceptionsUnchanged": [
+    "Existing smaller P7 body font remains pending the separately scoped shared-engine style regression; no font was shrunk for these label changes."
+  ],
+  "layout": {
+    "errors": [],
+    "labels": [
+      {
+        "node": "start",
+        "text": "Start",
+        "width": 24.234375,
+        "fits": true,
+        "textBounds": {
+          "x": 90.3828125,
+          "y": 49.8036003112793,
+          "width": 24.234375,
+          "height": 12
+        },
+        "shapeBounds": {
+          "x": 56,
+          "y": 41.5,
+          "width": 93,
+          "height": 29
+        }
+      },
+      {
+        "node": "prerequisites",
+        "text": "Prerequisites",
+        "width": 65.40625,
+        "fits": true,
+        "textBounds": {
+          "x": 200.796875,
+          "y": 31.690200805664062,
+          "width": 65.40625,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "prerequisites",
+        "text": "ND cluster,OOB management,cabling, DNS/NTP",
+        "width": 93.09375,
+        "fits": true,
+        "textBounds": {
+          "x": 186.953125,
+          "y": 43.533599853515625,
+          "width": 93.09375,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "breakout",
+        "text": "Deploy prerequisite",
+        "width": 96.09375,
+        "fits": true,
+        "textBounds": {
+          "x": 316.453125,
+          "y": 31.690200805664062,
+          "width": 96.09375,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 308,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "breakout",
+        "text": "Configure & verify2×400G breakoutbefore discovery",
+        "width": 89.5625,
+        "fits": true,
+        "textBounds": {
+          "x": 319.71875,
+          "y": 43.533599853515625,
+          "width": 89.5625,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 308,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p1",
+        "text": "Procedure 1",
+        "width": 58.15625,
+        "fits": true,
+        "textBounds": {
+          "x": 466.421875,
+          "y": 31.690200805664062,
+          "width": 58.15625,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 439,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p1",
+        "text": "Create AI BE fabricusing NDAI template",
+        "width": 93.171875,
+        "fits": true,
+        "textBounds": {
+          "x": 448.9140625,
+          "y": 43.533599853515625,
+          "width": 93.171875,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 439,
+          "y": 25.920000076293945,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p2",
+        "text": "Procedure 2",
+        "width": 59.390625,
+        "fits": true,
+        "textBounds": {
+          "x": 72.8046875,
+          "y": 151.960205078125,
+          "width": 59.390625,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 46,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p2",
+        "text": "Discover & addswitches with reload",
+        "width": 100.890625,
+        "fits": true,
+        "textBounds": {
+          "x": 52.0546875,
+          "y": 163.80360412597656,
+          "width": 100.890625,
+          "height": 24.539993286132812
+        },
+        "shapeBounds": {
+          "x": 46,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p3",
+        "text": "Procedure 3",
+        "width": 59.640625,
+        "fits": true,
+        "textBounds": {
+          "x": 203.6796875,
+          "y": 145.69020080566406,
+          "width": 59.640625,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p3",
+        "text": "Assign spine andleaf role;deploy fabric",
+        "width": 83.796875,
+        "fits": true,
+        "textBounds": {
+          "x": 191.6015625,
+          "y": 157.53359985351562,
+          "width": 83.796875,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "upgrade",
+        "text": "NX-OSupgraderequired?",
+        "width": 46.609375,
+        "fits": true,
+        "textBounds": {
+          "x": 341.1953125,
+          "y": 151.2635955810547,
+          "width": 46.609375,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 308,
+          "y": 130,
+          "width": 113,
+          "height": 80
+        }
+      },
+      {
+        "node": "p4",
+        "text": "Procedure 4",
+        "width": 59.8125,
+        "fits": true,
+        "textBounds": {
+          "x": 465.59375,
+          "y": 145.69020080566406,
+          "width": 59.8125,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 439,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p4",
+        "text": "Upgrade NXOSusing NDUpdate Groups",
+        "width": 74.875,
+        "fits": true,
+        "textBounds": {
+          "x": 458.0625,
+          "y": 157.53359985351562,
+          "width": 74.875,
+          "height": 37.08000183105469
+        },
+        "shapeBounds": {
+          "x": 439,
+          "y": 139.9199981689453,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p5",
+        "text": "Procedure 5",
+        "width": 59.59375,
+        "fits": true,
+        "textBounds": {
+          "x": 72.703125,
+          "y": 275.690185546875,
+          "width": 59.59375,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 46,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p5",
+        "text": "(Optional)Customize AI QoS:Queueing",
+        "width": 92,
+        "fits": true,
+        "textBounds": {
+          "x": 56.5,
+          "y": 287.5335998535156,
+          "width": 92,
+          "height": 37.079986572265625
+        },
+        "shapeBounds": {
+          "x": 46,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p6",
+        "text": "Procedure 6",
+        "width": 59.78125,
+        "fits": true,
+        "textBounds": {
+          "x": 203.609375,
+          "y": 281.960205078125,
+          "width": 59.78125,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p6",
+        "text": "(Optional)Enable BFD for BGP",
+        "width": 97.6875,
+        "fits": true,
+        "textBounds": {
+          "x": 184.65625,
+          "y": 293.8035888671875,
+          "width": 97.6875,
+          "height": 24.540008544921875
+        },
+        "shapeBounds": {
+          "x": 177,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p7",
+        "text": "Procedure 7",
+        "width": 59.03125,
+        "fits": true,
+        "textBounds": {
+          "x": 334.984375,
+          "y": 273.0002136230469,
+          "width": 59.03125,
+          "height": 11
+        },
+        "shapeBounds": {
+          "x": 308,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "p7",
+        "text": "Verify BE fabrichealth, connectivity,BGP EVPN, QoSand BFD",
+        "width": 92.765625,
+        "fits": true,
+        "textBounds": {
+          "x": 318.1171875,
+          "y": 283.7502136230469,
+          "width": 92.765625,
+          "height": 43.25
+        },
+        "shapeBounds": {
+          "x": 308,
+          "y": 269.9200134277344,
+          "width": 113,
+          "height": 60.15999984741211
+        }
+      },
+      {
+        "node": "end",
+        "text": "Healthy BackendFabric Deployed",
+        "width": 83.09375,
+        "fits": true,
+        "textBounds": {
+          "x": 453.953125,
+          "y": 287.5335998535156,
+          "width": 83.09375,
+          "height": 24.540008544921875
+        },
+        "shapeBounds": {
+          "x": 442.5,
+          "y": 282.5,
+          "width": 106,
+          "height": 35
+        }
+      }
+    ],
+    "centering": [
+      {
+        "id": "start",
+        "horizontalError": 0,
+        "verticalError": -0.19639968872070312
+      },
+      {
+        "id": "prerequisites",
+        "horizontalError": 0,
+        "verticalError": 0.1519012451171875
+      },
+      {
+        "id": "breakout",
+        "horizontalError": 0,
+        "verticalError": 0.1519012451171875
+      },
+      {
+        "id": "p1",
+        "horizontalError": 0,
+        "verticalError": 0.1519012451171875
+      },
+      {
+        "id": "p2",
+        "horizontalError": 0,
+        "verticalError": 0.1519031524658203
+      },
+      {
+        "id": "p3",
+        "horizontalError": 0,
+        "verticalError": 0.1519031524658203
+      },
+      {
+        "id": "upgrade",
+        "horizontalError": 0,
+        "verticalError": -0.19640350341796875
+      },
+      {
+        "id": "p4",
+        "horizontalError": 0,
+        "verticalError": 0.1519031524658203
+      },
+      {
+        "id": "p5",
+        "horizontalError": 0,
+        "verticalError": 0.1518726348876953
+      },
+      {
+        "id": "p6",
+        "horizontalError": 0,
+        "verticalError": 0.1518878936767578
+      },
+      {
+        "id": "p7",
+        "horizontalError": 0,
+        "verticalError": 0.0002002716064453125
+      },
+      {
+        "id": "end",
+        "horizontalError": 0,
+        "verticalError": -0.1963958740234375
+      },
+      {
+        "id": "continuation-A",
+        "horizontalError": 0,
+        "verticalError": 0.0001983642578125
+      },
+      {
+        "id": "continuation-A",
+        "horizontalError": 0,
+        "verticalError": 0.0001983642578125
+      },
+      {
+        "id": "continuation-B",
+        "horizontalError": 0,
+        "verticalError": 0.0001983642578125
+      },
+      {
+        "id": "continuation-B",
+        "horizontalError": 0,
+        "verticalError": 0.000213623046875
+      }
+    ],
+    "nodeCount": 12
+  },
+  "edges": [
+    "start-prerequisites",
+    "prerequisites-breakout",
+    "breakout-p1",
+    "p1-A",
+    "A-p2",
+    "p2-p3",
+    "p3-upgrade",
+    "upgrade-yes-p4",
+    "upgrade-join-B",
+    "B-p5",
+    "p5-p6",
+    "p6-p7",
+    "p7-end"
+  ],
+  "scope": "Chapter workflow draft only; no chapter integration, Word build, automation changes, device contact, or deployment.",
+  "repeatability": {
+    "runs": 2,
+    "svgAndPngByteIdentical": true,
+    "sha256": {
+      "svg": "d7ee84da95e918a17c95ae36e9aaf4d1947543f98f823a4d7d7b92f10eb49e9b",
+      "png": "fb08c2ce2926d260e127f2fc0dddbc21e630aa5e049422c376ce7bd10c1c9887"
+    }
+  },
+  "publication": {
+    "generator": "/Users/asharma/GIT-REPO/Cisco-AI-PODs-DEV/02-backend-fabric-nxos/docs/workflows/build_sg2_workflow.mjs",
+    "generatorSha256": "cd9c1c5a4c3cfb33a86e47ec7e9ad3b4bcc5231704cf33c6e3134e2e2a687f4e",
+    "recoverablePriorGitBaseline": "8602f0258f06d47db337ffb76623939821375351",
+    "manualFigureOnly": true,
+    "chapterAndBuildFilesUnchanged": 153,
+    "chapterIntegration": "Cursor-owned; not performed",
+    "commitState": "Uncommitted; no commit or push performed"
+  }
+}

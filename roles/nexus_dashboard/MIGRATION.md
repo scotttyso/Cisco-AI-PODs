@@ -85,7 +85,7 @@ nexus_dashboard:
 Usage:
 ```bash
 python nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-fabric \
@@ -166,7 +166,7 @@ Use new command syntax with `--config-file` and `--vault-file`:
 **Old**:
 ```bash
 python library/nexus_dashboard_classic_lan.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --nd-password password \
   --fabric-name my-fabric
@@ -175,7 +175,7 @@ python library/nexus_dashboard_classic_lan.py create-fabric \
 **New**:
 ```bash
 python roles/nexus_dashboard/library/nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name my-fabric \
@@ -228,13 +228,13 @@ To test the new role:
 ```bash
 # List fabrics (basic connectivity test)
 python roles/nexus_dashboard/library/nexus_dashboard.py list-fabrics \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml
 
 # Create a test classic-lan fabric
 python roles/nexus_dashboard/library/nexus_dashboard.py create-fabric \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name test-classic-lan \
@@ -242,7 +242,7 @@ python roles/nexus_dashboard/library/nexus_dashboard.py create-fabric \
 
 # Add switches
 python roles/nexus_dashboard/library/nexus_dashboard.py add-devices \
-  --nd-url https://nd-lan.rich.ciscolabs.com \
+  --nd-url https://nd.example.com \
   --nd-username admin \
   --vault-file vault-ai-pod.yaml \
   --fabric-name test-classic-lan \

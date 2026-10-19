@@ -1,0 +1,58 @@
+---
+# Two independent backend AI fabrics. The first retains the locked primary
+# backend name; the 800G fabric uses ASN +2 and 21.* underlay pools.
+be_fabrics:
+  - key: backend
+    name: AIPOD-Backend
+    bgp_as: 65100
+    underlay_first_octet: 30
+    qos_policy: AI_Fabric_QOS_400G
+    license_tier: Premier
+    location:
+      name: Example City, US
+      latitude: 0
+      longitude: 0
+  - key: backend_800g
+    name: AIPOD-Backend-800G
+    bgp_as: 65102
+    underlay_first_octet: 31
+    # 800G switches does not support multicast underlay replication.
+    replication_mode: Ingress
+    # 800G switches rejects PTP at the NDFC fabric-template validation gate.
+    ptp: false
+    qos_policy: AI_Fabric_QOS_800G
+    license_tier: Premier
+    location:
+      name: Example City, US
+      latitude: 0
+      longitude: 0
+
+# Locked non-default AI-fabric behavior. Live template defaults are fetched on
+# every run; only identity plus these intentional deltas are sent.
+be_fabric_features:
+  unified_fabric_type: aimlVxlanEbgp
+  bgp_as_mode: Multi-AS
+  enable_evpn: true
+  fabric_mtu: 9216
+  link_state_routing: ebgp
+  enable_ai_ml_qos_policy: true
+  # Fabric telemetry (not Nexus Cloud destination settings) follows the
+  # validated Manage > Fabrics workflow.
+  enable_telemetry: true
+  telemetry_collection_mode: in_band
+  telemetry_streaming_protocol: ipv4
+  telemetry_vrf: Telemetry_VRF
+  telemetry_source_interface: loopback0
+  # Fabric Designer uses this switch password when provisioning switches.
+  # The site vault aliases it to the ND administrator password; customer
+  # environments can assign an independent secret to the same reference.
+  use_robot_password: true
+  switch_password_ref: EXAMPLE_BE_FABRIC_SWITCH_PASSWORD
+  add_switches_without_reload: true
+  bfd: true
+  ptp: true
+  # ND 4.3.1 requires both values when PTP is enabled. Zero matches the
+  # validated Easy Fabric eBGP template defaults.
+  ptp_source_loopback_id: 0
+  ptp_domain_id: 0
+  real_time_backup: true

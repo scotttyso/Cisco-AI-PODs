@@ -261,6 +261,32 @@
             "title": "IP Address Types",
             "type": "object"
         },
+        "abstract.ldap": {
+            "additionalProperties": false,
+            "description": "Directory (LDAP / Active Directory) settings shared by the workflow pages; the OpenShift LDAP identity provider pre-fills from them.  The bind password is stored in Ansible Vault (`ldap_bind_password`), never here.\n\nOptional fields are:\n  * `base_dn`\n  * `base_dn_groups`\n  * `base_dn_users`\n  * `bind_dn`\n  * `secure_ldap`\n  * `url`",
+            "properties": {
+                "base_dn": {
+                    "$ref": "#/definitions/openshift.ldap/properties/base_dn"
+                },
+                "base_dn_groups": {
+                    "$ref": "#/definitions/openshift.ldap/properties/base_dn_groups"
+                },
+                "base_dn_users": {
+                    "$ref": "#/definitions/openshift.ldap/properties/base_dn_users"
+                },
+                "bind_dn": {
+                    "$ref": "#/definitions/openshift.ldap/properties/bind_dn"
+                },
+                "secure_ldap": {
+                    "$ref": "#/definitions/openshift.ldap/properties/secure_ldap"
+                },
+                "url": {
+                    "$ref": "#/definitions/openshift.ldap/properties/url"
+                }
+            },
+            "title": "LDAP Directory",
+            "type": "object"
+        },
         "abstract.mac_address": {
             "examples": [
                 "00:1e:67:8c:9b:11",
@@ -831,8 +857,14 @@
                 {
                     "additionalProperties": false,
                     "properties": {
+                        "dhcp": {
+                            "$ref": "#/definitions/dhcp"
+                        },
                         "everpure": {
                             "$ref": "#/definitions/everpure"
+                        },
+                        "hgx_servers": {
+                            "$ref": "#/definitions/hgx.hgx_servers"
                         },
                         "intersight": {
                             "$ref": "#/definitions/intersight"
@@ -855,11 +887,419 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",
             "unevaluatedProperties": false
+        },
+        "dhcp": {
+            "title": "DHCP Bootstrap Server",
+            "description": "Kea DHCPv4 service on the deployment server that bootstraps switch, CIMC / BMC, and Fabric Interconnect management addresses.\n\nRequired fields are:\n  * `subnets`\n\nOptional fields are:\n  * `interfaces`\n  * `authoritative`\n  * `domain_name`\n  * `domain_name_servers`\n  * `ntp_servers`\n  * `global_options`\n  * `default_lease_time`\n  * `max_lease_time`\n  * `reservations`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "interfaces": {
+                    "title": "Listen Interfaces",
+                    "description": "Host interfaces Kea listens on (the ports facing the bootstrap network or the DHCP relay). Required to install Kea; listening on every interface (`*`) is refused.",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "authoritative": {
+                    "title": "Authoritative",
+                    "description": "The default value is `true`.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "domain_name": {
+                    "title": "Domain Name",
+                    "description": "Domain name option (15). Filled from the Initial Inventory shared services.",
+                    "type": "string"
+                },
+                "domain_name_servers": {
+                    "title": "DNS Servers",
+                    "description": "DNS servers option (6). Filled from the Initial Inventory shared services.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "ntp_servers": {
+                    "title": "NTP Servers",
+                    "description": "NTP servers option (42). Filled from the Initial Inventory shared services.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "global_options": {
+                    "title": "Global Options",
+                    "description": "Extra Kea option-data entries for every subnet, for example `domain-search`.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dhcp.options"
+                    }
+                },
+                "default_lease_time": {
+                    "title": "Default Lease Time",
+                    "description": "The default value is `3600` seconds.",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "max_lease_time": {
+                    "title": "Maximum Lease Time",
+                    "description": "The default value is `86400` seconds.",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "subnets": {
+                    "title": "Subnets",
+                    "description": "Subnets Kea serves. At least one is required.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dhcp.subnets"
+                    }
+                },
+                "reservations": {
+                    "title": "Reservations",
+                    "description": "Fixed addresses keyed by MAC address. Built from the Initial Inventory.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dhcp.reservations"
+                    }
+                }
+            },
+            "required": [
+                "subnets"
+            ]
+        },
+        "dhcp.options": {
+            "title": "Kea Option",
+            "description": "A raw Kea option-data entry, for options the other fields do not cover.\n\nRequired fields are:\n  * `name`\n\nOptional fields are:\n  * `data`\n  * `value`\n  * `code`\n  * `space`\n  * `csv-format`\n  * `always-send`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "title": "Option Name",
+                    "description": "Kea option name, for example `domain-search` or `interface-mtu`.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "data": {
+                    "title": "Option Data",
+                    "description": "Option value as Kea expects it (comma-separated for lists). `value` is accepted as an alias.",
+                    "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                    ]
+                },
+                "value": {
+                    "title": "Option Value",
+                    "description": "Alias for `data`.",
+                    "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                    ]
+                },
+                "code": {
+                    "title": "Option Code",
+                    "description": "Option code, required for custom options.",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 254
+                },
+                "space": {
+                    "title": "Option Space",
+                    "description": "Option space. The default value is `dhcp4`.",
+                    "type": "string",
+                    "default": "dhcp4"
+                },
+                "csv-format": {
+                    "title": "CSV Format",
+                    "description": "Whether `data` is comma-separated text (true) or hex (false).",
+                    "type": "boolean"
+                },
+                "always-send": {
+                    "title": "Always Send",
+                    "description": "Send the option even when the client did not request it.",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "name"
+            ]
+        },
+        "dhcp.reservations": {
+            "title": "DHCP Reservation",
+            "description": "A fixed address for one device MAC address. The Automation UI builds these from the Initial Inventory.\n\nRequired fields are:\n  * `mac`\n  * `ip`\n\nOptional fields are:\n  * `hostname`\n  * `subnet`\n  * `routers`\n  * `domain_name_servers`\n  * `tftp_server`\n  * `bootfile`\n  * `options`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "mac": {
+                    "title": "MAC Address",
+                    "description": "Client hardware address, for example `00:25:b5:00:00:01`.",
+                    "type": "string",
+                    "pattern": "^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$"
+                },
+                "ip": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "IP Address",
+                    "description": "Reserved address; must fall inside the subnet."
+                },
+                "hostname": {
+                    "title": "Hostname",
+                    "description": "Hostname sent to the client (option 12).",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$"
+                },
+                "subnet": {
+                    "title": "Subnet",
+                    "description": "Name of the subnet that owns the reservation. Defaults to the subnet that contains `ip`.",
+                    "type": "string"
+                },
+                "routers": {
+                    "title": "Routers",
+                    "description": "Per-host default gateway override.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "domain_name_servers": {
+                    "title": "DNS Servers",
+                    "description": "Per-host DNS server override.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "tftp_server": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "TFTP / POAP Server",
+                    "description": "Per-host TFTP server override."
+                },
+                "bootfile": {
+                    "title": "Boot File",
+                    "description": "Per-host boot file override.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "options": {
+                    "title": "Host Options",
+                    "description": "Extra Kea option-data entries for this host.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dhcp.options"
+                    }
+                }
+            },
+            "required": [
+                "mac",
+                "ip"
+            ]
+        },
+        "dhcp.subnets": {
+            "title": "DHCP Subnet",
+            "description": "A subnet served by Kea. Bootstrap subnets usually only hand out reservations.\n\nRequired fields are:\n  * `name`\n  * `network`\n  * `netmask`\n\nOptional fields are:\n  * `routers`\n  * `domain_name`\n  * `domain_name_servers`\n  * `ntp_servers`\n  * `broadcast_address`\n  * `mtu`\n  * `tftp_server`\n  * `bootfile`\n  * `ranges`\n  * `deny_unknown_clients`\n  * `default_lease_time`\n  * `max_lease_time`\n  * `options`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "title": "Subnet Name",
+                    "description": "Unique name; reservations reference it with `subnet`.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "network": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "Network Address",
+                    "description": "Network address, for example `198.18.0.0`."
+                },
+                "netmask": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "Netmask",
+                    "description": "Subnet mask, for example `255.255.255.0`."
+                },
+                "routers": {
+                    "title": "Routers",
+                    "description": "Default gateways handed to clients (option 3).",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "domain_name": {
+                    "title": "Domain Name",
+                    "description": "Overrides the global domain name for this subnet.",
+                    "type": "string"
+                },
+                "domain_name_servers": {
+                    "title": "DNS Servers",
+                    "description": "Overrides the global DNS servers for this subnet.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "ntp_servers": {
+                    "title": "NTP Servers",
+                    "description": "Overrides the global NTP servers for this subnet.",
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                        "format": "ipv4",
+                        "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                        "type": "string"
+                    }
+                },
+                "broadcast_address": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "Broadcast Address",
+                    "description": "Broadcast address option (28)."
+                },
+                "mtu": {
+                    "title": "Interface MTU",
+                    "description": "Interface MTU option (26).",
+                    "type": "integer",
+                    "minimum": 576,
+                    "maximum": 9216
+                },
+                "tftp_server": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "TFTP / POAP Server",
+                    "description": "TFTP server for POAP and PXE (next-server, options 66 and 150)."
+                },
+                "bootfile": {
+                    "title": "Boot File",
+                    "description": "Boot file name (option 67), for example the POAP script.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "ranges": {
+                    "title": "Address Pools",
+                    "description": "Dynamic pools. Leave empty to serve reservations only.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dhcp.subnets.ranges"
+                    }
+                },
+                "deny_unknown_clients": {
+                    "title": "Deny Unknown Clients",
+                    "description": "The default value is `false`. When true, pools only serve clients that have a reservation.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "default_lease_time": {
+                    "title": "Default Lease Time",
+                    "description": "Overrides the global default lease time (seconds).",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "max_lease_time": {
+                    "title": "Maximum Lease Time",
+                    "description": "Overrides the global maximum lease time (seconds).",
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 31536000
+                },
+                "options": {
+                    "title": "Subnet Options",
+                    "description": "Extra Kea option-data entries for this subnet.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dhcp.options"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "network",
+                "netmask"
+            ]
+        },
+        "dhcp.subnets.ranges": {
+            "title": "Address Pool",
+            "description": "A dynamic address range inside the subnet.\n\nRequired fields are:\n  * `start`\n  * `end`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "start": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "Pool Start",
+                    "description": "First address in the pool."
+                },
+                "end": {
+                    "format": "ipv4",
+                    "pattern": "^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$",
+                    "type": "string",
+                    "title": "Pool End",
+                    "description": "Last address in the pool."
+                }
+            },
+            "required": [
+                "start",
+                "end"
+            ]
         },
         "everpure": {
             "additionalProperties": false,
@@ -3033,6 +3473,190 @@
             ],
             "title": "Support settings for the Everpure arrays",
             "type": "object"
+        },
+        "hgx.bmc_settings": {
+            "title": "HGX BMC Settings",
+            "description": "Settings applied to every HGX BMC.  DNS, NTP, domain, and timezone default to the Initial Inventory shared services.\n\nRequired fields are:\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `timezone`\n\nOptional fields are:\n  * `configure`\n  * `password_ref`\n  * `request_spacing`\n  * `username`\n  * `verify_ssl`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "configure": {
+                    "title": "Settings to Configure",
+                    "description": "Which BMC settings the automation applies.  Every setting is applied by default.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "dns": {
+                            "default": true,
+                            "description": "Default value is `true`.  Set the BMC static DNS servers.",
+                            "title": "DNS Servers",
+                            "type": "boolean"
+                        },
+                        "hostname": {
+                            "default": true,
+                            "description": "Default value is `true`.  Set the BMC host name and FQDN (`<hostname>.<domain_name>`).",
+                            "title": "Host Name and FQDN",
+                            "type": "boolean"
+                        },
+                        "ntp": {
+                            "default": true,
+                            "description": "Default value is `true`.  Set the NTP servers and enable the NTP protocol.",
+                            "title": "NTP",
+                            "type": "boolean"
+                        },
+                        "timezone": {
+                            "default": true,
+                            "description": "Default value is `true`.  Set the BMC `DateTimeLocalOffset` to the current UTC offset of `timezone`.  The BMC stores an offset, not an IANA zone, so re-run after daylight saving time changes.",
+                            "title": "Timezone Offset",
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "dns_servers": {
+                    "$ref": "#/definitions/abstract.dns_servers"
+                },
+                "domain_name": {
+                    "$ref": "#/definitions/abstract.domain_name"
+                },
+                "ntp_servers": {
+                    "$ref": "#/definitions/abstract.ntp_servers"
+                },
+                "password_ref": {
+                    "$ref": "#/definitions/hgx.password_ref"
+                },
+                "request_spacing": {
+                    "default": 3,
+                    "description": "Default value is `3`.  Seconds to wait between Redfish requests; the C880A BMC rejects rapid requests.",
+                    "maximum": 30,
+                    "minimum": 0,
+                    "title": "Request Spacing (seconds)",
+                    "type": "number"
+                },
+                "timezone": {
+                    "$ref": "#/definitions/abstract.timezone"
+                },
+                "username": {
+                    "$ref": "#/definitions/hgx.username"
+                },
+                "verify_ssl": {
+                    "default": false,
+                    "description": "Default value is `false`.  Verify the BMC HTTPS certificate.  BMCs ship with self-signed certificates.",
+                    "title": "Verify SSL",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "dns_servers",
+                "domain_name",
+                "ntp_servers",
+                "timezone"
+            ]
+        },
+        "hgx.hgx_servers": {
+            "title": "HGX Servers",
+            "description": "Cisco UCS HGX servers (C845A / C880A) managed through the BMC Redfish API.\n\nRequired fields are:\n  * `bmc_settings`\n  * `servers`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "bmc_settings": {
+                    "$ref": "#/definitions/hgx.bmc_settings"
+                },
+                "servers": {
+                    "title": "Servers",
+                    "description": "HGX servers to configure.  Pre-filled from the Initial Inventory rows with the HGX node role and the Claim Targets addresses.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/hgx.server"
+                    }
+                }
+            },
+            "required": [
+                "bmc_settings",
+                "servers"
+            ]
+        },
+        "hgx.password_ref": {
+            "default": "HGX_BMC_PASSWORD",
+            "description": "Default value is `HGX_BMC_PASSWORD`.  Name of the environment variable that holds the BMC password.  The web UI exports Ansible Vault key `vault_<name in lower case>` under this name; `HGX_BMC_PASSWORD` is the HGX BMC password entered on Compute > HGX Servers (a target with overridden credentials on Claim Targets uses `<HOST>_CIMC_PASSWORD`).",
+            "examples": [
+                "HGX_BMC_PASSWORD",
+                "HGX_NODE_1_CIMC_PASSWORD"
+            ],
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "BMC Password Reference",
+            "type": "string"
+        },
+        "hgx.server": {
+            "title": "HGX Server",
+            "description": "One HGX server.\n\nRequired fields are:\n  * `bmc`\n  * `hostname`\n\nOptional fields are:\n  * `model`\n  * `serial_number`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "bmc": {
+                    "title": "BMC",
+                    "description": "BMC address and optional credential overrides.\n\nRequired fields are:\n  * `ip`\n\nOptional fields are:\n  * `password_ref`\n  * `username`",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "ip": {
+                            "$ref": "#/definitions/abstract.ip/properties/ipv4_address",
+                            "description": "BMC management address (the static address from Claim Targets when one is set).",
+                            "title": "BMC IPv4 Address"
+                        },
+                        "password_ref": {
+                            "$ref": "#/definitions/hgx.password_ref"
+                        },
+                        "username": {
+                            "$ref": "#/definitions/hgx.username"
+                        }
+                    },
+                    "required": [
+                        "ip"
+                    ]
+                },
+                "hostname": {
+                    "description": "Short host name set on the BMC; the FQDN is `<hostname>.<domain_name>`.",
+                    "examples": [
+                        "hgx-node-1"
+                    ],
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$",
+                    "title": "Host Name",
+                    "type": "string"
+                },
+                "model": {
+                    "description": "Server model.",
+                    "enum": [
+                        "C845A",
+                        "C880A"
+                    ],
+                    "title": "Model",
+                    "type": "string"
+                },
+                "serial_number": {
+                    "description": "Server serial number from the Initial Inventory.",
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "title": "Serial Number",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "bmc",
+                "hostname"
+            ]
+        },
+        "hgx.username": {
+            "default": "admin",
+            "description": "Default value is `admin`.  BMC user name.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "BMC Username",
+            "type": "string"
         },
         "intersight": {
             "allOf": [
@@ -30690,6 +31314,9 @@
                 {
                     "description": "Definition of the list of properties defined in 'chassis.Profile.targets', excluding properties defined in parent classes.",
                     "properties": {
+                        "serial_number": {
+                            "$ref": "#/definitions/intersight.profiles.serial_number"
+                        },
                         "user_label": {
                             "default": "",
                             "description": "The default value is ``.  User label assigned to the Chassis Profile.",
@@ -30704,12 +31331,11 @@
                             "x-intersight-api": "UserLabel"
                         }
                     },
-                    "required": [],
+                    "required": [
+                        "serial_number"
+                    ],
                     "title": "target",
                     "type": "object"
-                },
-                {
-                    "$ref": "#/definitions/intersight.profiles.serial_number"
                 }
             ],
             "title": "targets",
@@ -35124,7 +35750,7 @@
         },
         "nexus_dashboard.cluster": {
             "additionalProperties": false,
-            "description": "Settings applied to the ND cluster as a whole.\n\nRequired Attributes:\n  * `dns`\n  * `iso`\n  * `name`\n  * `network`\n  * `ntp`\n  * `persistent_ips`\n\nOptional Attributes:\n  * `implementation_type` - Default is `LAN`.\n  * `proxy`\n  * `timezone`",
+            "description": "Settings applied to the ND cluster as a whole.\n\nRequired Attributes:\n  * `dns`\n  * `iso`\n  * `name`\n  * `network`\n  * `ntp`\n  * `persistent_ips`\n\nOptional Attributes:\n  * `implementation_type` - Default is `LAN`.\n  * `nodes`\n  * `proxy`\n  * `timezone`",
             "properties": {
                 "dns": {
                     "$ref": "#/definitions/nexus_dashboard.cluster.dns",
@@ -35153,6 +35779,10 @@
                 "network": {
                     "$ref": "#/definitions/nexus_dashboard.cluster.network",
                     "description": "L3 network parameters shared by all nodes. Per-node IPs are inside the nodes array."
+                },
+                "nodes": {
+                    "$ref": "#/definitions/nexus_dashboard.cluster.nodes",
+                    "description": "The three Nexus Dashboard nodes with their CIMC, ND-MGMT, and ND-DATA addressing."
                 },
                 "ntp": {
                     "$ref": "#/definitions/nexus_dashboard.cluster.ntp",
@@ -35580,8 +36210,11 @@
                     }
                 }
             ],
-            "description": "Configuration for Nexus Dashboard fabric deployment.\n\nRequired Attributes:\n  * `type`\n\nOptional Attributes:\n  * `fabric_settings`\n  * `licenseTier` - Default is `essentials`.\n  * `name`\n  * `switches`\n  * `telemetry`",
+            "description": "Configuration for Nexus Dashboard fabric deployment.\n\nRequired Attributes:\n  * `type`\n\nOptional Attributes:\n  * `backend_settings`\n  * `fabric_settings`\n  * `licenseTier` - Default is `essentials`.\n  * `name`\n  * `switches`\n  * `telemetry`",
             "properties": {
+                "backend_settings": {
+                    "$ref": "#/definitions/nexus_dashboard.fabrics.backend_settings"
+                },
                 "fabric_settings": {
                     "description": "Fabric-specific settings for four fabric types. The parent fabric `type` selects which settings definition is used. Omitted optional settings use their declared defaults.\n\n`classicLan` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `cdp` - Default is `false`.\n  * `coppPolicy` - Default is `manual`.\n  * `inbandManagement` - Default is `false`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `monitoredMode` - Default is `true`.\n  * `mplsHandoff` - Default is `false`.\n  * `mplsLoopbackIdentifier` - Default is `101`.\n  * `nxapi` - Default is `false`.\n  * `performanceMonitoring` - Default is `false`.\n  * `realTimeInterfaceStatisticsCollection` - Default is `false`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`vxlanIbgp` and `vxlanEbgp` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `firstHopRedundancyProtocol` - Default is `hsrp`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `intraFabricSubnetRange` - Default is `10.4.0.0/16`.\n  * `l2VniRange`\n  * `l3VniRange`\n  * `networkVlanRange` - Default is `2300-2999`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n\n`aiRouted` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `coppPolicy` - Default is `strict`.\n  * `interfaceStatisticsLoadInterval` - Default is `10`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.\n\n`aiVxlanEvpn` settings:\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `bgpAsn`\n  * `coppPolicy` - Default is `strict`.\n  * `fabricMtu` - Default is `9216`.\n  * `nxapi` - Default is `true`.\n  * `performanceMonitoring` - Default is `true`.\n  * `snmpTrap` - Default is `true`.\n  * `softwareUpdateMode` - Default is `false`.",
                     "type": "object"
@@ -35638,6 +36271,129 @@
                 "type"
             ],
             "title": "Nexus Dashboard Fabric Configuration",
+            "type": "object"
+        },
+        "nexus_dashboard.fabrics.backend_settings": {
+            "additionalProperties": false,
+            "description": "AI backend-fabric workflow settings (stage 02). These values are not sent to the Nexus Dashboard fabric API directly; the workflow translates them into the AI fabric template. Feature flags (`addSwitchesWithoutReload`, `bfd`, `enableAiMlQosPolicy`, `realTimeBackup`, `useRobotPassword`) are read from the first backend fabric.\n\nRequired Attributes:\n  * None\n\nOptional Attributes:\n  * `addSwitchesWithoutReload` - Default is `true`.\n  * `bfd` - Default is `true`.\n  * `enableAiMlQosPolicy` - Default is `true`.\n  * `key`\n  * `location`\n  * `ptp` - Default is `true`.\n  * `ptpDomainId` - Default is `0`.\n  * `ptpSourceLoopbackId` - Default is `0`.\n  * `qosPolicy` - Default is `AI_Fabric_QOS_400G`.\n  * `realTimeBackup` - Default is `true`.\n  * `replicationMode` - Default is `Multicast`.\n  * `underlayFirstOctet` - Default is `20`.\n  * `useRobotPassword` - Default is `true`.",
+            "properties": {
+                "addSwitchesWithoutReload": {
+                    "default": true,
+                    "description": "Add switches to the fabric without a reload.",
+                    "title": "Add Switches Without Reload",
+                    "type": "boolean"
+                },
+                "bfd": {
+                    "default": true,
+                    "description": "Enable BFD for the fabric underlay.",
+                    "title": "BFD",
+                    "type": "boolean"
+                },
+                "enableAiMlQosPolicy": {
+                    "default": true,
+                    "description": "Apply the AI/ML QoS policy to the fabric.",
+                    "title": "Enable AI/ML QoS Policy",
+                    "type": "boolean"
+                },
+                "key": {
+                    "description": "Short identifier for the fabric used in generated inventory group names (`backend_fabric_<key>`). Defaults to the fabric name in lower case with non-alphanumeric characters replaced by `_`.",
+                    "example": "backend",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "title": "Fabric Key",
+                    "type": "string"
+                },
+                "location": {
+                    "additionalProperties": false,
+                    "description": "Fabric location shown in Nexus Dashboard.",
+                    "properties": {
+                        "latitude": {
+                            "maximum": 90,
+                            "minimum": -90,
+                            "title": "Latitude",
+                            "type": "number"
+                        },
+                        "longitude": {
+                            "maximum": 180,
+                            "minimum": -180,
+                            "title": "Longitude",
+                            "type": "number"
+                        },
+                        "name": {
+                            "example": "San Jose, US",
+                            "minLength": 1,
+                            "title": "Location Name",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name"
+                    ],
+                    "title": "Location",
+                    "type": "object"
+                },
+                "ptp": {
+                    "default": true,
+                    "description": "Enable Precision Time Protocol. Some switch models (for example N9364E-SG2) reject PTP in the fabric template.",
+                    "title": "PTP",
+                    "type": "boolean"
+                },
+                "ptpDomainId": {
+                    "default": 0,
+                    "maximum": 127,
+                    "minimum": 0,
+                    "title": "PTP Domain ID",
+                    "type": "integer"
+                },
+                "ptpSourceLoopbackId": {
+                    "default": 0,
+                    "maximum": 1023,
+                    "minimum": 0,
+                    "title": "PTP Source Loopback ID",
+                    "type": "integer"
+                },
+                "qosPolicy": {
+                    "default": "AI_Fabric_QOS_400G",
+                    "description": "AI fabric QoS template.",
+                    "examples": [
+                        "AI_Fabric_QOS_400G",
+                        "AI_Fabric_QOS_800G"
+                    ],
+                    "minLength": 1,
+                    "title": "QoS Policy",
+                    "type": "string"
+                },
+                "realTimeBackup": {
+                    "default": true,
+                    "description": "Enable real-time fabric configuration backup.",
+                    "title": "Real-Time Backup",
+                    "type": "boolean"
+                },
+                "replicationMode": {
+                    "default": "Multicast",
+                    "description": "Underlay BUM replication mode. Use `Ingress` for models without multicast underlay support (for example N9364E-SG2).",
+                    "enum": [
+                        "Ingress",
+                        "Multicast"
+                    ],
+                    "title": "Replication Mode",
+                    "type": "string"
+                },
+                "underlayFirstOctet": {
+                    "default": 20,
+                    "description": "First octet of the generated underlay address pools. Use a different value for each backend fabric.",
+                    "maximum": 223,
+                    "minimum": 1,
+                    "title": "Underlay First Octet",
+                    "type": "integer"
+                },
+                "useRobotPassword": {
+                    "default": true,
+                    "description": "Let the fabric designer use the shared switch password when provisioning switches.",
+                    "title": "Use Robot Password",
+                    "type": "boolean"
+                }
+            },
+            "title": "Backend Fabric Workflow Settings",
             "type": "object"
         },
         "nexus_dashboard.fabrics.fabric_settings.ai_routed_fabric_settings": {
@@ -35984,7 +36740,7 @@
             "type": "object"
         },
         "nexus_dashboard.fabrics.switches": {
-            "description": "List of switches to add to a fabric. At least one switch is required.\n\nRequired item attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional item attributes:\n  * `switchRole`",
+            "description": "List of switches to add to a fabric. At least one switch is required.\n\nRequired item attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional item attributes:\n  * `breakoutCommands`\n  * `fabricLinkInterfaces`\n  * `passwordRef`\n  * `switchRole`\n  * `username`",
             "items": {
                 "$ref": "#/definitions/nexus_dashboard.fabrics.switches.switch"
             },
@@ -35995,8 +36751,38 @@
         },
         "nexus_dashboard.fabrics.switches.switch": {
             "additionalProperties": false,
-            "description": "Configuration for a single switch to be added to a fabric.\n\nRequired Attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional Attributes:\n  * `switchRole`",
+            "description": "Configuration for a single switch to be added to a fabric.\n\nRequired Attributes:\n  * `hostname`\n  * `ip`\n  * `model`\n  * `serialNumber`\n  * `softwareVersion`\n\nOptional Attributes:\n  * `breakoutCommands`\n  * `fabricLinkInterfaces`\n  * `passwordRef`\n  * `switchRole`\n  * `username` - Default is `admin`.",
             "properties": {
+                "breakoutCommands": {
+                    "description": "NX-OS breakout commands the backend-fabric workflow applies before discovery (stage 02).",
+                    "examples": [
+                        [
+                            "interface breakout module 1 port 1-32 map 400g-2x"
+                        ]
+                    ],
+                    "items": {
+                        "minLength": 1,
+                        "type": "string"
+                    },
+                    "title": "Breakout Commands",
+                    "type": "array"
+                },
+                "fabricLinkInterfaces": {
+                    "description": "Spine/leaf fabric link interfaces the backend-fabric pre-check expects to see LLDP neighbors on (stage 02).",
+                    "examples": [
+                        [
+                            "Ethernet1/1",
+                            "Ethernet1/2"
+                        ]
+                    ],
+                    "items": {
+                        "pattern": "^[A-Za-z][A-Za-z-]*[0-9][0-9/.]*$",
+                        "type": "string"
+                    },
+                    "title": "Fabric Link Interfaces",
+                    "type": "array",
+                    "uniqueItems": true
+                },
                 "hostname": {
                     "description": "Hostname of the switch",
                     "example": "leaf1",
@@ -36010,6 +36796,13 @@
                     "example": "10.1.1.10",
                     "format": "ipv4",
                     "title": "IP Address",
+                    "type": "string"
+                },
+                "passwordRef": {
+                    "description": "Vault reference for this switch's local password. The vault variable is `vault_` plus the lower-case reference. When omitted, the shared fabric switch password (`vault_switch_password`) is used.",
+                    "example": "BE_LF1_PASSWORD",
+                    "pattern": "^[A-Z][A-Z0-9_]*$",
+                    "title": "Password Reference",
                     "type": "string"
                 },
                 "model": {
@@ -36040,6 +36833,14 @@
                     ],
                     "example": "leaf",
                     "title": "Switch Role",
+                    "type": "string"
+                },
+                "username": {
+                    "default": "admin",
+                    "description": "Local switch user the backend-fabric workflow uses for SSH pre-checks.",
+                    "example": "admin",
+                    "minLength": 1,
+                    "title": "Username",
                     "type": "string"
                 }
             },
@@ -36351,31 +37152,31 @@
             "description": "This dictionary defines the OpenShift Certificates configuration.\n\nRequired fields are:\n  * `api_cert_chain_file`\n  * `api_server_hostname`\n  * `api_key_file`\n  * `ingress_cert_chain_file`\n  * `ingress_key_file`\n  * `user_ca_bundle_file`",
             "properties": {
                 "api_cert_chain_file": {
+                    "$ref": "#/definitions/abstract.file_path",
                     "description": "Absolute path to the API certificate chain file on the host. File must be in PEM format.",
                     "examples": [
                         "/home/user/pki/api_cert_chain_file.cer"
                     ],
-                    "$ref": "#/definitions/abstract.file_path",
                     "title": "API Certificate Chain File",
                     "type": "string"
                 },
+                "api_key_file": {
+                    "$ref": "#/definitions/abstract.file_path",
+                    "description": "Absolute path to the API key file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/api_key_file.key"
+                    ],
+                    "title": "API Key File",
+                    "type": "string"
+                },
                 "api_server_hostname": {
+                    "$ref": "#/definitions/abstract.hostname",
                     "default": "api.my-cluster.example.com",
                     "description": "The default value is `api.my-cluster.example.com`.  The Hostname for the OpenShift API.",
                     "examples": [
                         "api.my-cluster.example.com"
                     ],
-                    "$ref": "#/definitions/abstract.hostname",
                     "title": "OpenShift API Hostname",
-                    "type": "string"
-                },
-                "api_key_file": {
-                    "description": "Absolute path to the API key file on the host. File must be in PEM format.",
-                    "examples": [
-                        "/home/user/pki/api_key_file.key"
-                    ],
-                    "$ref": "#/definitions/abstract.file_path",
-                    "title": "API Key File",
                     "type": "string"
                 },
                 "ingress_cert_chain_file": {
@@ -37389,12 +38190,12 @@
         },
         "openshift.operators": {
             "additionalProperties": false,
-            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
             "dependentRequired": {
                 "operators_to_install": [
                     "openshift_gitops"
                 ]
             },
+            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `nvidia_nim_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
             "properties": {
                 "cilium": {
                     "$ref": "#/definitions/openshift.operators.cilium"
@@ -37408,11 +38209,14 @@
                 "nvidia_network_operator": {
                     "$ref": "#/definitions/openshift.operators.nvidia_network_operator"
                 },
+                "nvidia_nim_operator": {
+                    "$ref": "#/definitions/openshift.operators.nvidia_nim_operator"
+                },
                 "openshift_gitops": {
                     "$ref": "#/definitions/openshift.operators.openshift_gitops"
                 },
                 "operators_to_install": {
-                    "description": "List of operators to install on the OpenShift cluster.  Supported operators include:\n  * `aap` - Ansible Automation Platform\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift\n  * `cisco-intersight` - Cisco Intersight Operator\n  * `external-secrets-operator` - External Secrets Operator for Red Hat OpenShift\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator\n  * `nvidia-network-operator` - NVIDIA Network Operator\n  * `openshift-cnv` - OpenShift Virtualization\n  * `openshift-nmstate` - Kubernetes NMState Operator\n  * `openshift-nfd` - Node Feature Discovery Operator\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator\n  * `redhat-ods-operator` - Red Hat OpenShift AI\n\nNotes:\n\nThe following will automatically be installed:\n\n  * `lldpd` - The LLDPD DaemonSet for Network Discovery\n\nThe `openshift_gitops` operator is automatically installed if `operators_to_install` includes any operators.\n\nThe `openshift-ods-operator` (AKA Red Hat OpenShift AI) will also install the following operators:\n\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift - If not already selected.\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator.  If not already selected.\n  * `nvidia-network-operator` - NVIDIA Network Operator.  If not already selected.\n  * `openshift-cluster-observability-operator` - Cluster Observability Operator.\n  * `openshift-connectivity-link` - Red Hat Connectivity Link.  The Authorino, DNS, and Limitador Operators are automatically installed as dependencies of the Red Hat Connectivity Link Operator.\n  * `openshift-jobset-operator` - Job Set Operator.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-keda` - Custom Metrics Autoscaler\n  * `openshift-kmm` - Kernel Module Management\n  * `openshift-kueue-operator` - Red Hat build of Kueue.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-lws-operator` - Red Hat build of Leader Worker Set\n  * `openshift-nfd` - Node Feature Discovery Operator.  If not already selected.\n  * `openshift-opentelemetry-operator` - Red Hat build of OpenTelemetry\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator.  If not already selected.\n  * `openshift-tempo-operator` - Tempo Operator",
+                    "description": "List of operators to install on the OpenShift cluster.  Supported operators include:\n  * `aap` - Ansible Automation Platform\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift\n  * `cisco-intersight` - Cisco Intersight Operator\n  * `external-secrets-operator` - External Secrets Operator for Red Hat OpenShift\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator\n  * `nvidia-network-operator` - NVIDIA Network Operator\n  * `nvidia-nim-operator` - NVIDIA NIM Operator (adds the NVIDIA GPU Operator)\n  * `openshift-cnv` - OpenShift Virtualization\n  * `openshift-nmstate` - Kubernetes NMState Operator\n  * `openshift-nfd` - Node Feature Discovery Operator\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator\n  * `redhat-ods-operator` - Red Hat OpenShift AI\n\nNotes:\n\nThe following will automatically be installed:\n\n  * `lldpd` - The LLDPD DaemonSet for Network Discovery\n\nThe `openshift_gitops` operator is automatically installed if `operators_to_install` includes any operators.\n\nThe `openshift-ods-operator` (AKA Red Hat OpenShift AI) will also install the following operators:\n\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift - If not already selected.\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator.  If not already selected.\n  * `nvidia-network-operator` - NVIDIA Network Operator.  If not already selected.\n  * `openshift-cluster-observability-operator` - Cluster Observability Operator.\n  * `openshift-connectivity-link` - Red Hat Connectivity Link.  The Authorino, DNS, and Limitador Operators are automatically installed as dependencies of the Red Hat Connectivity Link Operator.\n  * `openshift-jobset-operator` - Job Set Operator.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-keda` - Custom Metrics Autoscaler\n  * `openshift-kmm` - Kernel Module Management\n  * `openshift-kueue-operator` - Red Hat build of Kueue.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-lws-operator` - Red Hat build of Leader Worker Set\n  * `openshift-nfd` - Node Feature Discovery Operator.  If not already selected.\n  * `openshift-opentelemetry-operator` - Red Hat build of OpenTelemetry\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator.  If not already selected.\n  * `openshift-tempo-operator` - Tempo Operator",
                     "items": {
                         "description": "Operator name to install.",
                         "enum": [
@@ -37422,6 +38226,7 @@
                             "external-secrets-operator",
                             "nvidia-gpu-operator",
                             "nvidia-network-operator",
+                            "nvidia-nim-operator",
                             "openshift-nfd",
                             "openshift-nmstate",
                             "openshift-cnv",
@@ -37449,7 +38254,19 @@
         },
         "openshift.operators.cilium": {
             "additionalProperties": false,
-            "description": "This dictionary defines the Cilium CNI operator configuration.\n\nRequired fields are:\n  * `download_url`",
+            "anyOf": [
+                {
+                    "required": [
+                        "version"
+                    ]
+                },
+                {
+                    "required": [
+                        "download_url"
+                    ]
+                }
+            ],
+            "description": "This dictionary defines the Cilium CNI (Isovalent Enterprise) configuration.\n\nSet `version` (for example `1.19.7`) and iserver downloads and fixes up the Cilium manifests during the install, or set `download_url` to unpack a specific manifest bundle.  Isovalent registry access must be configured either way.\n\nRequired fields are:\n  * `cluster_network`\n  * `version` or `download_url`",
             "properties": {
                 "cluster_network": {
                     "$ref": "#/definitions/openshift.operators.cilium.cluster_network"
@@ -37476,11 +38293,19 @@
                     "description": "The default value is `true`.  Whether to enable Cilium kube-proxy replacement mode.",
                     "title": "Enable Kube-Proxy Replacement",
                     "type": "boolean"
+                },
+                "version": {
+                    "description": "Isovalent Enterprise for Cilium version that iserver installs, for example `1.19.7`.",
+                    "examples": [
+                        "1.19.7"
+                    ],
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "title": "Cilium Version",
+                    "type": "string"
                 }
             },
             "required": [
-                "cluster_network",
-                "download_url"
+                "cluster_network"
             ],
             "title": "Cilium CNI Operator Configuration",
             "type": "object"
@@ -37684,6 +38509,35 @@
             "title": "Persistent Interface Mapping",
             "type": "object"
         },
+        "openshift.operators.nvidia_nim_operator": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the NVIDIA NIM Operator subscription settings. The operator installs from the `nim-operator-certified` package in the `certified-operators` catalog (channel `stable`) into the `nvidia-nim-operator` namespace.\n\nOptional fields are:\n  * `install_plan_approval`\n  * `nim_operator_version`",
+            "properties": {
+                "install_plan_approval": {
+                    "default": "Manual",
+                    "description": "OLM install plan approval. `Manual` keeps the operator on the pinned version until an administrator approves an upgrade; `Automatic` lets OLM upgrade to the newest version in the `stable` channel.",
+                    "enum": [
+                        "Automatic",
+                        "Manual"
+                    ],
+                    "title": "Install Plan Approval",
+                    "type": "string"
+                },
+                "nim_operator_version": {
+                    "description": "NIM Operator version for the starting CSV (`nim-operator-certified.v<version>`). Defaults to the version certified for `nvidia_ai_enterprise_version` in the NVIDIA AI Enterprise support matrix.",
+                    "examples": [
+                        "3.0.2",
+                        "3.1.1",
+                        "3.1.2"
+                    ],
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "title": "NIM Operator Version",
+                    "type": "string"
+                }
+            },
+            "title": "NVIDIA NIM Operator Configuration",
+            "type": "object"
+        },
         "openshift.operators.openshift_gitops": {
             "additionalProperties": false,
             "description": "This dictionary defines the OpenShift GitOps (ArgoCD) operator configuration.\n\nRequired fields are:\n  * `enable`\n  * `gitops_repo_url`\n\nOptional fields are:\n  * `prune`\n  * `self_heal`",
@@ -37773,16 +38627,22 @@
                         "domain_name": {
                             "$ref": "#/definitions/abstract.domain_name"
                         },
+                        "ldap": {
+                            "$ref": "#/definitions/abstract.ldap"
+                        },
                         "ntp_servers": {
                             "$ref": "#/definitions/abstract.ntp_servers"
                         },
                         "proxy_servers": {
                             "$ref": "#/definitions/abstract.proxy_servers"
+                        },
+                        "timezone": {
+                            "$ref": "#/definitions/abstract.timezone"
                         }
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ntp_servers`\n  * `proxy_servers`",
+            "description": "This dictionary provides the required configuration settings for shared services.\n\nOptional fields are:\n  * `dns_search_domains`\n  * `dns_servers`\n  * `domain_name`\n  * `ldap`\n  * `ntp_servers`\n  * `proxy_servers`\n  * `timezone`",
             "required": [],
             "title": "Shared Services",
             "type": "object",

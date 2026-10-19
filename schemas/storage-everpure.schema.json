@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/storage-everpure/v1",
+  "title": "AI POD subsystem 04 - Storage (Everpure FlashBlade + XFM)",
+  "description": "Stub schema for the storage subsystem on Everpure FlashBlade//S with XFM aggregation switches (pair of 1RU switches that aggregate multiple FlashBlade chassis to scale storage incrementally). Replace with the real shape when automation lands; until then, any object is accepted so the composed inventory can include this subsystem.\n\nVendor-named per the locked subsystem table (D11/S1). Future storage variants land as peer subsystems (storage-netapp, storage-vast, etc.) for partner-ownership clarity.",
+  "type": "object",
+  "additionalProperties": true
+}

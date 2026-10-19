@@ -1,0 +1,7 @@
+# Python control-node dependencies for the ND 4.3.x validation environment.
+# Install with the Python 3.12 interpreter selected for this environment.
+-r requirements.txt
+ansible-core==2.21.4
+pytest==9.1.1
+# Required by cisco.intersight 2.2.0 for HTTP-signature API-key authentication.
+cryptography==50.0.1

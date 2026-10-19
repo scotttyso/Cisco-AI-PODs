@@ -1,0 +1,5 @@
+---
+# Tier 3 — Storage domain (subsystem 04 storage-everpure)
+
+- name: "Tier 3 — Storage / subsystem 04"
+  ansible.builtin.import_playbook: ../../04-storage-everpure/automation/playbooks/04_storage_everpure.yml

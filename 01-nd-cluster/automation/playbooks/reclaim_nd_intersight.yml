@@ -1,0 +1,27 @@
+---
+# Explicit, destructive maintenance/test entrypoint. This is deliberately
+# separate from the normal ND deployment playbook: it cannot run unless the
+# operator supplies the one-run confirmation variable documented below.
+
+- name: "Subsystem 01 - Explicitly unclaim and reclaim Nexus Dashboard"
+  hosts: nd_bootstrap
+  gather_facts: false
+  connection: local
+
+  vars_files:
+    - >-
+      {{ nd_vault_file | default(
+           inventory_dir ~ '/group_vars/vault.yml'
+         ) }}
+
+  tasks:
+    - name: "Perform the explicitly confirmed ND Intersight reclaim"
+      ansible.builtin.import_role:
+        name: cisco.aipod.nd_cluster
+        tasks_from: intersight_reclaim
+      tags:
+        - intersight_reclaim
+      vars:
+        runtime: "{{ nd_runtime }}"
+        admin_username: "{{ nd_admin_username }}"
+        nd_admin_password: "{{ vault_nd_admin_password }}"

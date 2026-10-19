@@ -241,6 +241,32 @@
             "title": "IP Address Types",
             "type": "object"
         },
+        "ldap": {
+            "additionalProperties": false,
+            "description": "Directory (LDAP / Active Directory) settings shared by the workflow pages; the OpenShift LDAP identity provider pre-fills from them.  The bind password is stored in Ansible Vault (`ldap_bind_password`), never here.\n\nOptional fields are:\n  * `base_dn`\n  * `base_dn_groups`\n  * `base_dn_users`\n  * `bind_dn`\n  * `secure_ldap`\n  * `url`",
+            "properties": {
+                "base_dn": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/base_dn"
+                },
+                "base_dn_groups": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/base_dn_groups"
+                },
+                "base_dn_users": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/base_dn_users"
+                },
+                "bind_dn": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/bind_dn"
+                },
+                "secure_ldap": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/secure_ldap"
+                },
+                "url": {
+                    "$ref": "./openshift.json#/definitions/ldap/properties/url"
+                }
+            },
+            "title": "LDAP Directory",
+            "type": "object"
+        },
         "mac_address": {
             "examples": [
                 "00:1e:67:8c:9b:11",

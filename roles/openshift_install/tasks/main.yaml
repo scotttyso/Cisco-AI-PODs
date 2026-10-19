@@ -96,8 +96,10 @@
 ##########################################################
 - name: Run Cilium tasks if Cilium is enabled as the network CNI
   ansible.builtin.import_tasks: "tasks/cilium.yaml"
+  # When cilium.version is set, iserver downloads the Isovalent manifests itself (cluster.json).
   when: >-
-    openshift.operators is defined and openshift.operators | json_query('cilium.download_url') is defined
+    ((openshift.operators | default({})).cilium | default({})).download_url is defined and
+    ((openshift.operators | default({})).cilium | default({})).version is not defined
 
 ##########################################################
 # iServer Manifests

@@ -1,0 +1,15 @@
+{
+  "name": "aipod-yaml-editor",
+  "private": true,
+  "description": "Monaco + monaco-yaml (Red Hat yaml-language-server) bundle for the Cisco AI PODs Automation UI",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "monaco-editor": "0.52.2",
+    "monaco-yaml": "5.5.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cisco.com/aipod/schemas/telemetry/workload-nodes-ucs/v1",
+  "title": "AI POD subsystem 06 telemetry - UCS workload node upgrade orchestration (C880A M8)",
+  "description": "Structured JSON telemetry schema for C880 OOB upgrade orchestration, supporting the two-tier web UI pattern (native cards and color-coded tables with an expandable raw console drawer).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "telemetry_type",
+    "host",
+    "phase",
+    "timestamp_utc",
+    "summary",
+    "components_table",
+    "console_drawer"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.0"
+      ]
+    },
+    "telemetry_type": {
+      "type": "string",
+      "enum": [
+        "c880_upgrade_telemetry"
+      ]
+    },
+    "host": {
+      "type": "string",
+      "pattern": "^ucs-c880-[1-4]$"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "offline_plan",
+        "pre_upgrade_discovery",
+        "upgrade_execution",
+        "post_upgrade_verification",
+        "persistence_audit"
+      ]
+    },
+    "timestamp_utc": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "badge",
+        "reason",
+        "total_components",
+        "upgradable_count",
+        "up_to_date_count",
+        "blocked_count",
+        "power_cycle_required"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string"
+        },
+        "badge": {
+          "$ref": "#/$defs/badge"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "total_components": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upgradable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "up_to_date_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "power_cycle_required": {
+          "type": "boolean"
+        },
+        "pre_health": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post_health": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "components_table": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component_row"
+      }
+    },
+    "settings_persistence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "all_passed",
+        "details"
+      ],
+      "properties": {
+        "all_passed": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ipv4_address": { "$ref": "#/$defs/persistence_check" },
+            "subnet_mask": { "$ref": "#/$defs/persistence_check" },
+            "gateway": { "$ref": "#/$defs/persistence_check" },
+            "ntp_servers": { "$ref": "#/$defs/persistence_check" },
+            "ssh_service": { "$ref": "#/$defs/persistence_check" },
+            "timezone_offset": { "$ref": "#/$defs/persistence_check" },
+            "hostname": { "$ref": "#/$defs/persistence_check" },
+            "fqdn": { "$ref": "#/$defs/persistence_check" },
+            "dns_servers": { "$ref": "#/$defs/persistence_check" }
+          }
+        }
+      }
+    },
+    "console_drawer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "total_lines",
+        "lines",
+        "collapsible",
+        "default_expanded"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "total_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "collapsible": {
+          "type": "boolean"
+        },
+        "default_expanded": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "On-disk location of this run's retained artifacts. Absent when the orchestrator is invoked with --no-run-logs. raw.log is appended and flushed line by line while the run is in progress; status_file carries lifecycle state and heartbeat-based stale-run information; see telemetry/run-status.schema.json.",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "run_dir",
+        "raw_log",
+        "telemetry_file",
+        "status_file"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "description": "Directory basename, of the form <UTC timestamp with microseconds>-<host>-<action>."
+        },
+        "run_dir": {
+          "type": "string"
+        },
+        "raw_log": {
+          "type": "string"
+        },
+        "telemetry_file": {
+          "type": "string"
+        },
+        "status_file": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "persistence_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed"],
+      "properties": {
+        "expected": { "type": ["string", "array", "null"] },
+        "actual": { "type": ["string", "array", "null"] },
+        "enabled": { "type": "boolean" },
+        "expected_port": { "type": "integer" },
+        "actual_port": { "type": "integer" },
+        "desired_timezone": { "type": "string" },
+        "scope": { "type": "string" },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "variant"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string",
+          "enum": [
+            "success",
+            "warning",
+            "danger",
+            "info",
+            "primary",
+            "secondary"
+          ]
+        }
+      }
+    },
+    "component_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "running_version",
+        "target_version",
+        "status",
+        "badge",
+        "action",
+        "critical"
+      ],
+      "properties": {
+        "component": {
+          "type": "string"
+        },
+        "running_version": {
+          "type": "string"
+        },
+        "target_version": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "badge": {
+          "$ref": "#/$defs/badge"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "FLASH",
+            "SKIP",
+            "ABORT",
+            "PLANNED",
+            "UNKNOWN"
+          ]
+        },
+        "critical": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

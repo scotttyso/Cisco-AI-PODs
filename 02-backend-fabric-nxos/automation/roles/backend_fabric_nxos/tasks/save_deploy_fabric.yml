@@ -1,0 +1,35 @@
+---
+- name: "BE fabric: recalculate configuration for {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name }}/config-save
+    method: POST
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 600
+  delegate_to: localhost
+  register: be_config_save_result
+  no_log: true
+
+- name: "BE fabric: deploy configuration to each switch in {{ be_fabric.name }}"
+  ansible.builtin.uri:
+    url: >-
+      https://{{ hostvars[inventory_hostname].nd_node.mgmt.ip
+      }}/appcenter/cisco/ndfc/api/v1/lan-fabric/rest/control/fabrics/{{ be_fabric.name
+      }}/config-deploy/{{ be_imported_switch.serialNumber }}?forceShowRun=false
+    method: POST
+    headers: "{{ be_platform_headers }}"
+    validate_certs: "{{ hostvars[inventory_hostname].nd_runtime.verify_tls }}"
+    status_code: 200
+    return_content: true
+    timeout: 600
+  delegate_to: localhost
+  loop: "{{ be_imported_switches.json }}"
+  loop_control:
+    loop_var: be_imported_switch
+    label: "{{ be_imported_switch.logicalName | default(be_imported_switch.ipAddress) }}"
+  register: be_config_deploy_results
+  no_log: true

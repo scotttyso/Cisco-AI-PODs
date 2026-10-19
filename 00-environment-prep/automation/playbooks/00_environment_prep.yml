@@ -1,0 +1,19 @@
+---
+# Subsystem 00 - Environment prep (not a CVD chapter).
+#
+# Tier 2 playbook in the four-tier model:
+#   Tier 4: playbooks/deploy_aipod.yml
+#   Tier 3: (none - prep runs before the Network domain)
+#   Tier 2: this file
+#   Tier 1: roles/dhcp_server
+#
+# The initial inventory (DNS, NTP, timezone, proxy, and order-spreadsheet
+# devices) is built with automation/scripts/build_initial_inventory.py or the
+# Automation UI. DHCP bootstrap runs only when explicitly enabled because it
+# installs and starts a system service:
+#   ansible-playbook 00-environment-prep/automation/playbooks/00_environment_prep.yml \
+#     -i <inventory> -e env_prep_dhcp=true -e dhcp_vars_file=/path/to/dhcp.yaml
+
+- name: "00 - Environment prep: DHCP bootstrap"
+  ansible.builtin.import_playbook: deploy_dhcp_server.yml
+  when: env_prep_dhcp | default(false) | bool

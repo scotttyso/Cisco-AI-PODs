@@ -16,31 +16,31 @@
             "description": "This dictionary defines the OpenShift Certificates configuration.\n\nRequired fields are:\n  * `api_cert_chain_file`\n  * `api_server_hostname`\n  * `api_key_file`\n  * `ingress_cert_chain_file`\n  * `ingress_key_file`\n  * `user_ca_bundle_file`",
             "properties": {
                 "api_cert_chain_file": {
+                    "$ref": "./shared.json#/definitions/file_path",
                     "description": "Absolute path to the API certificate chain file on the host. File must be in PEM format.",
                     "examples": [
                         "/home/user/pki/api_cert_chain_file.cer"
                     ],
-                    "$ref": "./shared.json#/definitions/file_path",
                     "title": "API Certificate Chain File",
                     "type": "string"
                 },
+                "api_key_file": {
+                    "$ref": "./shared.json#/definitions/file_path",
+                    "description": "Absolute path to the API key file on the host. File must be in PEM format.",
+                    "examples": [
+                        "/home/user/pki/api_key_file.key"
+                    ],
+                    "title": "API Key File",
+                    "type": "string"
+                },
                 "api_server_hostname": {
+                    "$ref": "./shared.json#/definitions/hostname",
                     "default": "api.my-cluster.example.com",
                     "description": "The default value is `api.my-cluster.example.com`.  The Hostname for the OpenShift API.",
                     "examples": [
                         "api.my-cluster.example.com"
                     ],
-                    "$ref": "./shared.json#/definitions/hostname",
                     "title": "OpenShift API Hostname",
-                    "type": "string"
-                },
-                "api_key_file": {
-                    "description": "Absolute path to the API key file on the host. File must be in PEM format.",
-                    "examples": [
-                        "/home/user/pki/api_key_file.key"
-                    ],
-                    "$ref": "./shared.json#/definitions/file_path",
-                    "title": "API Key File",
                     "type": "string"
                 },
                 "ingress_cert_chain_file": {
@@ -752,7 +752,7 @@
                     "type": "object"
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Red Hat Openshift machine network gateway addressing.  A \"k8s machine network\" refers to the networking infrastructure within a Kubernetes cluster that allows all its components\u2014including containers, pods, and nodes\u2014to communicate with each other and with external services.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift machine network gateway addressing.  A \"k8s machine network\" refers to the networking infrastructure within a Kubernetes cluster that allows all its components—including containers, pods, and nodes—to communicate with each other and with external services.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
             "title": "OpenShift Container Platform (OCP) - Machine Network Gateway",
             "unevaluatedProperties": false
         },
@@ -1054,12 +1054,12 @@
         },
         "operators": {
             "additionalProperties": false,
-            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
             "dependentRequired": {
                 "operators_to_install": [
                     "openshift_gitops"
                 ]
             },
+            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `nvidia_nim_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
             "properties": {
                 "cilium": {
                     "$ref": "#/definitions/operators.cilium"
@@ -1073,11 +1073,14 @@
                 "nvidia_network_operator": {
                     "$ref": "#/definitions/operators.nvidia_network_operator"
                 },
+                "nvidia_nim_operator": {
+                    "$ref": "#/definitions/operators.nvidia_nim_operator"
+                },
                 "openshift_gitops": {
                     "$ref": "#/definitions/operators.openshift_gitops"
                 },
                 "operators_to_install": {
-                    "description": "List of operators to install on the OpenShift cluster.  Supported operators include:\n  * `aap` - Ansible Automation Platform\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift\n  * `cisco-intersight` - Cisco Intersight Operator\n  * `external-secrets-operator` - External Secrets Operator for Red Hat OpenShift\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator\n  * `nvidia-network-operator` - NVIDIA Network Operator\n  * `openshift-cnv` - OpenShift Virtualization\n  * `openshift-nmstate` - Kubernetes NMState Operator\n  * `openshift-nfd` - Node Feature Discovery Operator\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator\n  * `redhat-ods-operator` - Red Hat OpenShift AI\n\nNotes:\n\nThe following will automatically be installed:\n\n  * `lldpd` - The LLDPD DaemonSet for Network Discovery\n\nThe `openshift_gitops` operator is automatically installed if `operators_to_install` includes any operators.\n\nThe `openshift-ods-operator` (AKA Red Hat OpenShift AI) will also install the following operators:\n\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift - If not already selected.\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator.  If not already selected.\n  * `nvidia-network-operator` - NVIDIA Network Operator.  If not already selected.\n  * `openshift-cluster-observability-operator` - Cluster Observability Operator.\n  * `openshift-connectivity-link` - Red Hat Connectivity Link.  The Authorino, DNS, and Limitador Operators are automatically installed as dependencies of the Red Hat Connectivity Link Operator.\n  * `openshift-jobset-operator` - Job Set Operator.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-keda` - Custom Metrics Autoscaler\n  * `openshift-kmm` - Kernel Module Management\n  * `openshift-kueue-operator` - Red Hat build of Kueue.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-lws-operator` - Red Hat build of Leader Worker Set\n  * `openshift-nfd` - Node Feature Discovery Operator.  If not already selected.\n  * `openshift-opentelemetry-operator` - Red Hat build of OpenTelemetry\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator.  If not already selected.\n  * `openshift-tempo-operator` - Tempo Operator",
+                    "description": "List of operators to install on the OpenShift cluster.  Supported operators include:\n  * `aap` - Ansible Automation Platform\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift\n  * `cisco-intersight` - Cisco Intersight Operator\n  * `external-secrets-operator` - External Secrets Operator for Red Hat OpenShift\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator\n  * `nvidia-network-operator` - NVIDIA Network Operator\n  * `nvidia-nim-operator` - NVIDIA NIM Operator (adds the NVIDIA GPU Operator)\n  * `openshift-cnv` - OpenShift Virtualization\n  * `openshift-nmstate` - Kubernetes NMState Operator\n  * `openshift-nfd` - Node Feature Discovery Operator\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator\n  * `redhat-ods-operator` - Red Hat OpenShift AI\n\nNotes:\n\nThe following will automatically be installed:\n\n  * `lldpd` - The LLDPD DaemonSet for Network Discovery\n\nThe `openshift_gitops` operator is automatically installed if `operators_to_install` includes any operators.\n\nThe `openshift-ods-operator` (AKA Red Hat OpenShift AI) will also install the following operators:\n\n  * `cert-manager-operator` - cert-manager Operator for Red Hat OpenShift - If not already selected.\n  * `nvidia-gpu-operator` - NVIDIA GPU Operator.  If not already selected.\n  * `nvidia-network-operator` - NVIDIA Network Operator.  If not already selected.\n  * `openshift-cluster-observability-operator` - Cluster Observability Operator.\n  * `openshift-connectivity-link` - Red Hat Connectivity Link.  The Authorino, DNS, and Limitador Operators are automatically installed as dependencies of the Red Hat Connectivity Link Operator.\n  * `openshift-jobset-operator` - Job Set Operator.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-keda` - Custom Metrics Autoscaler\n  * `openshift-kmm` - Kernel Module Management\n  * `openshift-kueue-operator` - Red Hat build of Kueue.  Unless `redhat_ods_operator`: `enable_distributed_workloads` is set to `false`.\n  * `openshift-lws-operator` - Red Hat build of Leader Worker Set\n  * `openshift-nfd` - Node Feature Discovery Operator.  If not already selected.\n  * `openshift-opentelemetry-operator` - Red Hat build of OpenTelemetry\n  * `openshift-sriov-network-operator` - SR-IOV Network Operator.  If not already selected.\n  * `openshift-tempo-operator` - Tempo Operator",
                     "items": {
                         "description": "Operator name to install.",
                         "enum": [
@@ -1087,6 +1090,7 @@
                             "external-secrets-operator",
                             "nvidia-gpu-operator",
                             "nvidia-network-operator",
+                            "nvidia-nim-operator",
                             "openshift-nfd",
                             "openshift-nmstate",
                             "openshift-cnv",
@@ -1108,14 +1112,25 @@
                     "$ref": "#/definitions/operators.redhat_ods_operator"
                 }
             },
-            "required": [
-            ],
+            "required": [],
             "title": "OpenShift Operators",
             "type": "object"
         },
         "operators.cilium": {
             "additionalProperties": false,
-            "description": "This dictionary defines the Cilium CNI operator configuration.\n\nRequired fields are:\n  * `download_url`",
+            "anyOf": [
+                {
+                    "required": [
+                        "version"
+                    ]
+                },
+                {
+                    "required": [
+                        "download_url"
+                    ]
+                }
+            ],
+            "description": "This dictionary defines the Cilium CNI (Isovalent Enterprise) configuration.\n\nSet `version` (for example `1.19.7`) and iserver downloads and fixes up the Cilium manifests during the install, or set `download_url` to unpack a specific manifest bundle.  Isovalent registry access must be configured either way.\n\nRequired fields are:\n  * `cluster_network`\n  * `version` or `download_url`",
             "properties": {
                 "cluster_network": {
                     "$ref": "#/definitions/operators.cilium.cluster_network"
@@ -1142,11 +1157,19 @@
                     "description": "The default value is `true`.  Whether to enable Cilium kube-proxy replacement mode.",
                     "title": "Enable Kube-Proxy Replacement",
                     "type": "boolean"
+                },
+                "version": {
+                    "description": "Isovalent Enterprise for Cilium version that iserver installs, for example `1.19.7`.",
+                    "examples": [
+                        "1.19.7"
+                    ],
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "title": "Cilium Version",
+                    "type": "string"
                 }
             },
             "required": [
-                "cluster_network",
-                "download_url"
+                "cluster_network"
             ],
             "title": "Cilium CNI Operator Configuration",
             "type": "object"
@@ -1348,6 +1371,35 @@
                 "name"
             ],
             "title": "Persistent Interface Mapping",
+            "type": "object"
+        },
+        "operators.nvidia_nim_operator": {
+            "additionalProperties": false,
+            "description": "This dictionary defines the NVIDIA NIM Operator subscription settings. The operator installs from the `nim-operator-certified` package in the `certified-operators` catalog (channel `stable`) into the `nvidia-nim-operator` namespace.\n\nOptional fields are:\n  * `install_plan_approval`\n  * `nim_operator_version`",
+            "properties": {
+                "install_plan_approval": {
+                    "default": "Manual",
+                    "description": "OLM install plan approval. `Manual` keeps the operator on the pinned version until an administrator approves an upgrade; `Automatic` lets OLM upgrade to the newest version in the `stable` channel.",
+                    "enum": [
+                        "Automatic",
+                        "Manual"
+                    ],
+                    "title": "Install Plan Approval",
+                    "type": "string"
+                },
+                "nim_operator_version": {
+                    "description": "NIM Operator version for the starting CSV (`nim-operator-certified.v<version>`). Defaults to the version certified for `nvidia_ai_enterprise_version` in the NVIDIA AI Enterprise support matrix.",
+                    "examples": [
+                        "3.0.2",
+                        "3.1.1",
+                        "3.1.2"
+                    ],
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
+                    "title": "NIM Operator Version",
+                    "type": "string"
+                }
+            },
+            "title": "NVIDIA NIM Operator Configuration",
             "type": "object"
         },
         "operators.openshift_gitops": {

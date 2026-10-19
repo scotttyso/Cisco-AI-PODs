@@ -1,0 +1,56 @@
+# Input for scripts/nxos_bootflash_stage.py
+# Passwords come from the environment:
+#   NEXUS_DASHBOARD_PASSWORD, NEXUS_PASSWORD, SCP_SERVER_PASSWORD
+
+# Optional: omit this section (or run with --direct) to SSH to the switches directly from this host.
+nexus_dashboard:
+  host: 192.0.2.10
+  username: rescue-user
+
+switches:
+  username: admin
+  # Optional override of the options retried on "Bad server host key" / "no matching ..." errors
+  # legacy_ssh_options: ["-o", "RequiredRSASize=512", "-o", "HostKeyAlgorithms=+ssh-rsa"]
+  hosts:
+    - 192.0.2.21
+    - 192.0.2.22
+
+scp:
+  server: fileserver.example.com
+  username: svc-automation@example.com
+  # Path on the SCP server as it appears in the URL, "" for scp://user@server/<file>
+  file_path: ""
+  # Used only when 'show running-config tacacs' has no use-vrf
+  vrf: management
+  timeout: 3600
+
+# Image catalog (version -> file or list of files). Any nxos*/n7000*/n7700* .bin in bootflash that is
+# not listed here or under an upgrade_paths entry, not running and not in the boot variable is deleted.
+images:
+  "7.0(3)I7(10)": nxos.7.0.3.I7.10.bin
+  "9.3(16)": nxos.9.3.16.bin
+  "10.3(10)M": nxos64-cs.10.3.10.M.bin
+  "10.6(4)M": nxos64-cs.10.6.4.M.bin
+
+# First entry whose model regex fully matches wins. Every hop newer than the
+# running release must be in bootflash (e.g. FX on 10.3 only needs 10.6(4)M).
+upgrade_paths:
+  - model: "N9K-.*-EX"
+    path: ["7.0(3)I5(2)", "7.0(3)I7(10)", "9.3(16)", "10.3(10)M"]
+  - model: "N9K-C93.*-FX.*"
+    minimum_version: "9.3(1)"
+    path: ["9.3(16)", "10.6(4)M"]
+  - model: "N9K-X97.*-FX"
+    minimum_version: "9.3(1)"
+    path: ["9.3(16)", "10.6(4)M"]
+  # Per-model images override the global catalog; use-kstack is N9K-only.
+  - model: "N7K-F312FQ-25"
+    path: ["8.4(10)"]
+    copy_options: ""
+    images:
+      "8.4(10)": [n7000-s2-kickstart.8.4.10.bin, n7000-s2-dk9.8.4.10.bin, n7000-s2-epld.8.4.10.img]
+  - model: "N77-F348XP-23"
+    path: ["8.4(10)"]
+    copy_options: ""
+    images:
+      "8.4(10)": [n7700-s2-kickstart.8.4.10.bin, n7700-s2-dk9.8.4.10.bin, n7700-s2-epld.8.4.10.img]
