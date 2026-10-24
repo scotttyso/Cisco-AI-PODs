@@ -15,7 +15,7 @@ intersight:
                 serial_number: FOX29100000
               - name: ucsai-2
                 serial_number: FOX29100001
-            thermal_policy: X9508
+            thermal_policy: Balanced
         domain:
           - action: Deploy
             attach_template: true

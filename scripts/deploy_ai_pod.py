@@ -42,8 +42,11 @@ def merge_dicts(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def load_models(host_vars_dir: Path) -> dict[str, Any]:
+def load_models(host_vars_dir: Path, intersight_files: list[Path] | None = None) -> dict[str, Any]:
     files = sorted(host_vars_dir.rglob("*.ezai.yaml"))
+    if intersight_files is not None:
+        source = host_vars_dir / "intersight"
+        files = [path for path in files if not path.is_relative_to(source) or path in intersight_files]
     if not files:
         raise DeploymentError(f"no *.ezai.yaml files found under {host_vars_dir}")
     merged: dict[str, Any] = {}
@@ -216,20 +219,45 @@ def openshift_commands(
     return commands
 
 
-def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path) -> Path:
-    """Copy shared Intersight files (``intersight/*.ezai.yaml`` and the System (Orgs) uploads in
-    ``intersight/system/``) plus one page's subfolder into ``target``."""
+def selected_intersight_files(host_vars_dir: Path, scope: str, files: list[str]) -> list[Path]:
+    source = (host_vars_dir / "intersight").resolve()
+    if scope not in ("domains", "servers"):
+        raise DeploymentError("--intersight-file requires --intersight-scope domains or servers")
+    selected = []
+    for name in files:
+        relative = Path(name)
+        path = source / relative
+        if (relative.is_absolute() or ".." in relative.parts
+                or not path.resolve().is_relative_to(source / scope)
+                or not path.is_file() or not path.name.endswith(".ezai.yaml")):
+            raise DeploymentError(f"invalid selected Intersight file for {scope}: {name}")
+        if path not in selected:
+            selected.append(path)
+    if not selected:
+        raise DeploymentError("select at least one Intersight file")
+    return selected
+
+
+def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path,
+                         files: list[str] | None = None) -> Path:
+    """Copy only the selected page's Intersight configuration into ``target``."""
     source = host_vars_dir / "intersight"
+    if files is not None:
+        for path in selected_intersight_files(host_vars_dir, scope, files):
+            destination = target / path.relative_to(source.resolve())
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, destination)
+        return target
     if scope == "system":
         if not list(source.glob("*.ezai.yaml")) and not any((source / "system").rglob("*.ezai.yaml")):
             raise DeploymentError(f"no *.ezai.yaml files found in {source}")
     elif not (source / scope).is_dir() or not any((source / scope).rglob("*.ezai.yaml")):
         raise DeploymentError(f"no *.ezai.yaml files found under {source / scope}")
-    for path in source.glob("*.ezai.yaml"):
-        shutil.copy2(path, target / path.name)
-    for folder in dict.fromkeys(("system", scope)):
-        if (source / folder).is_dir():
-            shutil.copytree(source / folder, target / folder, dirs_exist_ok=True)
+    if scope == "system":
+        for path in source.glob("*.ezai.yaml"):
+            shutil.copy2(path, target / path.name)
+    if (source / scope).is_dir():
+        shutil.copytree(source / scope, target / scope, dirs_exist_ok=True)
     return target
 
 
@@ -265,6 +293,10 @@ def command_for_role(role: str, host_vars_dir: Path, check: bool, intersight_dir
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy Cisco AI Pod roles with live output.")
     parser.add_argument(
+        "--intersight-file", action="append", dest="intersight_files",
+        help="deploy only this file relative to host_vars/intersight (repeatable; requires domains or servers scope)",
+    )
+    parser.add_argument(
         "--role", action="append", choices=ROLE_ORDER, dest="roles",
         help="run one role; repeat for multiple roles (default: all)",
     )
@@ -283,9 +315,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--check", action="store_true", help="pass check mode where supported")
     parser.add_argument(
         "--intersight-scope", choices=("all", "system", "domains", "servers"), default="all",
-        help="intersight files to deploy: everything under host_vars/intersight, only the shared top-level files "
-             "(system: organizations and resource groups), or the shared files plus only the domains/ or servers/ "
-             "subfolder (default: all)",
+        help="intersight files to deploy: everything under host_vars/intersight (all), top-level files and system/ "
+             "uploads (system), or only the domains/ or servers/ subfolder. Deploy system organizations first "
+             "(default: all)",
     )
     parser.add_argument(
         "--openshift-stage", choices=OPENSHIFT_STAGES, default="phase1",
@@ -310,7 +342,9 @@ def main(argv: list[str] | None = None) -> int:
         host_vars_dir = args.host_vars_dir.expanduser().resolve()
         vault_file = args.vault_file.expanduser().resolve()
         vault_password_file = args.vault_password_file.expanduser().resolve()
-        models = load_models(host_vars_dir)
+        selected = (selected_intersight_files(host_vars_dir, args.intersight_scope, args.intersight_files)
+                    if args.intersight_files is not None else None)
+        models = load_models(host_vars_dir, selected)
         vault = load_vault_sections(vault_file, vault_password_file)
 
         def role_env(section: str | None = None) -> dict[str, str]:
@@ -335,9 +369,11 @@ def main(argv: list[str] | None = None) -> int:
                     run_command(command, env, cwd)
             elif role == "intersight" and args.intersight_scope != "all":
                 with tempfile.TemporaryDirectory(prefix=f"aipod-intersight-{args.intersight_scope}-") as folder:
-                    scoped = scoped_intersight_dir(host_vars_dir, args.intersight_scope, Path(folder))
-                    folders = dict.fromkeys(("system", args.intersight_scope))
-                    print("Deploying shared intersight/*.ezai.yaml, " + ", ".join(f"intersight/{name}/" for name in folders)
+                    scoped = scoped_intersight_dir(host_vars_dir, args.intersight_scope, Path(folder),
+                                                   args.intersight_files)
+                    location = ("intersight/*.ezai.yaml and intersight/system/"
+                                if args.intersight_scope == "system" else f"intersight/{args.intersight_scope}/")
+                    print("Deploying " + (", ".join(args.intersight_files) if args.intersight_files else location)
                           + " only", flush=True)
                     run_command(command_for_role(role, host_vars_dir, args.check, scoped), env)
             else:

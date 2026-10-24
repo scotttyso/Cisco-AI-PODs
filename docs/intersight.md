@@ -38,7 +38,7 @@ pools and many policies differ between UCS domains and servers:
 
 | Folder | WebUI page | Contents |
 |--------|------------|----------|
-| `system/system.ezai.yaml` | System (Orgs) | Organizations and resource groups (saved as `host_vars/intersight/system.ezai.yaml`), used by every deployment |
+| `system/system.ezai.yaml` | System (Orgs) | Organizations and resource groups (saved as `host_vars/intersight/system.ezai.yaml`), deployed from this page only |
 | `domains/` | UCS Domains | `policies.ezai.yaml` (every domain and chassis policy in one file; remove the ones you do not need), `pools.ezai.yaml` (the Inband / OoBand IP pools the Chassis IMC Access policy uses), templates, and profiles |
 | `servers/x-series/` | UCS Servers | X-Series pools and policies, optional Fibre Channel pools / policies / SAN connectivity, server templates, and blade server profiles |
 | `servers/standalone/` | UCS Servers | Standalone C-Series policies, templates, and profiles |
@@ -50,13 +50,81 @@ group always holds every target and is not changed; to separate servers, list th
 
 Delete the files you do not deploy (for example the Fibre Channel files or templates); in the WebUI use the delete
 button on the Variables toolbar. `scripts/deploy_ai_pod.py --intersight-scope system` deploys only
-`system.ezai.yaml`; `--intersight-scope domains|servers` deploys `system.ezai.yaml` plus one folder. Files from different folders are merged, and identical policy entries that
-appear in both folders are kept once.
+the top-level Intersight files and System-tab uploads; `--intersight-scope domains|servers`
+deploys only the selected folder, including its uploads. Deploy organizations from System (Orgs)
+first. Domain and server deployments use existing organizations without reconciling their system files.
+The CLI's default `--intersight-scope all` still deploys the complete configuration.
 
 On the UCS Domains and UCS Servers pages, the upload button on each Variables toolbar adds your own YAML files. They are
 schema-checked, saved as `<name>.ezai.yaml` under an `uploads/` folder in that page's folder (for example
 `host_vars/intersight/servers/x-series/uploads/`), listed as `uploads/<name>` in the file menu, and merged with the
 page's other files when it deploys. The delete button removes an uploaded file.
+
+On UCS Domains and UCS Servers, **Deploy to Intersight** and **Validate (check mode)**
+open a file picker with all saved page files selected by default, including uploads.
+Choose only templates or profiles to resume after pools and policies have succeeded.
+The action uses saved disk contents; save editor changes before opening the picker.
+At least one file is required. Only selected files are validated and loaded, including
+their referenced secrets. Unselected resources are not created or updated, so any
+dependencies they supply must already exist in Intersight. Resource dependency order
+is preserved regardless of the file selection order.
+
+The CLI supports the same selection using repeatable paths relative to `host_vars/intersight`:
+
+```bash
+python3 scripts/deploy_ai_pod.py --role intersight --intersight-scope domains \
+  --intersight-file domains/templates.ezai.yaml \
+  --intersight-file domains/profiles.ezai.yaml
+```
+
+Omit `--intersight-file` to deploy all files in the selected scope. The selection is
+per run and does not delete or change any variable files. System (Orgs) keeps its
+existing whole-page deployment behavior.
+
+### Domain uplink connectivity
+
+The UCS Domains post-check **Validate domain uplink connectivity** replaces server MAC collection
+(which remains on UCS Servers). It uses the saved domain profiles' `serial_numbers` to find each
+Fabric Interconnect, then reads its assigned switch profile and port policy from Intersight.
+It checks every Ethernet, FCoE, and FC uplink, including port-channel members and breakout ports.
+Missing ports, down/unknown link states, missing assignments, and API errors fail the check.
+This is a read-only post-deployment check of the assigned policy, not a comparison against
+unapplied local port-policy edits.
+
+For Ethernet/FCoE ports, the console includes CDP/LLDP neighbor device, remote port, and management
+address when Intersight reports them. No neighbor data is explicitly reported as unavailable:
+an up link alone does not prove connection to the intended physical switch. FC ports have no
+CDP/LLDP check. Intersight inventory may lag physical changes.
+
+For profiles attached to a domain template, provisioning creates/updates the cluster and both
+A/B switch profiles, then merges the corresponding templates using `bulk/MoMergers`.
+Before `action: Deploy` runs, it reads back the template relationships and inherited policy
+references (including System QoS when configured on the switch template). Missing inheritance
+stops deployment with an explicit error. A profiles-only retry also repairs profiles that have
+a template reference but no inherited policies; it does not require recreating pools or policies.
+`attach_template: false` retains its copy-without-binding behavior, and check mode does not
+submit template merges.
+
+```bash
+python3 05-mgmt-nodes-ucs/automation/scripts/check_intersight_domain_ports.py \
+  --domains-dir host_vars/intersight/domains
+```
+
+The command uses the same `intersight_api_key_id`, `intersight_secret_key`, and optional
+`intersight_fqdn` environment variables as the existing Intersight MAC collector.
+
+### Automation logs
+
+The Automation panel retains the latest 25 completed runs per page, not 90 days.
+When another run completes, logs beyond that count are deleted. Download logs before
+they roll out of history; expired logs cannot be recovered through the UI.
+
+Use the single-log download icon for the displayed run, **Page logs** for a ZIP of
+all retained logs on that page, or **Environment logs** for a ZIP across all pages
+of the current environment. ZIPs contain the already-redacted log files, grouped
+by page; they do not include vault files or job metadata. Active runs are included
+as snapshots and may not yet contain their final output. Download errors are shown
+in the UI. Retention is unchanged by downloading.
 
 Policy passwords and secrets are under Passwords and secrets on both pages: check each policy the YAML uses and set how
 many values it references (SNMP has a count per value, for example three `snmp_user_auth_password` entries referenced

@@ -659,6 +659,8 @@ class configure:
         regcomb = re.compile(
             '|'.join([regex1.pattern, regex2.pattern]), re.IGNORECASE)
         if re.search(regcomb, self.type):
+            check_mode = getattr(kwargs.args, 'check', False)
+            missing_dependencies = []
             kwargs.cp = DotMap()
             updated_resources = []
             for e in reconcile_resources:
@@ -675,7 +677,30 @@ class configure:
                         category = kwargs.cp[e].get('category', self.category)
                         kwargs = configure(
                             category=category, type=e).api_get(
-                            False, names, e, kwargs)
+                            check_mode, names, e, kwargs)
+                        if check_mode:
+                            for name in names:
+                                org, resource_name = self.determine_resource_organization(
+                                    False, name, kwargs)
+                                resource = kwargs.intersight_api.get(org, {}).get(
+                                    category, {}).get(e, {}).get(resource_name, {})
+                                if not resource.get('moid'):
+                                    missing_dependencies.append(
+                                        f'{category}/{e}: {org}/{resource_name}')
+            if missing_dependencies:
+                pcolor.Yellow(
+                    f'     * Check mode: deferred payload validation for '
+                    f'{self.category} -> {ptitle} in organization `{kwargs.org}`. '
+                    f'Referenced resources do not exist yet: '
+                    f'{", ".join(missing_dependencies)}.')
+                pcolor.Yellow(
+                    '       Define these resources in the deployment configuration '
+                    'or create them before applying. No payloads for this resource '
+                    'type were validated or submitted; rerun check mode after '
+                    'the dependencies exist.')
+                notifications.section_end_org(
+                    kwargs.org, ptitle, self.category.title())
+                return kwargs
         if re.search('profiles|templates', self.category):
             kwargs.policies = DotMap()
             kwargs.pools = DotMap()
@@ -1884,6 +1909,7 @@ class configure:
         org = kwargs.org
         np, ns = self.name_prefix_suffix(org, kwargs)
         kwargs.bulk_list = []
+        reserved_vlans = {4043, 4044, 4045, 4046, 4047, 4094, 4095}
         for e in kwargs.resources:
             ekeys = list(e.keys())
             if child_type in ekeys:
@@ -1896,12 +1922,10 @@ class configure:
                         name_prefix = item.name_prefix
                     vlans = shared_functions.vlan_list_full(item.vlan_list)
                     original_name = item.name
-                    reserved_list = shared_functions.vlan_list_full(
-                        '4043-4047, 4094, 4095')
                     for x in vlans:
                         if isinstance(x, str):
                             x = int(x)
-                        if x in reserved_list:
+                        if x in reserved_vlans:
                             pcolor.Yellow(
                                 f'!!! WARNING !!! VLAN ID {x} is a reserved VLAN and cannot be used.'
                                 f'  Skipping assignment of VLAN ID {x} under VLAN Policy `{np + e.name + ns}` in Org `{kwargs.org}`.')
@@ -2214,6 +2238,24 @@ class configure:
         return kwargs
 
     # =========================================================================
+    # Function - Validate Hardware Serial Lookup Results
+    # =========================================================================
+    def validate_serial_results(self, serials, kwargs):
+        found = {
+            result.get('Serial') for result in kwargs.results
+            if isinstance(result.get('Serial'), str) and result.get('Moid')
+        }
+        missing = list(dict.fromkeys(serial for serial in serials if serial not in found))
+        if missing:
+            message = (
+                f'Cannot assign {self.type} profiles in organization `{kwargs.org}`: '
+                f'serial number(s) not found in Intersight at {kwargs.uri}: '
+                f'{", ".join(missing)}. Check for typos and confirm the hardware '
+                'is claimed and visible to this API key.')
+            pcolor.Red(f'!!! ERROR !!! {message}')
+            raise ValueError(message)
+
+    # =========================================================================
     # Function - Build Chassis/Server Profiles
     # =========================================================================
     def profiles_chassis_server(self, kwargs):
@@ -2237,6 +2279,7 @@ class configure:
                 names=serial_numbers,
                 uri=ezdata['x-intersight-uri-serial'])
             kwargs = api(category='system', type='serial_number').calls(kwargs)
+            self.validate_serial_results(serial_numbers, kwargs)
         # =====================================================================
         # Assign Server Profile Identity Reservations - If Defined
         # =====================================================================
@@ -2507,89 +2550,91 @@ class configure:
     # Function - Domain Profiles Updates
     # =========================================================================
     def profiles_domain(self, kwargs):
-        item = self.profiles_templates_domain_unified_edge(kwargs)
-        return item
+        profiles = deepcopy(kwargs.resources)
+        kwargs = self.profiles_templates_domain_unified_edge(kwargs)
+        return self.profiles_domain_deploy(profiles, kwargs)
 
     # =========================================================================
     # Function - Deploy Domain Profile if Action is Deploy
     # =========================================================================
     def profiles_domain_deploy(self, profiles, kwargs):
-        pending_changes = False
-        kwargs.names = []
+        profiles = [profile for profile in profiles if profile.get('action') == 'Deploy']
+        if not profiles:
+            return kwargs
         np, ns = self.name_prefix_suffix(kwargs.org, kwargs)
-        for e in profiles:
-            name = f'{np}{e.name}{ns}'
-            kwargs.cluster_update[name].names = []
-            kwargs.cluster_update[name].pending_changes = False
-            if e.get('action') and e.get('serial_numbers'):
-                serial_check = True
-                for d in e.serial_numbers:
-                    if not re.search(serial_regex, d):
-                        serial_check = False
-                if e.action == 'Deploy' and serial_check:
-                    kwargs.names.append(
-                        kwargs.intersight_api[kwargs.org].profiles[self.type][name].moid)
-        clusters = DotMap()
-        for k, v in kwargs.intersight_api[kwargs.org].profiles[self.type].items(
-        ):
-            clusters[v] = k
-        if len(kwargs.names) > 0:
-            kwargs = kwargs | DotMap(method='get',
-                                     parent='SwitchClusterProfile',
-                                     uri=kwargs.ezdata[f"intersight.profiles.{self.type}"]['x-intersight-uri-switch'])
-            kwargs = api('parent_moids').calls(kwargs)
-            for e in kwargs.results:
-                if len(
-                        e.ConfigChanges.Changes) > 0 or re.search(
-                        "Assigned|Failed|Pending-changes",
-                        e.ConfigContext.ConfigState):
-                    pending_changes = True
-                    kwargs.cluster_update[clusters[e.Parent.Moid]
-                                          ].pending_changes = True
-                    kwargs.cluster_update[clusters[e.Parent.Moid]].names.append(
-                        e.Name)
-        if pending_changes:
-            pcolor.LightPurple(f'\n{"-" * 108}\n')
-            pcolor.Cyan(f'{" " * 6}* Sleeping for 120 Seconds')
-            time.sleep(120)
-            pcolor.Green(
-                f'{" " * 4}- Beginning Profile Deployment for Switch Profiles')
+        names = [f'{np}{profile.name}{ns}' for profile in profiles]
+        if getattr(kwargs.args, 'check', False):
+            for name in names:
+                pcolor.Cyan(
+                    f'     * Check mode: would deploy A/B switch profiles for `{name}`; no deployment submitted.')
+            return kwargs
+        domain_cfg = configure(category='profiles', type='domain')
+        switch_cfg = configure(category='profiles', type='domain.switch')
+        kwargs = domain_cfg.api_get(False, names, 'domain', kwargs)
+        clusters = kwargs.intersight_api[kwargs.org].profiles.domain
+        parent_moids = []
+        for name in names:
+            moid = clusters.get(name, {}).get('moid')
+            if not isinstance(moid, str) or not moid:
+                raise ValueError(f'Cannot deploy domain profile `{name}`: cluster profile has no Moid')
+            parent_moids.append(moid)
+        kwargs = switch_cfg.api_get(False, parent_moids, 'domain.switch', kwargs)
+        switches = list(kwargs.results)
+        selected = []
+        for name, parent_moid in zip(names, parent_moids):
+            children = [child for child in switches
+                        if (child.get('SwitchClusterProfile') or {}).get('Moid') == parent_moid]
+            for side in ['A', 'B']:
+                matches = [child for child in children if child.get('SwitchId') == side]
+                if len(matches) != 1 or not matches[0].get('Moid'):
+                    raise ValueError(
+                        f'Cannot deploy domain profile `{name}`: expected one switch profile for fabric {side}')
+                child = matches[0]
+                if not (child.get('AssignedSwitch') or {}).get('Moid'):
+                    raise ValueError(
+                        f'Cannot deploy switch profile `{child.Name}`: no assigned switch; check hardware serials')
+                context = child.get('ConfigContext') or {}
+                if (context.get('ConfigState') == 'Associated'
+                        and context.get('ControlAction') == 'No-op'
+                        and not (child.get('ConfigChanges') or {}).get('Changes')):
+                    pcolor.Cyan(f'     * Switch profile `{child.Name}` is already deployed; no pending changes.')
+                    continue
+                selected.append(child)
         kwargs.bulk_list = []
-        for k in list(kwargs.cluster_update.keys()):
-            if kwargs.cluster_update[k].pending_changes:
-                for e in kwargs.cluster_update[k].names:
-                    kwargs.bulk_list.append(
-                        {'Action': 'Deploy', 'Name': e, 'pmoid': kwargs.intersight_api[kwargs.org].profiles['switch'][e].moid})
-        if len(kwargs.bulk_list) > 0:
-            kwargs = configure('profiles.switch').create_bulk_request(kwargs)
-        if pending_changes:
-            pcolor.LightPurple(f'\n{"-" * 108}\n')
-            time.sleep(60)
-        for k in list(kwargs.cluster_update.keys()):
-            if kwargs.cluster_update[k].pending_changes:
+        for child in selected:
+            kwargs.bulk_list.append({'Action': 'Deploy', 'Name': child.Name, 'pmoid': child.Moid})
+        if not kwargs.bulk_list:
+            return kwargs
+        for child in selected:
+            pcolor.Green(f'    - Beginning Profile Deployment for `{child.Name}`.')
+        kwargs.uri = kwargs.ezdata['intersight.profiles.domain.switch']['x-intersight-uri']
+        kwargs = switch_cfg.create_bulk_request(kwargs)
+        for child in selected:
+            pcolor.Cyan(
+                f'      - Completed deployment PATCH for Organization: `{kwargs.org}` '
+                f'> Name: {child.Name} - Moid: {child.Moid}')
+        for child in selected:
+            for attempt in range(30):
+                pcolor.LightPurple(
+                    f'    * Deploying Changes for `{child.Name}`.  Sleeping for 60 Seconds '
+                    f'(deployment check {attempt + 1}/30).')
+                time.sleep(60)
                 kwargs = kwargs | DotMap(
-                    method='get_by_moid', uri=kwargs.ezdata[f"intersight.profiles.{self.type}"]['x-intersight-uri-switch'])
-                for e in kwargs.cluster_update[k].names:
-                    kwargs.pmoid = kwargs.intersight_api[kwargs.org].profiles['switch'][e].moid
-                    deploy_complete = False
-                    attempts = 0
-                    max_attempts = 30
-                    while not deploy_complete:
-                        attempts += 1
-                        kwargs = api('switch_profiles').calls(kwargs)
-                        if kwargs.results.ConfigContext.ControlAction == 'No-op':
-                            pcolor.Green(
-                                f'{" " * 4}- Completed Switch Profile Deployment for {e}')
-                            deploy_complete = True
-                        elif attempts >= max_attempts:
-                            raise TimeoutError(
-                                f'Switch profile deployment timed out for "{e}" after {attempts} checks')
-                        else:
-                            pcolor.Cyan(
-                                f'{" " * 6}* Deploy Still Occuring on {e}.  Waiting 120 seconds.')
-                            time.sleep(120)
-        if pending_changes:
-            pcolor.LightPurple(f'\n{"-" * 108}\n')
+                    method='get_by_moid', pmoid=child.Moid,
+                    uri=kwargs.ezdata['intersight.profiles.domain.switch']['x-intersight-uri'])
+                kwargs = api(category='profiles', type='domain.switch').calls(kwargs)
+                context = kwargs.results.get('ConfigContext') or {}
+                state = context.get('ConfigState', '')
+                summary = context.get('ConfigStateSummary', '')
+                if re.search('Failed|Inconsistent|Error', f'{state} {summary}', re.IGNORECASE):
+                    raise RuntimeError(
+                        f'Switch profile deployment failed for `{child.Name}`: state={state}, summary={summary}')
+                if state == 'Associated' and context.get('ControlAction') == 'No-op':
+                    pcolor.Green(f'     * Completed Switch Profile Deployment for `{child.Name}`')
+                    break
+                pcolor.Cyan(f'     * Waiting for switch profile `{child.Name}` deployment: {state or "unknown"}')
+            else:
+                raise TimeoutError(f'Switch profile deployment timed out for `{child.Name}` after 30 checks')
         return kwargs
 
     # =========================================================================
@@ -3183,6 +3228,131 @@ class configure:
     # =========================================================================
     # Function - Domain/Unified Edge Profiles/Templates Updates
     # =========================================================================
+    def profiles_domain_attach_templates(self, kwargs):
+        template_key = (
+            'unified_edge_profile_template' if self.type == 'unified_edge'
+            else 'ucs_domain_profile_template')
+        for item in deepcopy(kwargs.resources):
+            if not item.get(template_key) or not item.get('attach_template', True):
+                continue
+            if getattr(kwargs.args, 'check', False):
+                pcolor.Cyan(
+                    f'     * Check mode: would merge domain template into `{item.name}` '
+                    'and verify A/B policy inheritance before deployment.')
+                continue
+            cluster = kwargs.intersight_api[kwargs.org].profiles.domain.get(item.name, {})
+            bindings = [
+                ('domain', item.cluster_template_moid, cluster.get('moid'), item.name),
+            ]
+            for side in ['A', 'B']:
+                name = f'{item.name}-{side}'
+                bindings.append((
+                    'domain.switch', item.switch_template_moids[side],
+                    cluster.get('switch', {}).get(name, {}).get('moid'), name))
+            for kind, source, target, name in bindings:
+                if not isinstance(target, str) or not target:
+                    raise ValueError(
+                        f'Cannot attach domain template to `{name}`: profile has no Moid')
+                template_schema = kwargs.ezdata[f'intersight.templates.{kind}']
+                profile_schema = kwargs.ezdata[f'intersight.profiles.{kind}']
+                kwargs = kwargs | DotMap(
+                    method='get_by_moid', pmoid=source,
+                    uri=template_schema['x-intersight-uri'])
+                kwargs = api(category='templates', type=kind).calls(kwargs)
+                policies = {
+                    (policy.get('ObjectType'), policy.get('Moid'))
+                    for policy in kwargs.results.get('PolicyBucket', [])
+                }
+
+                def inherited(result):
+                    actual = {
+                        (policy.get('ObjectType'), policy.get('Moid'))
+                        for policy in result.get('PolicyBucket', [])
+                    }
+                    return ((result.get('SrcTemplate') or {}).get('Moid') == source
+                            and policies.issubset(actual))
+
+                kwargs = kwargs | DotMap(
+                    method='get_by_moid', pmoid=target,
+                    uri=profile_schema['x-intersight-uri'])
+                kwargs = api(category='profiles', type=kind).calls(kwargs)
+                if inherited(kwargs.results):
+                    continue
+                pcolor.Cyan(f'     * Attaching template and inheriting policies for `{name}`.')
+                kwargs = kwargs | DotMap(
+                    method='post', uri='bulk/MoMergers', api_body={
+                        'MergeAction': 'Merge', 'ObjectType': 'bulk.MoMerger',
+                        'Sources': [{'Moid': source,
+                                     'ObjectType': template_schema['x-intersight-object-type']}],
+                        'Targets': [{'Moid': target,
+                                     'ObjectType': profile_schema['x-intersight-object-type']}],
+                    })
+                kwargs = api(category='profiles', type='bulk_merger').calls(kwargs)
+                for attempt in range(30):
+                    kwargs = kwargs | DotMap(
+                        method='get_by_moid', pmoid=target,
+                        uri=profile_schema['x-intersight-uri'])
+                    kwargs = api(category='profiles', type=kind).calls(kwargs)
+                    if inherited(kwargs.results):
+                        break
+                    if attempt < 29:
+                        time.sleep(2)
+                else:
+                    message = (
+                        f'Template attachment did not complete for `{name}`: '
+                        'the template relationship or inherited policies are missing. '
+                        'Deployment has not been submitted.')
+                    pcolor.Red(f'!!! ERROR !!! {message}')
+                    raise RuntimeError(message)
+        return kwargs
+
+    def resolve_domain_template(self, reference, kwargs):
+        template_cfg = configure(category='templates', type='domain')
+        org, name = template_cfg.determine_resource_organization(
+            False, reference, kwargs)
+
+        def cached_template():
+            return kwargs.intersight_api.get(org, {}).get(
+                'templates', {}).get('domain', {}).get(name, {})
+
+        template = cached_template()
+        if not isinstance(template.get('moid'), str) or not template.get('moid'):
+            kwargs = template_cfg.api_get(
+                True, [f'{org}/{name}'], 'domain', kwargs)
+            template = cached_template()
+        if not isinstance(template.get('moid'), str) or not template.get('moid'):
+            message = (
+                f'Unable to resolve domain profile template `{org}/{name}`: '
+                'no cluster template Moid was returned by Intersight. '
+                'Create the template first and check the reference and API-key access.')
+            pcolor.Red(f'!!! ERROR !!! {message}')
+            raise ValueError(message)
+        children = template.get('switch', {})
+        if any(not isinstance(children.get(f'{name}-{side}', {}).get('moid'), str)
+               or not children.get(f'{name}-{side}', {}).get('moid') for side in ['A', 'B']):
+            original_org = kwargs.org
+            kwargs.org = org
+            try:
+                kwargs = configure(category='templates', type='domain.switch').api_get(
+                    True, [template['moid']], 'domain.switch', kwargs)
+            finally:
+                kwargs.org = original_org
+            template = cached_template()
+            children = template.get('switch', {})
+        switch_moids = {}
+        for side in ['A', 'B']:
+            child_name = f'{name}-{side}'
+            moid = children.get(child_name, {}).get('moid')
+            if not isinstance(moid, str) or not moid:
+                message = (
+                    f'Unable to resolve domain profile template `{org}/{name}`: '
+                    f'switch template `{child_name}` has no Moid in Intersight. '
+                    'Deploy both A/B switch templates before attaching profiles.')
+                pcolor.Red(f'!!! ERROR !!! {message}')
+                raise ValueError(message)
+            switch_moids[side] = moid
+        return template['moid'], switch_moids, kwargs
+
     def profiles_templates_domain_unified_edge(self, kwargs):
         kwargs.merge_templates = DotMap()
         ptitle = notifications.mod_pol_description(
@@ -3226,6 +3396,13 @@ class configure:
                         'attach_template', True) is False:
                     template_check = True
             names.append(f'{np}{e.name}{ns}')
+        if self.category == 'profiles':
+            for index, item in enumerate(kwargs.resources):
+                if item.get(template_type) and item.get('attach_template', True):
+                    cluster_moid, switch_moids, kwargs = self.resolve_domain_template(
+                        item[template_type], kwargs)
+                    kwargs.resources[index].cluster_template_moid = cluster_moid
+                    kwargs.resources[index].switch_template_moids = switch_moids
         if template_check:
             kwargs = self.profiles_template_lookup(template_type, kwargs)
         if len(serials) > 0:
@@ -3236,6 +3413,8 @@ class configure:
                 serials,
                 kwargs)
         kwargs.org = org
+        if serials:
+            self.validate_serial_results(serials, kwargs)
         kwargs = self.api_get(True, names, self.type, kwargs)
         domain_cfg = configure(category=self.category, type='domain')
         switch_cfg = configure(category=self.category, type='domain.switch')
@@ -3248,7 +3427,7 @@ class configure:
         # =====================================================================
         kwargs.bulk_list = []
         for item in kwargs.resources:
-            item.target_platform = self.type.replace('_', ' ').title()
+            item.target_platform = target_platform
             api_body = domain_cfg.create_api_body(item, np, ns, kwargs)
             kwargs = domain_cfg.compare_resources_to_api(
                 api_body, ptitle, kwargs)
@@ -3293,14 +3472,17 @@ class configure:
         if len(kwargs.bulk_list) > 0:
             kwargs.uri = kwargs.ezdata[f"intersight.{self.category}.domain.switch"]['x-intersight-uri']
             kwargs = switch_cfg.create_bulk_request(kwargs)
+        if self.category == 'profiles':
+            kwargs = self.profiles_domain_attach_templates(kwargs)
         return kwargs
 
     # =========================================================================
     # Function - Unified Edge Profiles Updates
     # =========================================================================
     def profiles_unified_edge(self, kwargs):
+        profiles = deepcopy(kwargs.resources)
         kwargs = self.profiles_templates_domain_unified_edge(kwargs)
-        return kwargs
+        return self.profiles_domain_deploy(profiles, kwargs)
 
     # =========================================================================
     # Function - Chassis Templates Updates

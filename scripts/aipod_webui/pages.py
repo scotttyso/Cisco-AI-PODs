@@ -223,6 +223,18 @@ def collect_redfish_macs(rc: RunContext) -> list[list[str]]:
                    "--inventory-dir", str(rc.inventory.parent), "--output", str(rc.ui.macs_dir / "redfish.json"))]
 
 
+def domain_connectivity(rc: RunContext) -> list[list[str]]:
+    return [script(rc, "05-mgmt-nodes-ucs/automation/scripts/check_intersight_domain_ports.py",
+                   "--domains-dir", str(rc.ui.host_vars_dir / "intersight/domains"))]
+
+
+DOMAIN_CONNECTIVITY = Action(
+    "domain-connectivity", "Validate domain uplink connectivity", "lan", domain_connectivity,
+    group="Post-check", secrets=INTERSIGHT_KEYS, files=False,
+    tooltip="Read configured uplinks from assigned port policies, check link state, and show CDP / LLDP neighbors. "
+            "Requires deployed domain profiles; makes no changes.")
+
+
 INTERSIGHT_MACS = Action("macs-intersight", "Collect MACs from Intersight", "settings_ethernet", collect_intersight_macs,
                          group="Tools", secrets=INTERSIGHT_KEYS, files=False,
                          tooltip="Read vNIC / adapter MACs from the server profiles; OpenShift pages pre-fill from them.")
@@ -562,8 +574,27 @@ def everpure_secrets(handle: PageHandle) -> list[SecretField]:
 
 
 def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
+    def selected_deploy(check: bool = False):
+        def build(rc: RunContext) -> list[list[str]]:
+            command = rc.ui.deploy_args() + ["--role", "intersight", "--intersight-scope", scope]
+            if check:
+                command.append("--check")
+            if rc.selected_files is not None:
+                if not rc.selected_files:
+                    raise ValueError("Select at least one Intersight file")
+                for name in rc.selected_files:
+                    if name not in rc.files:
+                        raise ValueError(f"Selected file is not saved on this page: {name}")
+                    relative = Path(name).relative_to("intersight").as_posix()
+                    if not relative.startswith(scope + "/"):
+                        raise ValueError(f"Selected file is outside this page: {name}")
+                    command += ["--intersight-file", relative]
+            return [command]
+        return build
+
     check = Action("check", "Validate (check mode)", "fact_check",
-                   deploy("intersight", "--intersight-scope", scope, "--check"), group="Pre-check", secrets=("*",))
+                   selected_deploy(True), group="Pre-check",
+                   secrets=INTERSIGHT_KEYS if scope != "system" else ("*",), select_files=scope != "system")
     if scope == "system":
         return (check, Action("deploy", "Deploy to Intersight", "cloud_upload",
                               deploy("intersight", "--intersight-scope", scope), secrets=("*",),
@@ -571,12 +602,12 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
                                       "host_vars/intersight/system.ezai.yaml."))
     return (
         check,
-        Action("deploy", "Deploy to Intersight", "cloud_upload", deploy("intersight", "--intersight-scope", scope),
-               secrets=("*",),
+        Action("deploy", "Deploy to Intersight", "cloud_upload", selected_deploy(),
+               secrets=INTERSIGHT_KEYS, select_files=True,
                confirm=f"Creates or updates pools, policies, templates, and profiles from this page's {label} files "
-                       f"(host_vars/intersight/{scope}/) plus the organizations in host_vars/intersight/system.ezai.yaml, "
-                       "then deploys the profiles."),
-        INTERSIGHT_MACS,
+                       f"(host_vars/intersight/{scope}/), then deploys the profiles. "
+                       "Organizations and resource groups are not changed; deploy them from System (Orgs) first."),
+        DOMAIN_CONNECTIVITY if scope == "domains" else INTERSIGHT_MACS,
     )
 
 
@@ -730,9 +761,10 @@ SECTIONS = (
                  upload_dirs=("intersight/system/uploads",),
                  notes=("The default resource group is built in and always holds every target; it is not changed. A "
                         "target listed under another resource group is left out of the regenerated default list.",
-                        "UCS Domains and UCS Servers deploy with these organizations, so deploy this page first.",
+                        "Deploy this page first; UCS Domains and UCS Servers use existing organizations without "
+                        "deploying system configuration.",
                         "Use the upload button in Variables to add your own YAML files (listed as uploads/...); they are "
-                        "deployed with system.ezai.yaml from this page, UCS Domains, and UCS Servers."),
+                        "deployed with system.ezai.yaml from this page only."),
                  group="Intersight"),
         PageSpec("intersight-domains", "UCS Domains", "view_module", "06-workload-nodes-ucs",
                  "UCS domain and chassis policies, templates, and profiles for X-Direct and Fabric Interconnect "
@@ -745,8 +777,8 @@ SECTIONS = (
                  actions=intersight_actions("domains", "domain"), secrets=intersight_secrets,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/domains/uploads",),
-                 notes=("Deploy and Validate use only this page's files plus the organizations from Intersight - System "
-                        "(Orgs). policies.ezai.yaml holds every domain and chassis policy; remove the ones you do not "
+                 notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "
+                        "(Orgs) first. policies.ezai.yaml holds every domain and chassis policy; remove the ones you do not "
                         "need. Files marked \"optional, not deployed\" are left out until saved; use the delete button "
                         "to remove a saved optional file.",
                         "Use the upload button in Variables to add your own YAML files (listed as uploads/...); they "
@@ -777,8 +809,8 @@ SECTIONS = (
                  actions=intersight_actions("servers", "server"), secrets=intersight_secrets,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/servers/x-series/uploads", "intersight/servers/standalone/uploads"),
-                 notes=("Deploy and Validate use only this page's files plus the organizations from Intersight - System "
-                        "(Orgs). Pools are X-Series only. Save only the server types you deploy; files marked "
+                 notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "
+                        "(Orgs) first. Pools are X-Series only. Save only the server types you deploy; files marked "
                         "\"optional, not deployed\" are left out, and the delete button removes a saved optional "
                         "file.",
                         "Use the upload button in each Variables section to add your own YAML files (listed as "

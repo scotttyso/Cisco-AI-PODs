@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 import weakref
 import os
@@ -11,6 +12,7 @@ import shlex
 import signal
 import tempfile
 import time
+import zipfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from uuid import uuid4
@@ -74,6 +76,38 @@ class JobManager:
     def running(self, page: str) -> Job | None:
         entry = self._running.get(page)
         return entry.job if entry else None
+
+    def archive_logs(self, page: str | None = None) -> bytes:
+        """Archive retained redacted logs, including snapshots of active runs."""
+        folder = self.root / page if page else self.root
+        if not folder.resolve().is_relative_to(self.root.resolve()):
+            raise ValueError("Log page is outside this environment")
+        paths = sorted(folder.glob("*.log") if page else folder.glob("*/*.log"))
+        if not paths:
+            raise ValueError("No retained logs are available to download")
+        output = io.BytesIO()
+        count = 0
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for path in paths:
+                if path.is_symlink() or not path.resolve().is_relative_to(self.root.resolve()):
+                    raise ValueError(f"Log path is outside this environment: {path.name}")
+                try:
+                    with path.open("rb") as stream:
+                        size = os.fstat(stream.fileno()).st_size
+                        with archive.open(path.relative_to(self.root).as_posix(), "w") as target:
+                            remaining = size
+                            while remaining:
+                                chunk = stream.read(min(remaining, 1 << 20))
+                                if not chunk:
+                                    break
+                                target.write(chunk)
+                                remaining -= len(chunk)
+                except FileNotFoundError:
+                    continue
+                count += 1
+        if count == 0:
+            raise ValueError("Logs expired during download preparation; refresh and try again")
+        return output.getvalue()
 
     def start(self, page: str, label: str, commands: list[list[str]], env: dict[str, str], cwd: Path,
               redact: list[str] = (), cleanup=None) -> Job:

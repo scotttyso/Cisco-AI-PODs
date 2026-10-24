@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -279,7 +280,7 @@ class GitopsPushTest(unittest.TestCase):
 
 
 class IntersightScopeTest(unittest.TestCase):
-    def test_scoped_copy_keeps_shared_files_only(self):
+    def test_scoped_copy_isolates_page_files(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             source = root / "host_vars/intersight"
@@ -291,8 +292,12 @@ class IntersightScopeTest(unittest.TestCase):
             target.mkdir()
             deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "domains", target)
             found = sorted(path.relative_to(target).as_posix() for path in target.rglob("*.ezai.yaml"))
-            self.assertEqual(found, ["domains/profiles.ezai.yaml", "domains/uploads/mine.ezai.yaml", "system.ezai.yaml",
-                                     "system/uploads/orgs.ezai.yaml"])
+            self.assertEqual(found, ["domains/profiles.ezai.yaml", "domains/uploads/mine.ezai.yaml"])
+            servers = root / "servers-only"
+            servers.mkdir()
+            deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "servers", servers)
+            self.assertEqual(sorted(path.relative_to(servers).as_posix() for path in servers.rglob("*.ezai.yaml")),
+                             ["servers/profiles.ezai.yaml"])
             system = root / "system-only"
             system.mkdir()
             deploy_ai_pod.scoped_intersight_dir(root / "host_vars", "system", system)
@@ -308,6 +313,74 @@ class IntersightScopeTest(unittest.TestCase):
 
 
 class VaultPrecedenceTest(unittest.TestCase):
+    def test_selected_files_main_validates_and_runs_only_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            domains = root / "intersight/domains"
+            domains.mkdir(parents=True)
+            (domains / "profiles.ezai.yaml").write_text("intersight:\n  configure:\n    Test:\n      profiles: {}\n")
+            (domains / "policies.ezai.yaml").write_text("invalid: [")
+            observed = []
+
+            def run_command(command, _env):
+                scoped = Path(command[command.index("--dir") + 1])
+                observed.extend(path.relative_to(scoped).as_posix() for path in scoped.rglob("*.ezai.yaml"))
+                self.assertIn("--check", command)
+
+            with patch.object(deploy_ai_pod, "load_vault_sections", return_value={}), \
+                    patch.object(deploy_ai_pod, "validate_models") as validate, \
+                    patch.object(deploy_ai_pod, "run_command", side_effect=run_command):
+                result = deploy_ai_pod.main([
+                    "--role", "intersight", "--host-vars-dir", str(root),
+                    "--intersight-scope", "domains", "--intersight-file", "domains/profiles.ezai.yaml",
+                    "--check",
+                ])
+            self.assertEqual(result, 0)
+            self.assertEqual(observed, ["domains/profiles.ezai.yaml"])
+            self.assertEqual(validate.call_args.args[0], {"intersight": {"configure": {"Test": {"profiles": {}}}}})
+
+    def test_selected_intersight_files_copy_and_load_only_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            host_vars = root / "host_vars"
+            source = host_vars / "intersight"
+            for name in ("domains/templates.ezai.yaml", "domains/uploads/profiles.ezai.yaml",
+                         "domains/policies.ezai.yaml", "system.ezai.yaml", "servers/profiles.ezai.yaml"):
+                path = source / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("intersight:\n  configure:\n    Test:\n      profiles: {}\n")
+            (source / "domains/policies.ezai.yaml").write_text("invalid: [")
+            names = ["domains/templates.ezai.yaml", "domains/uploads/profiles.ezai.yaml"]
+            selected = deploy_ai_pod.selected_intersight_files(host_vars, "domains", names)
+            models = deploy_ai_pod.load_models(host_vars, selected)
+            self.assertIn("Test", models["intersight"]["configure"])
+            target = root / "selected"
+            target.mkdir()
+            deploy_ai_pod.scoped_intersight_dir(host_vars, "domains", target, names)
+            self.assertEqual(sorted(path.relative_to(target).as_posix() for path in target.rglob("*.ezai.yaml")),
+                             sorted(names))
+            for names in ([], ["system.ezai.yaml"], ["servers/profiles.ezai.yaml"],
+                          ["../system.ezai.yaml"], ["/tmp/profiles.ezai.yaml"],
+                          ["domains/missing.ezai.yaml"]):
+                with self.subTest(names=names), self.assertRaises(deploy_ai_pod.DeploymentError):
+                    deploy_ai_pod.selected_intersight_files(host_vars, "domains", names)
+            for scope in ("all", "system"):
+                with self.assertRaises(deploy_ai_pod.DeploymentError):
+                    deploy_ai_pod.selected_intersight_files(host_vars, scope, ["domains/templates.ezai.yaml"])
+            outside = root / "outside.ezai.yaml"
+            outside.write_text("intersight: {}")
+            (source / "domains/link.ezai.yaml").symlink_to(outside)
+            with self.assertRaises(deploy_ai_pod.DeploymentError):
+                deploy_ai_pod.selected_intersight_files(host_vars, "domains", ["domains/link.ezai.yaml"])
+
+    def test_file_selection_cli_arguments(self):
+        args = deploy_ai_pod.parse_args(["--role", "intersight", "--intersight-scope", "domains",
+                                        "--intersight-file", "domains/templates.ezai.yaml",
+                                        "--intersight-file", "domains/profiles.ezai.yaml", "--check"])
+        self.assertEqual(args.intersight_files, ["domains/templates.ezai.yaml", "domains/profiles.ezai.yaml"])
+        self.assertTrue(args.check)
+        self.assertIsNone(deploy_ai_pod.parse_args([]).intersight_files)
+
     def test_role_section_wins_shared_names(self):
         sections = {"everpure": {"local_user_password_1": "pure", "everpure_api_token_1": "token"},
                     "intersight": {"local_user_password_1": "ucs"}}

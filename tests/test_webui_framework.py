@@ -1,12 +1,15 @@
 import asyncio
 import datetime
+import io
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import yaml
 
@@ -71,6 +74,58 @@ class VaultStoreTest(unittest.TestCase):
 
 
 class JobManagerTest(unittest.TestCase):
+    def test_bulk_log_archives_are_scoped_and_exclude_other_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manager = JobManager(root / "jobs")
+            for name, content in (("domain/one.log", "first redacted log"),
+                                  ("domain/active.log", "active snapshot"),
+                                  ("server/two.log", "second redacted log"),
+                                  ("domain/history.json", "metadata"),
+                                  ("domain/vault.yaml", "not a log")):
+                path = manager.root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            for scope, expected in (
+                ("domain", {"domain/one.log", "domain/active.log"}),
+                (None, {"domain/one.log", "domain/active.log", "server/two.log"}),
+            ):
+                with zipfile.ZipFile(io.BytesIO(manager.archive_logs(scope))) as archive:
+                    self.assertEqual(set(archive.namelist()), expected)
+                    self.assertEqual(archive.read("domain/one.log"), b"first redacted log")
+            with self.assertRaisesRegex(ValueError, "No retained logs"):
+                manager.archive_logs("absent")
+            with self.assertRaisesRegex(ValueError, "outside"):
+                manager.archive_logs("../")
+            outside = root / "outside.log"
+            outside.write_text("not in this environment")
+            (manager.root / "domain/link.log").symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, "outside"):
+                manager.archive_logs("domain")
+
+    def test_bulk_download_ui_scopes_and_errors(self):
+        from types import SimpleNamespace
+
+        async def io_bound(function, *args):
+            return function(*args)
+
+        console = object.__new__(panels.JobConsole)
+        console.context = SimpleNamespace(jobs=Mock())
+        console.context.jobs.archive_logs.return_value = b"zip bytes"
+        console.page = "domain"
+        with patch.object(panels, "ui") as ui_mock, patch.object(panels.run, "io_bound", io_bound):
+            asyncio.run(console.download_logs())
+            console.context.jobs.archive_logs.assert_called_with("domain")
+            self.assertEqual(ui_mock.download.content.call_args.args[0], b"zip bytes")
+            asyncio.run(console.download_logs(True))
+            console.context.jobs.archive_logs.assert_called_with(None)
+            self.assertTrue(ui_mock.download.content.call_args.args[1].startswith("environment-logs-"))
+            ui_mock.download.content.reset_mock()
+            console.context.jobs.archive_logs.side_effect = OSError("permission denied")
+            asyncio.run(console.download_logs())
+            ui_mock.download.content.assert_not_called()
+            self.assertIn("permission denied", ui_mock.notify.call_args.args[0])
+
     def test_runs_commands_streams_log_and_redacts(self):
         with tempfile.TemporaryDirectory() as directory:
             manager = JobManager(Path(directory))
@@ -189,6 +244,20 @@ class SeedTest(unittest.TestCase):
         self.assertNotIn("ucs_server_profile_template", groups["UCSC845A"])
         again = yaml.safe_load(seeds.apply_seed("server_profiles", result, context))
         self.assertEqual(again["intersight"]["configure"]["default"]["profiles"]["server"], profiles)
+
+    def test_domain_chassis_policy_references_exist_in_examples(self):
+        directory = REPOSITORY / "examples/intersight/domains"
+        policies = yaml.safe_load((directory / "policies.ezai.yaml").read_text())[
+            "intersight"]["configure"]["default"]["policies"]
+        for filename, category in (("profiles.ezai.yaml", "profiles"), ("templates.ezai.yaml", "templates")):
+            resources = yaml.safe_load((directory / filename).read_text())[
+                "intersight"]["configure"]["default"][category]["chassis"]
+            for resource in resources:
+                for key, reference in resource.items():
+                    if key.endswith("_policy"):
+                        policy_type = key.removesuffix("_policy")
+                        names = {policy["name"] for policy in policies[policy_type]}
+                        self.assertIn(reference, names, f"{filename}: {key}={reference}")
 
     def test_hgx_models_are_separate_from_intersight(self):
         rows = [{"hostname": "hgx-1", "pid": "UCSC-C880A-M8", "ip": "192.0.2.10"},
@@ -570,6 +639,105 @@ class NdFabricScriptTest(unittest.TestCase):
 
 
 class UploadTest(unittest.TestCase):
+    def test_file_picker_runs_only_selected_saved_files_and_cancel_stops(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            selected = root / "profiles.ezai.yaml"
+            selected.write_text("intersight: {}\n")
+            unselected = root / "policies.ezai.yaml"
+            unselected.write_text("invalid: [")
+            names = {"intersight/domains/profiles.ezai.yaml": selected,
+                     "intersight/domains/policies.ezai.yaml": unselected}
+            for outcome in (None, ("intersight/domains/profiles.ezai.yaml",)):
+                class Dialog(MagicMock):
+                    def __await__(self):
+                        async def result():
+                            return outcome
+                        return result().__await__()
+
+                fake_ui = MagicMock()
+                fake_ui.dialog.return_value = Dialog()
+                context = SimpleNamespace(jobs=Mock(), vault=Mock(), schema_path=root / "schema.json",
+                                          repository=root)
+                context.jobs.running.return_value = None
+                context.vault.status.return_value = {"ready": True}
+                console = object.__new__(panels.JobConsole)
+                build = Mock(return_value=[["python", "deploy.py"]])
+                console.actions = {"deploy": panels.Action(
+                    "deploy", "Deploy", "play_arrow", build, select_files=True, secrets=("api-key",),
+                    confirm="Deploy selected files")}
+                console.context, console.page = context, "intersight-domains"
+                console.state = lambda: {}
+                console.files = lambda: names
+                console.ready = AsyncMock()
+                console.credentials = Mock()
+                console.credentials.missing.return_value = []
+                console.show, console.refresh_history = Mock(), Mock()
+
+                async def io_bound(function, *args):
+                    return function(*args)
+
+                validation = Mock(return_value=({}, []))
+                with patch.object(panels, "ui", fake_ui), patch.object(panels.run, "io_bound", io_bound), \
+                        patch.object(panels, "validate_yaml", validation), \
+                        patch.object(panels, "job_environment", return_value=({}, [])), \
+                        patch.object(panels.tempfile, "mkdtemp", return_value=str(root)):
+                    asyncio.run(console.run("deploy"))
+                console.ready.assert_not_called()
+                options = fake_ui.select.call_args
+                self.assertEqual(set(options.args[0]), set(names))
+                self.assertEqual(set(options.kwargs["value"]), set(names))
+                if outcome is None:
+                    build.assert_not_called()
+                    context.jobs.start.assert_not_called()
+                    validation.assert_not_called()
+                else:
+                    self.assertEqual(build.call_args.args[0].selected_files, outcome)
+                    validation.assert_called_once_with("intersight: {}\n", context.schema_path)
+                    context.jobs.start.assert_called_once()
+
+    def test_intersight_selected_file_commands(self):
+        from types import SimpleNamespace
+        for scope in ("domains", "servers"):
+            path = f"intersight/{scope}/uploads/profiles.ezai.yaml"
+            ui_context = SimpleNamespace(deploy_args=lambda: ["python", "deploy_ai_pod.py"])
+            rc = panels.RunContext(ui_context, f"intersight-{scope}", {}, {path: Path("/saved/profiles")},
+                                   selected_files=(path,))
+            for action in pages.intersight_actions(scope, scope):
+                if action.key not in ("check", "deploy"):
+                    continue
+                self.assertTrue(action.select_files)
+                command = action.build(rc)[0]
+                self.assertEqual(command[-2:], ["--intersight-file", f"{scope}/uploads/profiles.ezai.yaml"])
+                self.assertEqual("--check" in command, action.key == "check")
+                self.assertEqual(action.secrets, pages.INTERSIGHT_KEYS)
+                rc.selected_files = ()
+                with self.assertRaises(ValueError):
+                    action.build(rc)
+                rc.selected_files = (path,)
+            rc.selected_files = ("intersight/other.ezai.yaml",)
+            with self.assertRaises(ValueError):
+                pages.intersight_actions(scope, scope)[0].build(rc)
+        self.assertTrue(all(not action.select_files for action in pages.intersight_actions("system", "system")))
+
+    def test_domain_actions_use_connectivity_and_keep_macs_on_servers(self):
+        domains = pages.intersight_actions("domains", "domain")
+        servers = pages.intersight_actions("servers", "server")
+        self.assertIn(pages.DOMAIN_CONNECTIVITY, domains)
+        self.assertNotIn(pages.INTERSIGHT_MACS, domains)
+        self.assertIn(pages.INTERSIGHT_MACS, servers)
+        for actions in (domains, servers):
+            deploy = next(action for action in actions if action.key == "deploy")
+            self.assertNotIn("plus the organizations", deploy.confirm)
+            self.assertIn("Organizations and resource groups are not changed", deploy.confirm)
+        from types import SimpleNamespace
+        ui = SimpleNamespace(repository=REPOSITORY, host_vars_dir=Path("/saved/host_vars"), python=lambda: "python")
+        command = pages.DOMAIN_CONNECTIVITY.build(SimpleNamespace(ui=ui))[0]
+        self.assertEqual(command[-2:], ["--domains-dir", "/saved/host_vars/intersight/domains"])
+        self.assertEqual(pages.DOMAIN_CONNECTIVITY.secrets, pages.INTERSIGHT_KEYS)
+        self.assertFalse(pages.DOMAIN_CONNECTIVITY.files)
+
     def test_upload_file_name_is_safe_ezai_yaml(self):
         self.assertEqual(panels.upload_file_name("My Policies.yaml"), "My_Policies.ezai.yaml")
         self.assertEqual(panels.upload_file_name("../../etc/x.ezai.yml"), "x.ezai.yaml")

@@ -35,7 +35,7 @@ except ImportError as e:
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 parent_regex = re.compile(
-    r'^(Parent|((Eth|Fc)Network|(L|S)anConnectivity|Ldap|Port|Storage)Policy)$')
+    r'^(Parent|SwitchClusterProfile(Template)?|((Eth|Fc)Network|(L|S)anConnectivity|Ldap|Port|Storage)Policy)$')
 pool_regex = re.compile(
     r'^((ip|iqn|mac|uuid|fc)pool\.((Ip|Uuid)?Lease|Reservation))$')
 
@@ -576,7 +576,7 @@ class api:
                             api_filter = f"SharedResource/Moid in ('{names}')"
                         elif 'path_tags' == self.type:
                             api_filter = f"Key in ('{names}')"
-                        elif re.search(sregex, self.type):
+                        elif self.type == 'serial_number' or re.search(sregex, self.type):
                             api_filter = f"Serial in ('{names}')"
                         else:
                             api_filter = f"Name in ('{names}')"

@@ -11,7 +11,7 @@ intersight:
             imc_access_policy: KVMAccess
             power_policy: X9508
             name: X9508
-            thermal_policy: X9508
+            thermal_policy: Balanced
         domain:
           - certificate_management_policy: LDAP-Certificates
             create_template: true

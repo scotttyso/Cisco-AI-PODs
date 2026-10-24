@@ -1,7 +1,7 @@
 {
 {% set _target = item.target_platform | default('UCS Domain') | lower | replace(' ', '_') %}
 {% set template_type = _target ~ '_profile_template' %}
-{% set _template = true if item[template_type] is defined and item[template_type] | length > 0 else false %}
+{% set _template = true if item[template_type] is defined and item[template_type] | length > 0 and item.attach_template | default(true) else false %}
 {% set _indx = 1 if "-B" in item.name else 0 %}
 {% if item.serial_numbers is defined and item.serial_numbers | length == 2 and _target == 'ucs_domain' %}
   "AssignedSwitch": {
@@ -43,10 +43,8 @@
   ],
 {% endif %}
 {% if _template == true %}
-{% set _name = item[template_type].split('/')[-1] %}
-{% set _org = item[template_type].split('/')[0] if '/' in item[template_type] else organization %}
   "SrcTemplate": {
-    "Moid": "{{ isight[_org].templates[_target][_name].moid }}",
+    "Moid": {{ item.switch_template_moids[item.switch_id] | tojson }},
     "ObjectType": "fabric.SwitchProfileTemplate"
   },
 {% else %}

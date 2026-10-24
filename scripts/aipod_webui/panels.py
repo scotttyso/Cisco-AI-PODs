@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -151,6 +152,7 @@ class RunContext:
     page: str
     state: dict
     files: dict[str, Path] = field(default_factory=dict)
+    selected_files: tuple[str, ...] | None = None
 
     @property
     def inventory(self) -> Path:
@@ -179,6 +181,7 @@ class Action:
     # Ask for the local sudo password when the job starts (only if sudo needs one). It is exported to that job as
     # BECOME_PASSWORD / AIPOD_SUDO_PASSWORD (with SUDO_ASKPASS) and is never saved.
     sudo: bool = False
+    select_files: bool = False
 
 
 def write_text(path: Path, content: str) -> None:
@@ -837,6 +840,13 @@ class JobConsole:
                     "outlined dense options-dense").classes("grow")
                 self.cancel_button = ui.button("Stop", icon="stop", color="negative", on_click=self.cancel).props("outline dense")
                 ui.button(icon="download", on_click=self.download).props("flat round dense").tooltip("Download this log")
+                ui.button("Page logs", icon="folder_zip", on_click=lambda: self.download_logs(False)).props(
+                    "flat dense").tooltip("Download all retained logs for this page as ZIP")
+                ui.button("Environment logs", icon="folder_zip", on_click=lambda: self.download_logs(True)).props(
+                    "flat dense").tooltip("Download retained logs from all pages in this environment as ZIP")
+            ui.label(f"Retains the latest {context.jobs.limit} completed runs per page, not 90 days. "
+                     "Older logs are deleted as runs finish. Active logs download as snapshots.").classes(
+                         "muted text-xs")
             self.log = ui.log(max_lines=5000).classes("w-full job-log")
         self.refresh_history()
         history = context.jobs.history(page)
@@ -904,6 +914,16 @@ class JobConsole:
         if self.viewing and Path(self.viewing.log).is_file():
             ui.download.file(self.viewing.log, f"{self.page}-{self.viewing.id}.log")
 
+    async def download_logs(self, environment: bool = False) -> None:
+        try:
+            data = await run.io_bound(self.context.jobs.archive_logs, None if environment else self.page)
+        except (OSError, ValueError, zipfile.BadZipFile) as error:
+            ui.notify(f"Cannot download logs: {error}", type="negative", multi_line=True)
+            return
+        scope = "environment" if environment else self.page
+        ui.download.content(data, f"{scope}-logs-{time.strftime('%Y%m%d-%H%M%S')}.zip",
+                            media_type="application/zip")
+
     async def run(self, key: str) -> None:
         action = self.actions[key]
         if self.context.jobs.running(self.page):
@@ -914,9 +934,54 @@ class JobConsole:
             ui.notify("Set up the vault in the Credentials panel first: " + "; ".join(status["problems"]), type="negative",
                       multi_line=True)
             return
-        if action.files and self.ready and not await self.ready():
+        selected_files = None
+        if action.select_files:
+            available = self.files() if self.files else {}
+            if not available:
+                ui.notify("Save at least one variable file before running", type="negative")
+                return
+            with ui.dialog() as dialog, ui.card().classes("dialog-surface w-full max-w-2xl"):
+                ui.label(action.label).classes("section-title")
+                if action.confirm:
+                    ui.label(action.confirm).classes("text-sm")
+                ui.label("Choose saved files only. Unsaved editor changes are not included. Dependencies in "
+                         "unselected files must already exist in Intersight.").classes("text-sm")
+                choices = ui.select(list(sorted(available)), value=list(sorted(available)),
+                                    multiple=True, label="Files to deploy" if key == "deploy" else "Files to validate"
+                                    ).classes("w-full").props("use-chips")
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("Select all", on_click=lambda: choices.set_value(list(sorted(available)))).props("flat")
+                    ui.button("Clear", on_click=lambda: choices.set_value([])).props("flat")
+                    ui.button("Cancel", on_click=lambda: dialog.submit(None)).props("flat")
+                    def submit_selection():
+                        if not choices.value:
+                            ui.notify("Select at least one file", type="negative")
+                            return
+                        dialog.submit(tuple(choices.value))
+                    ui.button("Run", icon="play_arrow", on_click=submit_selection)
+            selected_files = await dialog
+            if selected_files is None:
+                return
+            try:
+                problems = []
+                selected_models = []
+                for name in selected_files:
+                    text = available[name].read_text(encoding="utf-8")
+                    _, issues = await run.io_bound(validate_yaml, text,
+                                                   self.context.schema_path)
+                    problems.extend(f"{name}: {issue}" for issue in issues)
+                    selected_models.append(yaml.safe_load(text) or {})
+                if problems:
+                    ui.notify("Selected files are invalid: " + "; ".join(problems), type="negative", multi_line=True)
+                    return
+            except (OSError, KeyError, ValueError, yaml.YAMLError) as error:
+                ui.notify(f"Cannot read selected files: {error}", type="negative", multi_line=True)
+                return
+        elif action.files and self.ready and not await self.ready():
             return
         missing = self.credentials.missing(action.secrets) if self.credentials else []
+        if selected_files is not None and self.credentials:
+            missing += self.credentials.missing(tuple(item.key for item in model_secret_fields(selected_models)))
         if missing:
             ui.notify("Store these credentials first: " + ", ".join(missing), type="negative", multi_line=True)
             return
@@ -932,7 +997,7 @@ class JobConsole:
             sudo_password = await ask_sudo_password(action.label, action.confirm)
             if sudo_password is None:
                 return
-        elif action.confirm:
+        elif action.confirm and not action.select_files:
             with ui.dialog() as dialog, ui.card().classes("dialog-surface"):
                 ui.label(action.label).classes("section-title")
                 ui.label(action.confirm).classes("text-sm")
@@ -945,6 +1010,7 @@ class JobConsole:
             if action.inventory:
                 await run.io_bound(self.context.build_inventory)
             run_context = RunContext(self.context, self.page, self.state(), self.files() if self.files else {})
+            run_context.selected_files = selected_files
             commands = action.build(run_context)
             scratch = Path(tempfile.mkdtemp(prefix="aipod-job-"))
             extra = dict(action.env(run_context) if action.env else {})

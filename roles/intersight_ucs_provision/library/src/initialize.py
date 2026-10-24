@@ -90,6 +90,10 @@ class begin:
                     kwargs[f'{rtype}_list'].append(r)
         if 'switch' in kwargs.profiles_list:
             kwargs.profiles_list.remove('switch')
+        profile_order = ['domain', 'unified_edge', 'chassis', 'server']
+        kwargs.profiles_list = [
+            ptype for ptype in profile_order if ptype in kwargs.profiles_list
+        ] + [ptype for ptype in kwargs.profiles_list if ptype not in profile_order]
         if 'switch' in kwargs.templates_list:
             kwargs.templates_list.remove('switch')
         iboot_index = kwargs.policies_list.index(

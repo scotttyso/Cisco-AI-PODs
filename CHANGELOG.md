@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.3] - 2026-10-24
+
+### Added
+- WebUI: select individual saved Intersight YAML files for domain/server validation and deployment.
+- UCS Domains: read-only uplink connectivity validation with CDP/LLDP neighbors when available.
+- WebUI: bulk download retained page or environment logs as ZIP archives.
+- Domain switch-profile deployment progress logs, including PATCH submission and polling waits.
+- Regression coverage for Intersight provisioning, domain connectivity, file selection, and log downloads.
+
+### Changed
+- Domain/server page deployments exclude System organization files; organization deployment remains on System (Orgs).
+- Profile processing follows domain, chassis, then server dependency order.
+- Domain and Unified Edge profiles honor `action: Deploy` on A/B switch profiles and wait for completion.
+- Domain template attachment verifies template relationships and inherited policies before deployment.
+- Documented retention of the latest 25 completed automation runs per page.
+
+### Fixed
+- Check mode tolerates missing dependencies on new deployments and reports deferred payload validation.
+- Corrected System QoS JSON rendering, internal reserved VLAN handling, and example thermal policy references.
+- Corrected domain template platform values, parent/child template ID resolution, and copied-state handling.
+- Hardware serial lookups filter by Serial rather than Name and explicitly reject missing domain, chassis, or server hardware.
+
 ## [0.1.2] - 2026-10-19
 
 ### Added
