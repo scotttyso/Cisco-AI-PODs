@@ -2443,7 +2443,13 @@ class configure:
     # =========================================================================
     # Function - Deploy Profile if Action is Deploy
     # =========================================================================
-    def profiles_chassis_server_deploy(self, profiles, kwargs):
+    def profiles_chassis_server_deploy(self, profiles, kwargs, sync_templates=True, force=False):
+        profiles = [profile for profile in profiles if profile.get('action') == 'Deploy'
+                    and re.search(serial_regex, profile.get('serial_number') or '')]
+        if getattr(kwargs.args, 'check', False):
+            for profile in profiles:
+                pcolor.Cyan(f'     * Check mode: would deploy {self.type} profile `{profile.name}`.')
+            return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
         np, ns = self.name_prefix_suffix(kwargs.org, kwargs)
         profile_api = api(category=self.category, type=self.type)
         cregex = re.compile(
@@ -2472,7 +2478,7 @@ class configure:
                     'ConfigContext', {}).get('ConfigState') or ''
                 csummary = pdata.get('ConfigContext', {}).get(
                     'ConfigStateSummary') or ''
-                if changes or re.search(
+                if force or changes or re.search(
                         cregex, cstate) or re.search(
                         cregex, csummary):
                     pending_changes = True
@@ -2528,15 +2534,17 @@ class configure:
                         max_retries = 60
                         while not deploy_complete:
                             if retry_count >= max_retries:
-                                pcolor.Yellow(
-                                    f'{" " * 4}- Deploy timeout waiting for `{e}` after {max_retries} checks.')
-                                break
+                                raise TimeoutError(
+                                    f'Profile deployment timed out for `{e}` after {max_retries} checks')
                             kwargs = kwargs | DotMap(
                                 method='get_by_moid', pmoid=profile_map[e].moid)
                             kwargs = profile_api.calls(kwargs)
+                            context = kwargs.results.get('ConfigContext') or {}
+                            if self.profiles_deployment_failed(context):
+                                raise RuntimeError(f'Profile deployment failed for `{e}`: {context}')
                             control_action = kwargs.results.get(
                                 'ConfigContext', {}).get('ControlAction')
-                            if control_action == 'No-op':
+                            if control_action in ['No-op', 'No_op']:
                                 deploy_complete = True
                                 if 'chassis' in self.type:
                                     pcolor.Green(
@@ -2551,10 +2559,10 @@ class configure:
                                         f'{" " * 6}* Deploy Still Occuring on `{e}`.  Waiting 60 seconds.')
                                     time.sleep(60)
                             retry_count += 1
-                if 'server' == self.type and activate_pending:
+                if 'server' == self.type and (activate_pending or force):
                     kwargs = self.profiles_server_activate(kwargs)
                 pcolor.LightPurple(f'\n{"-" * 108}\n')
-        return kwargs
+        return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
 
     # =========================================================================
     # Function - Domain Profiles Updates
@@ -2567,7 +2575,7 @@ class configure:
     # =========================================================================
     # Function - Deploy Domain Profile if Action is Deploy
     # =========================================================================
-    def profiles_domain_deploy(self, profiles, kwargs):
+    def profiles_domain_deploy(self, profiles, kwargs, sync_templates=True, force=False):
         profiles = [profile for profile in profiles if profile.get('action') == 'Deploy']
         if not profiles:
             return kwargs
@@ -2577,7 +2585,7 @@ class configure:
             for name in names:
                 pcolor.Cyan(
                     f'     * Check mode: would deploy A/B switch profiles for `{name}`; no deployment submitted.')
-            return kwargs
+            return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
         domain_cfg = configure(category='profiles', type='domain')
         switch_cfg = configure(category='profiles', type='domain.switch')
         kwargs = domain_cfg.api_get(False, names, 'domain', kwargs)
@@ -2604,8 +2612,8 @@ class configure:
                     raise ValueError(
                         f'Cannot deploy switch profile `{child.Name}`: no assigned switch; check hardware serials')
                 context = child.get('ConfigContext') or {}
-                if (context.get('ConfigState') == 'Associated'
-                        and context.get('ControlAction') == 'No-op'
+                if (not force and context.get('ConfigState') == 'Associated'
+                        and context.get('ControlAction') in ['No-op', 'No_op']
                         and not (child.get('ConfigChanges') or {}).get('Changes')):
                     pcolor.Cyan(f'     * Switch profile `{child.Name}` is already deployed; no pending changes.')
                     continue
@@ -2614,7 +2622,7 @@ class configure:
         for child in selected:
             kwargs.bulk_list.append({'Action': 'Deploy', 'Name': child.Name, 'pmoid': child.Moid})
         if not kwargs.bulk_list:
-            return kwargs
+            return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
         for child in selected:
             pcolor.Green(f'    - Beginning Profile Deployment for `{child.Name}`.')
         kwargs.uri = kwargs.ezdata['intersight.profiles.domain.switch']['x-intersight-uri']
@@ -2635,17 +2643,166 @@ class configure:
                 kwargs = api(category='profiles', type='domain.switch').calls(kwargs)
                 context = kwargs.results.get('ConfigContext') or {}
                 state = context.get('ConfigState', '')
-                summary = context.get('ConfigStateSummary', '')
-                if re.search('Failed|Inconsistent|Error', f'{state} {summary}', re.IGNORECASE):
+                if self.profiles_deployment_failed(context):
                     raise RuntimeError(
-                        f'Switch profile deployment failed for `{child.Name}`: state={state}, summary={summary}')
-                if state == 'Associated' and context.get('ControlAction') == 'No-op':
+                        f'Switch profile deployment failed for `{child.Name}`: {context}')
+                if state == 'Associated' and context.get('ControlAction') in ['No-op', 'No_op']:
                     pcolor.Green(f'     * Completed Switch Profile Deployment for `{child.Name}`')
                     break
                 pcolor.Cyan(f'     * Waiting for switch profile `{child.Name}` deployment: {state or "unknown"}')
             else:
                 raise TimeoutError(f'Switch profile deployment timed out for `{child.Name}` after 30 checks')
+        return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
+
+    @staticmethod
+    def profiles_deployment_failed(context):
+        return any(re.search('Failed|Inconsistent|Error', str(context.get(field) or ''), re.IGNORECASE)
+                   for field in ['ConfigState', 'ConfigStateSummary', 'ErrorState', 'OperState'])
+
+    def profiles_finish_template_sync(self, profiles, kwargs):
+        kwargs, synced = self.profiles_sync_templates(profiles, kwargs)
+        if synced:
+            pcolor.Cyan('     * Redeploying profile changes introduced by template synchronization.')
+            deploy = (self.profiles_domain_deploy if self.type in ['domain', 'unified_edge']
+                      else self.profiles_chassis_server_deploy)
+            kwargs = deploy(synced, kwargs, sync_templates=False, force=True)
+            kwargs, _ = self.profiles_sync_templates(synced, kwargs, verify_only=True)
         return kwargs
+
+    def profiles_sync_templates(self, profiles, kwargs, verify_only=False):
+        kind = 'domain' if self.type == 'unified_edge' else self.type
+        template_key = {
+            'domain': 'ucs_domain_profile_template',
+            'unified_edge': 'unified_edge_profile_template',
+            'chassis': 'ucs_chassis_profile_template',
+            'server': 'ucs_server_profile_template',
+        }[self.type]
+        attached = [profile for profile in profiles
+                    if profile.get('action') == 'Deploy' and profile.get(template_key)
+                    and profile.get('attach_template', True)]
+        if not attached:
+            return kwargs, []
+        if getattr(kwargs.args, 'check', False):
+            for profile in attached:
+                pcolor.Cyan(
+                    f'     * Check mode: would sync `{profile.name}` with its template after deployment '
+                    'and redeploy resulting changes; no synchronization submitted.')
+            return kwargs, []
+        np, ns = self.name_prefix_suffix(kwargs.org, kwargs)
+        synced = []
+
+        def sync_binding(binding_kind, name, moid, state):
+            if not isinstance(moid, str) or not moid:
+                raise ValueError(f'Cannot sync profile `{name}`: profile has no Moid')
+            schema = state.ezdata[f'intersight.profiles.{binding_kind}']
+            profile_api = api(category='profiles', type=binding_kind)
+
+            def read_profile(state):
+                return profile_api.calls(state | DotMap(
+                    method='get_by_moid', pmoid=moid, uri=schema['x-intersight-uri']))
+
+            state = read_profile(state)
+            context = state.results.get('ConfigContext') or {}
+            if (context.get('ControlAction') not in ['No-op', 'No_op']
+                    or self.profiles_deployment_failed(context)):
+                raise RuntimeError(f'Cannot sync profile `{name}`: deployment is not complete: {context}')
+            source = (state.results.get('SrcTemplate') or {}).get('Moid')
+            if not isinstance(source, str) or not source:
+                raise ValueError(f'Cannot sync profile `{name}`: the configured template is not attached')
+            if binding_kind == 'chassis':
+                template_schema = state.ezdata['intersight.templates.chassis']
+                actual = {(policy.get('ObjectType'), policy.get('Moid'))
+                          for policy in state.results.get('PolicyBucket', [])}
+                state = api(category='templates', type='chassis').calls(state | DotMap(
+                    method='get_by_moid', pmoid=source, uri=template_schema['x-intersight-uri']))
+                expected = {(policy.get('ObjectType'), policy.get('Moid'))
+                            for policy in state.results.get('PolicyBucket', [])}
+                if expected.issubset(actual):
+                    pcolor.Cyan(f'     * Chassis profile `{name}` inherits its template policies.')
+                    return state, False
+                if verify_only:
+                    raise RuntimeError(f'Chassis template inheritance is still incomplete for `{name}`')
+                pcolor.Cyan(f'     * Synchronizing inherited chassis template policies for `{name}`.')
+                state = api(category='profiles', type='bulk_merger').calls(state | DotMap(
+                    method='post', uri='bulk/MoMergers', api_body={
+                        'MergeAction': 'Merge', 'ObjectType': 'bulk.MoMerger',
+                        'Sources': [{'Moid': source,
+                                     'ObjectType': template_schema['x-intersight-object-type']}],
+                        'Targets': [{'Moid': moid, 'ObjectType': schema['x-intersight-object-type']}],
+                    }))
+            else:
+                if state.results.get('TemplateSyncErrors'):
+                    raise RuntimeError(
+                        f'Template synchronization failed for `{name}`: {state.results.TemplateSyncErrors}')
+                status = state.results.get('TemplateSyncStatus')
+                if status == 'OK':
+                    pcolor.Cyan(f'     * Profile `{name}` is in sync with its template.')
+                    return state, False
+                if status not in ['None', 'OutOfSync', 'Scheduled', 'InProgress']:
+                    raise RuntimeError(
+                        f'Cannot sync profile `{name}`: unsupported TemplateSyncStatus `{status}`')
+                if verify_only and status in ['None', 'OutOfSync']:
+                    raise RuntimeError(f'Profile `{name}` is still out of sync after redeployment')
+                if status in ['None', 'OutOfSync']:
+                    pcolor.Cyan(f'     * Syncing profile `{name}` with its template.')
+                    state = profile_api.calls(state | DotMap(
+                        method='patch', pmoid=moid, uri=schema['x-intersight-uri'], api_body={
+                            'TemplateActions': [{
+                                'ObjectType': 'motemplate.ActionEntry', 'Type': 'Sync',
+                                'Params': [{'ObjectType': 'motemplate.ActionParam',
+                                            'Name': 'SyncType', 'Value': 'SyncOne'}],
+                            }],
+                        }))
+            for attempt in range(30):
+                state = read_profile(state)
+                context = state.results.get('ConfigContext') or {}
+                if self.profiles_deployment_failed(context):
+                    raise RuntimeError(f'Template synchronization failed for `{name}`: {context}')
+                if (state.results.get('SrcTemplate') or {}).get('Moid') != source:
+                    raise RuntimeError(f'Template attachment changed while syncing profile `{name}`')
+                if binding_kind == 'chassis':
+                    actual = {(policy.get('ObjectType'), policy.get('Moid'))
+                              for policy in state.results.get('PolicyBucket', [])}
+                    complete = expected.issubset(actual)
+                else:
+                    errors = state.results.get('TemplateSyncErrors') or []
+                    if errors:
+                        raise RuntimeError(f'Template synchronization failed for `{name}`: {errors}')
+                    status = state.results.get('TemplateSyncStatus')
+                    if status not in ['None', 'OK', 'OutOfSync', 'Scheduled', 'InProgress']:
+                        raise RuntimeError(f'Template synchronization failed for `{name}`: status={status}')
+                    complete = status == 'OK'
+                if complete:
+                    pcolor.Green(f'     * Completed template synchronization for `{name}`.')
+                    return state, not verify_only
+                if attempt < 29:
+                    pcolor.Cyan(f'     * Waiting for template synchronization of `{name}`.')
+                    time.sleep(10)
+            raise TimeoutError(f'Template synchronization timed out for `{name}` after 30 checks')
+
+        for profile in attached:
+            name = f'{np}{profile.name}{ns}'
+            profile_cfg = configure(category='profiles', type=kind)
+            kwargs = profile_cfg.api_get(False, [name], kind, kwargs)
+            parent = kwargs.intersight_api[kwargs.org].profiles[kind].get(name, {})
+            moid = parent.get('moid')
+            kwargs, changed = sync_binding(kind, name, moid, kwargs)
+            if kind == 'domain':
+                kwargs = configure(category='profiles', type='domain.switch').api_get(
+                    False, [moid], 'domain.switch', kwargs)
+                children = list(kwargs.results)
+                for side in ['A', 'B']:
+                    matches = [child for child in children if child.get('SwitchId') == side
+                               and (child.get('SwitchClusterProfile') or {}).get('Moid') == moid]
+                    if len(matches) != 1:
+                        raise ValueError(f'Cannot sync domain profile `{name}`: missing fabric {side} profile')
+                    child = matches[0]
+                    kwargs, child_changed = sync_binding(
+                        'domain.switch', child.Name, child.get('Moid'), kwargs)
+                    changed = changed or child_changed
+            if changed:
+                synced.append(profile)
+        return kwargs, synced
 
     # =========================================================================
     # Function - Add Organization Key Map to Dictionaries
@@ -2681,10 +2838,7 @@ class configure:
         for e in active_profiles:
             profile_result = profile_results_by_name.get(e)
             if not profile_result:
-                pcolor.LightPurple(
-                    f'{" " * 4}- Skipping Org: {kwargs.org}; Profile Activation for `{e}`.  Profile not found.')
-                kwargs.profile_update[e].pending_changes = 'Empty'
-                continue
+                raise ValueError(f'Cannot verify profile activation for `{e}`: profile not found')
             if profile_result.get(
                     'ConfigChanges', {}).get(
                     'PolicyDisruptions', []):
@@ -2737,6 +2891,7 @@ class configure:
             pcolor.Red(
                 f'  - Failed to Activate Profile `{e}`.  Please validate in Intersight the reason for the failure.')
             pcolor.Yellow(f'\n{"-" * 75}\n')
+            raise RuntimeError(f'Profile activation failed or timed out for `{e}`')
 
         def success_message(e):
             pcolor.Green(f'{" " * 4}- Completed Profile Activation for `{e}`.')

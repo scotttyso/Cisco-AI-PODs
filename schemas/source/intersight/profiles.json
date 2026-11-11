@@ -1175,6 +1175,19 @@
                             "type": "string",
                             "x-intersight-api": "$pbucket:ntp.Policy:Moid"
                         },
+                        "pcie_connectivity_policy": {
+                            "default": "default",
+                            "description": "Name of the PCIe Connectivity Policy for an FIAttached server. For a policy in a shared organization, use org_name/policy_name.",
+                            "examples": [
+                                "default"
+                            ],
+                            "maxLength": 129,
+                            "minLength": 1,
+                            "pattern": "^(([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]\\/)?([a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,62})?[a-zA-Z0-9]$",
+                            "title": "pcie_connectivity_policy",
+                            "type": "string",
+                            "x-intersight-api": "$pbucket:compute.PcieConnectivityPolicy:Moid"
+                        },
                         "persistent_memory_policy": {
                             "default": "default",
                             "description": "The default value is `default`.  The Name of the Persistent Memory Policy to Assign to the Profile(s).  This is only Applicable to Standalone Servers. If this policy is originating from a shared organization, include the organization name with the policy via `org_name/policy_name`.",

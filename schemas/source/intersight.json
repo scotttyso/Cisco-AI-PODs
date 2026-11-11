@@ -501,6 +501,19 @@
                     "x-intersight-object-type": "ntp.Policy",
                     "x-intersight-uri": "ntp/Policies"
                 },
+                "pcie_connectivity": {
+                    "description": "Maps server CPUs to GPUs and optional SmartNICs.\n\nRequired Attributes:\n  * `name`\n  * `mappings` (one or two entries, each requiring `cpus`)\n\nOptional Attributes:\n  * `description`\n  * `gpu_model` (defaults to Any)\n  * `tags`\n\nEach mapping optionally accepts `gpu_quantity` (defaults to 1) and `smart_nic`.",
+                    "items": {
+                        "$ref": "./intersight/policies.json#/definitions/pcie_connectivity"
+                    },
+                    "maxItems": 255,
+                    "minItems": 1,
+                    "title": "pcie_connectivity - PCIe Connectivity - Intersight Uri: compute/PcieConnectivityPolicies",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "x-intersight-object-type": "compute.PcieConnectivityPolicy",
+                    "x-intersight-uri": "compute/PcieConnectivityPolicies"
+                },
                 "persistent_memory": {
                     "description": "Persistent Memory Modules (PMem Modules) are non-volatile memory modules that bring together the low latency of memory and the persistence of storage. PMem Modules provide faster access to data and retain across power cycles, based on the mode. Intersight supports the configuration of Intel\u00ae Optane\u2122 PMem Module modules on the UCS M5 servers that are based on the Second Generation Intel\u00ae Xeon\u00ae Scalable processors. Intel\u00ae Optane\u2122 PMem Modules can be used only with the Second-Generation Intel\u00ae Xeon\u00ae Scalable processors. The Persistent Memory Policy allows the configuration of security, Goals, and Namespaces of Persistent Memory Modules.\n\nRequired Attributes:\n  * `name`\n\nOptional Attributes:\n  * `description`\n  * `management_mode`\n  * `memory_mode_percentage`\n  * `name`spaces`\n  * `persistent_memory_type`\n  * `retain_namespaces`\n  * `tags`",
                     "items": {

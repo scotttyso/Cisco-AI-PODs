@@ -52,6 +52,17 @@ System (Orgs) accepts a standalone `intersight.system` configuration; it does no
 `intersight.configure` or any domain/server pools, policies, templates, or profiles.
 Resource groups are processed before organizations so organization references can resolve.
 
+Profiles with `action: Deploy` and an attached template synchronize after successful deployment.
+Server and domain profiles use the Intersight template Sync action; domain synchronization includes
+the parent and both A/B switch profiles. Chassis profiles use the existing template-policy inheritance
+mechanism: verification checks that template policies are present, preserving additional profile policies.
+Profiles copied from templates with `attach_template: false` are not synchronized.
+If synchronization changes a profile, automation redeploys it once and verifies template synchronization
+again. Failed deployments, failed syncs, and timeouts stop the run; persistent drift after redeployment
+is reported instead of starting an unbounded sync/deploy loop. Check mode submits neither sync nor deployment.
+Redeployment applies template changes to hardware and can require server activation or reboot;
+run it during a suitable maintenance window.
+
 Automatic tags identify the managing automation with `managed-by: cisco-ai-pods` and
 `release: <VERSION>`, for example `v0.1.5`. The release is read from the repository's VERSION
 file at runtime and describes the last-applied software release, not the resource's creation version.
@@ -98,6 +109,47 @@ python3 scripts/deploy_ai_pod.py --role intersight --intersight-scope domains \
 Omit `--intersight-file` to deploy all files in the selected scope. The selection is
 per run and does not delete or change any variable files. System (Orgs) keeps its
 existing whole-page deployment behavior.
+
+### PCIe connectivity
+
+For FI-attached UCS X-Series servers, add `pcie_connectivity` to an organization's
+`policies` configuration. Policies use `compute/PcieConnectivityPolicies`.
+
+```yaml
+pcie_connectivity:
+  - name: PCIe-GPU
+    gpu_model: UCSC-GPU-L40S
+    mappings:
+      - cpus: 1
+      - cpus: 2
+  - name: PCIe-GPU-SmartNIC
+    gpu_model: UCSC-GPU-L40S
+    mappings:
+      - cpus: 1
+        gpu_quantity: 1
+        smart_nic: UCSC-P-N7S400GF
+      - cpus: 2
+        gpu_quantity: 1
+        smart_nic: UCSC-P-N7D200GF
+  - name: PCIe-Any
+    mappings:
+      - cpus: any
+```
+
+`name` and one or two `mappings` are required. Each mapping requires `cpus`:
+lowercase `any`, or the YAML integer `1` or `2`. These render as API CPU IDs
+`Any`, `"1"`, and `"2"`. `gpu_model` defaults to `Any`; each mapping's
+`gpu_quantity` defaults to `1` and accepts only `1` or `2`.
+
+GPU models are `Any`, `UCSC-GPU-H100-NVL`, `UCSC-GPU-H200-NVL`, `UCSC-GPU-L40S`,
+`UCSC-GPU-RTXP6000`, and `UCSC-GPU-RTXP4500`. Optional `smart_nic` choices are
+`Any`, `UCSC-P-N7S400GF`, `UCSC-P-N7D200GF`, `UCSC-P-N7S400GFO`, and `UCSC-P-N7D200GFO`.
+Omitting `smart_nic` emits no adapter endpoint; setting it selects one adapter.
+`description` and standard `tags` are optional. Reference the policy from an
+FI-attached server profile or template with `pcie_connectivity_policy: PCIe-GPU`.
+Normal policy name prefixes/suffixes and shared-organization references apply.
+
+See Cisco's [PCIe connectivity policy documentation](https://intersight.com/help/saas/resources/server_policies#pcie_connectivity_policy).
 
 ### Domain uplink connectivity
 

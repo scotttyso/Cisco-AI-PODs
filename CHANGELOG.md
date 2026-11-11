@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.7] - 2026-11-11
+
+### Added
+- PCIe connectivity policies: configurable CPU-to-GPU mappings and optional SmartNICs, with schema validation and server profile/template references.
+- Post-deployment template synchronization for attached server and domain profiles, including A/B switch profiles.
+- Chassis template-policy inheritance verification and reconciliation.
+
+### Changed
+- Redeploy synchronized profile changes once, activate pending server changes, and verify synchronization afterward.
+- Deployment, activation, and synchronization failures or timeouts stop the run instead of reporting success.
+- Check mode and detached profiles remain non-mutating; template-driven redeployment can require a server reboot.
+
 ## [0.1.6] - 2026-11-11
 
 ### Changed

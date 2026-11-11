@@ -17334,6 +17334,108 @@
             "x-intersight-type": "policies",
             "x-intersight-uri": "ntp/Policies"
         },
+        "pcie_connectivity": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/abstract_attributes"
+                },
+                {
+                    "properties": {
+                        "gpu_model": {
+                            "default": "Any",
+                            "description": "GPU model to select in every mapping. Defaults to Any.",
+                            "enum": [
+                                "Any",
+                                "UCSC-GPU-H100-NVL",
+                                "UCSC-GPU-H200-NVL",
+                                "UCSC-GPU-L40S",
+                                "UCSC-GPU-RTXP6000",
+                                "UCSC-GPU-RTXP4500"
+                            ],
+                            "title": "gpu_model - GPU Model",
+                            "type": "string",
+                            "x-intersight-api": "Model"
+                        },
+                        "mappings": {
+                            "description": "One or two CPU-to-GPU mappings, optionally including one SmartNIC per mapping.",
+                            "items": {
+                                "$ref": "#/definitions/pcie_connectivity.mappings"
+                            },
+                            "maxItems": 2,
+                            "minItems": 1,
+                            "title": "mappings - PCIe Mappings",
+                            "type": "array",
+                            "uniqueItems": true,
+                            "x-intersight-api": "PcieZones",
+                            "x-intersight-object-type": "compute.PcieZone"
+                        }
+                    },
+                    "required": [
+                        "mappings"
+                    ],
+                    "title": "pcie_connectivity",
+                    "type": "object"
+                }
+            ],
+            "description": "Maps server CPUs to GPUs and optional SmartNICs through UCS X-Series PCIe connectivity.",
+            "title": "pcie_connectivity - PCIe Connectivity - Intersight Uri: compute/PcieConnectivityPolicies",
+            "type": "object",
+            "unevaluatedProperties": false,
+            "x-intersight-object-type": "compute.PcieConnectivityPolicy",
+            "x-intersight-target-platforms": [
+                "FIAttached"
+            ],
+            "x-intersight-type": "policies",
+            "x-intersight-uri": "compute/PcieConnectivityPolicies"
+        },
+        "pcie_connectivity.mappings": {
+            "additionalProperties": false,
+            "properties": {
+                "cpus": {
+                    "description": "CPU selector: any, 1, or 2. Numeric CPU IDs are written as YAML integers.",
+                    "enum": [
+                        "any",
+                        1,
+                        2
+                    ],
+                    "title": "cpus - CPUs",
+                    "type": [
+                        "string",
+                        "integer"
+                    ],
+                    "x-intersight-api": "CpuId"
+                },
+                "gpu_quantity": {
+                    "default": 1,
+                    "description": "Number of GPUs to select for this mapping. Defaults to 1.",
+                    "maximum": 2,
+                    "minimum": 1,
+                    "title": "gpu_quantity - GPU Quantity",
+                    "type": "integer",
+                    "x-intersight-api": "Count"
+                },
+                "smart_nic": {
+                    "description": "Optional SmartNIC model. Omit to select no SmartNIC; Any selects one adapter of any supported model.",
+                    "enum": [
+                        "Any",
+                        "UCSC-P-N7S400GF",
+                        "UCSC-P-N7D200GF",
+                        "UCSC-P-N7S400GFO",
+                        "UCSC-P-N7D200GFO"
+                    ],
+                    "title": "smart_nic - SmartNIC",
+                    "type": "string",
+                    "x-intersight-api": "Model"
+                }
+            },
+            "required": [
+                "cpus"
+            ],
+            "title": "pcie_connectivity.mappings - PCIe Mapping",
+            "type": "object",
+            "x-intersight-api": "PcieZones",
+            "x-intersight-object-type": "compute.PcieZone"
+        },
         "persistent_memory": {
             "allOf": [
                 {

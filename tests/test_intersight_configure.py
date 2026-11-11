@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 import yaml
 from dotmap import DotMap
+from jsonschema import Draft202012Validator
 
 
 original_path = sys.path[:]
@@ -599,6 +600,100 @@ def test_bundled_schema_version_follows_version_file(monkeypatch, tmp_path, rele
     assert bundle["x-schema-version"] == release
 
 
+@pytest.fixture(scope="module")
+def intersight_schema():
+    root = Path(module.__file__).resolve().parents[5]
+    return json.loads((root / "schema" / "cisco-ai-pods.json").read_text())
+
+
+@pytest.mark.parametrize("policy,zones", [
+    ({"name": "GPU", "gpu_model": "UCSC-GPU-L40S", "mappings": [{"cpus": 1}, {"cpus": 2}]},
+     [("1", "UCSC-GPU-L40S", 1, None), ("2", "UCSC-GPU-L40S", 1, None)]),
+    ({"name": "GPU-NIC", "gpu_model": "UCSC-GPU-L40S", "mappings": [
+        {"cpus": 1, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7S400GF"},
+        {"cpus": 2, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7D200GF"}]},
+     [("1", "UCSC-GPU-L40S", 1, "UCSC-P-N7S400GF"), ("2", "UCSC-GPU-L40S", 1, "UCSC-P-N7D200GF")]),
+    ({"name": "Any", "mappings": [{"cpus": "any"}]},
+     [("Any", "Any", 1, None)]),
+    ({"name": "Two", "description": 'Two "GPUs"', "gpu_model": "UCSC-GPU-H200-NVL",
+      "mappings": [{"cpus": 2, "gpu_quantity": 2, "smart_nic": "Any"}],
+      "tags": [{"key": "Location", "value": 'Lab "A"'}, {"key": "GPU/Two", "type": "PathTag"}]},
+     [("2", "UCSC-GPU-H200-NVL", 2, "Any")]),
+])
+def test_pcie_connectivity_payload_matches_api_examples(intersight_schema, policy, zones):
+    schema = intersight_schema["definitions"]["intersight.policies"]
+    assert not list(Draft202012Validator(intersight_schema).descend({"pcie_connectivity": [policy]}, schema))
+    kwargs = configuration(check=True)
+    kwargs.script_path = str(Path(module.__file__).resolve().parents[2])
+    payload = module.configure(category="policies", type="pcie_connectivity").create_api_body(
+        DotMap(policy), "pre-", "-post", kwargs)
+    expected_zones = []
+    for cpu, gpu, count, nic in zones:
+        endpoints = [{
+            "GpuPropFilters": [{"Count": count, "Model": gpu, "ObjectType": "compute.GpuPropFilter"}],
+            "ObjectType": "compute.GpuConfig", "PcieEndpointType": "GPU",
+        }]
+        if nic is not None:
+            endpoints.append({
+                "AdapterUnitPropFilters": [
+                    {"Count": 1, "Model": nic, "ObjectType": "compute.AdapterUnitPropFilter"}],
+                "ObjectType": "compute.AdapterUnitConfig", "PcieEndpointType": "Adapter",
+            })
+        expected_zones.append({
+            "ObjectType": "compute.PcieZone", "PcieEndpoints": endpoints,
+            "RootPcieEndpoint": {"CpuId": cpu, "ObjectType": "compute.CpuConfig", "RootPcieEndpointType": "CPU"},
+        })
+    expected_tags = ([] if policy["name"] != "Two" else [
+        {"Key": "Location", "Type": "KeyValue", "Value": 'Lab "A"'},
+        {"Key": "GPU/Two", "Type": "PathTag"},
+    ])
+    assert payload == {
+        "Name": f"pre-{policy['name']}-post", "Description": policy.get("description", ""),
+        "ObjectType": "compute.PcieConnectivityPolicy",
+        "Organization": {"Moid": "org-moid", "ObjectType": "organization.Organization"},
+        "PcieZones": expected_zones, "Tags": expected_tags,
+    }
+
+
+@pytest.mark.parametrize("policy", [
+    {"mappings": [{"cpus": 1}]},
+    {"name": "PCIe"},
+    {"name": "PCIe", "mappings": []},
+    {"name": "PCIe", "mappings": [{"cpus": "any"}, {"cpus": 1}, {"cpus": 2}]},
+    {"name": "PCIe", "mappings": [{}]},
+    {"name": "PCIe", "mappings": [{"cpus": 3}]},
+    {"name": "PCIe", "mappings": [{"cpus": 1, "gpu_quantity": 0}]},
+    {"name": "PCIe", "mappings": [{"cpus": 1, "gpu_quantity": 3}]},
+    {"name": "PCIe", "mappings": [{"cpus": 1, "smart_nic": "Invalid"}]},
+    {"name": "PCIe", "gpu_model": "Invalid", "mappings": [{"cpus": 1}]},
+])
+def test_pcie_connectivity_schema_rejects_invalid_mappings(intersight_schema, policy):
+    schema = intersight_schema["definitions"]["intersight.policies.pcie_connectivity"]
+    assert list(Draft202012Validator(intersight_schema).descend(policy, schema))
+
+
+@pytest.mark.parametrize("category", ["profiles", "templates"])
+def test_server_pcie_policy_reference_renders_policy_bucket(intersight_schema, category):
+    schema = intersight_schema["definitions"][f"intersight.{category}.server"]
+    policy = {"target_platform": "FIAttached", "pcie_connectivity_policy": "PCIe"}
+    if category == "profiles":
+        policy["action"] = "No-op"
+        policy["attach_template"] = False
+        policy["targets"] = [{"name": "Server", "serial_number": "FOX2651P1WQ"}]
+    else:
+        policy.update(name="Server", create_template=True, server_family="All")
+    assert not list(Draft202012Validator(intersight_schema).descend(policy, schema))
+    kwargs = configuration(check=True)
+    kwargs.script_path = str(Path(module.__file__).resolve().parents[2])
+    kwargs.intersight_api[kwargs.org].policies.pcie_connectivity["PCIe"].moid = "pcie-moid"
+    kwargs.intersight_object_map = {
+        "pcie_connectivity": intersight_schema["definitions"]["intersight.policies.pcie_connectivity"][
+            "x-intersight-object-type"]}
+    payload = module.configure(category=category, type="server").create_api_body(
+        DotMap(policy | {"name": "Server"}), "", "", kwargs)
+    assert payload["PolicyBucket"] == [{"Moid": "pcie-moid", "ObjectType": "compute.PcieConnectivityPolicy"}]
+
+
 @pytest.mark.parametrize("reference", ["XDirect", "Shared/XDirect"])
 @pytest.mark.parametrize("missing", [None, "cluster", "A", "B"])
 def test_domain_template_resolution_queries_real_cache_shape(
@@ -799,7 +894,7 @@ def test_domain_wrapper_runs_deployment_after_reconciliation(monkeypatch, resour
 
 
 @pytest.mark.parametrize("case", [
-    "deploy", "check", "noop", "already", "missing-b", "unassigned", "failed", "timeout",
+    "deploy", "check", "noop", "already", "force", "missing-b", "unassigned", "failed", "timeout",
 ])
 def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys):
     kwargs = configuration(check=case == "check")
@@ -818,7 +913,7 @@ def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys
         children.pop()
     if case == "unassigned":
         children[1].AssignedSwitch = None
-    if case == "already":
+    if case in ("already", "force"):
         for child in children:
             child.ConfigContext.ConfigState = "Associated"
     lookups, payloads, polls = [], [], []
@@ -842,6 +937,8 @@ def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys
     monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("pre-", "-post"))
     monkeypatch.setattr(module.configure, "api_get", lookup)
     monkeypatch.setattr(module.api, "calls", api_calls)
+    finish_sync = Mock(side_effect=lambda _profiles, state: state)
+    monkeypatch.setattr(module.configure, "profiles_finish_template_sync", finish_sync)
     def sleep(seconds):
         assert seconds == 60
         output = " ".join(capsys.readouterr().out.split())
@@ -868,15 +965,15 @@ def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys
         with pytest.raises(expected_error[0], match=expected_error[1]):
             provision.profiles_domain_deploy(profiles, kwargs)
     else:
-        provision.profiles_domain_deploy(profiles, kwargs)
-    if case in ("deploy", "failed", "timeout"):
+        provision.profiles_domain_deploy(profiles, kwargs, force=case == "force")
+    if case in ("deploy", "force", "failed", "timeout"):
         assert len(payloads) == 2
         assert [payload["TargetMoid"] for payload in payloads] == ["switch-A", "switch-B"]
         assert all(payload["Verb"] == "PATCH" for payload in payloads)
         assert all(payload["Uri"] == "/v1/fabric/SwitchProfiles" for payload in payloads)
         assert all(payload["Body"]["Action"] == "Deploy" for payload in payloads)
         assert polls
-        if case == "deploy":
+        if case in ("deploy", "force"):
             assert polls == ["switch-A", "switch-B"]
             assert "Completed Switch Profile Deployment for `pre-Domain-post-B`" in capsys.readouterr().out
         elif case == "timeout":
@@ -890,6 +987,258 @@ def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys
         assert "Sleeping for 60 Seconds" not in output
     if case in ("check", "noop"):
         assert lookups == []
+    assert finish_sync.call_count == (1 if case in ("deploy", "force", "already", "check") else 0)
+
+
+@pytest.mark.parametrize("kind", ["server", "domain", "unified_edge"])
+@pytest.mark.parametrize("status", ["None", "OutOfSync", "OK", "Scheduled"])
+@pytest.mark.parametrize("idle_action", ["No-op", "No_op"])
+def test_profile_template_sync_actions_and_domain_children(monkeypatch, kind, status, idle_action):
+    kwargs = configuration(check=False)
+    native_kind = "domain" if kind == "unified_edge" else kind
+    template_key = {"server": "ucs_server_profile_template", "domain": "ucs_domain_profile_template",
+                    "unified_edge": "unified_edge_profile_template"}[kind]
+    profiles = [DotMap(name="Profile", action="Deploy", **{template_key: "Template"})]
+    kwargs.ezdata[f"intersight.profiles.{native_kind}"] = {"x-intersight-uri": f"{native_kind}/Profiles"}
+    kwargs.ezdata["intersight.profiles.domain.switch"] = {"x-intersight-uri": "fabric/SwitchProfiles"}
+    kwargs.intersight_api[kwargs.org].profiles[native_kind]["pre-Profile-post"].moid = "parent"
+    ids = ["parent"] + (["A", "B"] if native_kind == "domain" else [])
+    results = {moid: DotMap({
+        "SrcTemplate": {"Moid": f"template-{moid}"}, "TemplateSyncStatus": status,
+        "ConfigContext": {"ControlAction": idle_action, "ConfigState": "Associated", "ErrorState": None},
+    }) for moid in ids}
+    children = [DotMap(Name=side, Moid=side, SwitchId=side, SwitchClusterProfile={"Moid": "parent"})
+                for side in ["A", "B"]]
+    requests = []
+
+    def lookup(self, _empty, _names, _otype, state):
+        state.results = children if self.type == "domain.switch" else []
+        return state
+
+    def calls(self, state):
+        requests.append((self.type, state.method, state.pmoid, state.get("api_body")))
+        if state.method == "patch":
+            body = state.api_body
+            assert body == {"TemplateActions": [{
+                "ObjectType": "motemplate.ActionEntry", "Type": "Sync",
+                "Params": [{"ObjectType": "motemplate.ActionParam", "Name": "SyncType", "Value": "SyncOne"}],
+            }]}
+            results[state.pmoid].TemplateSyncStatus = "OK"
+        elif results[state.pmoid].TemplateSyncStatus == "Scheduled":
+            results[state.pmoid].TemplateSyncStatus = "InProgress"
+        elif results[state.pmoid].TemplateSyncStatus == "InProgress":
+            results[state.pmoid].TemplateSyncStatus = "OK"
+        state.results = results[state.pmoid]
+        return state
+
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("pre-", "-post"))
+    monkeypatch.setattr(module.configure, "api_get", lookup)
+    monkeypatch.setattr(module.api, "calls", calls)
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    provision = module.configure(category="profiles", type=kind)
+    _, changed = provision.profiles_sync_templates(profiles, kwargs)
+    assert changed == ([] if status == "OK" else profiles)
+    patches = [request for request in requests if request[1] == "patch"]
+    assert [request[2] for request in patches] == (ids if status in ["None", "OutOfSync"] else [])
+    assert all(results[moid].TemplateSyncStatus == "OK" for moid in ids)
+
+
+@pytest.mark.parametrize("case", [
+    "error", "timeout", "unsupported", "detached", "deploying", "deployment-error", "verify-drift",
+])
+def test_template_sync_failure_is_not_reported_as_success(monkeypatch, case):
+    kwargs = configuration(check=False)
+    kwargs.ezdata["intersight.profiles.server"] = {"x-intersight-uri": "server/Profiles"}
+    kwargs.intersight_api[kwargs.org].profiles.server["Profile"].moid = "profile"
+    profile = DotMap(name="Profile", action="Deploy", ucs_server_profile_template="Template")
+    result = DotMap({
+        "SrcTemplate": None if case == "detached" else {"Moid": "template"},
+        "ConfigContext": {"ControlAction": "Deploy" if case == "deploying" else "No-op",
+                          "ErrorState": "Config-error" if case == "deployment-error" else None},
+        "TemplateSyncStatus": "Unavailable" if case == "unsupported" else "OutOfSync",
+    })
+    requests = []
+
+    def calls(_self, state):
+        requests.append(state.method)
+        if case == "error" and "patch" in requests:
+            result.TemplateSyncErrors = [{"Message": "Sync failed"}]
+        state.results = result
+        return state
+
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    monkeypatch.setattr(module.configure, "api_get", lambda _self, _empty, _names, _kind, state: state)
+    monkeypatch.setattr(module.api, "calls", calls)
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    error = ValueError if case == "detached" else TimeoutError if case == "timeout" else RuntimeError
+    with pytest.raises(error):
+        module.configure(category="profiles", type="server").profiles_sync_templates(
+            [profile], kwargs, verify_only=case == "verify-drift")
+    assert ("patch" in requests) == (case in ("error", "timeout"))
+
+
+@pytest.mark.parametrize("check,attach,action", [(True, True, "Deploy"), (False, False, "Deploy"),
+                                               (False, True, "No-op")])
+def test_template_sync_preserves_check_and_detached_profiles(monkeypatch, check, attach, action):
+    kwargs = configuration(check=check)
+    profile = DotMap(name="Profile", action=action, attach_template=attach,
+                     ucs_server_profile_template="Template")
+    calls = Mock()
+    monkeypatch.setattr(module.api, "calls", calls)
+    _, changed = module.configure(category="profiles", type="server").profiles_sync_templates([profile], kwargs)
+    assert changed == []
+    calls.assert_not_called()
+
+
+@pytest.mark.parametrize("case", ["inherited", "merge", "verify-drift"])
+def test_chassis_template_inheritance_is_verified_and_reconciled(monkeypatch, case):
+    kwargs = configuration(check=False)
+    kwargs.ezdata["intersight.profiles.chassis"] = {
+        "x-intersight-uri": "chassis/Profiles", "x-intersight-object-type": "chassis.Profile"}
+    kwargs.ezdata["intersight.templates.chassis"] = {
+        "x-intersight-uri": "chassis/ProfileTemplates", "x-intersight-object-type": "chassis.ProfileTemplate"}
+    kwargs.intersight_api[kwargs.org].profiles.chassis["Profile"].moid = "profile"
+    policies = [{"ObjectType": "power.Policy", "Moid": "power"}]
+    profile = DotMap(name="Profile", action="Deploy", ucs_chassis_profile_template="Template")
+    result = DotMap(SrcTemplate={"Moid": "template"}, ConfigContext={"ControlAction": "No-op"},
+                    PolicyBucket=policies if case == "inherited" else [])
+    merged = []
+
+    def calls(self, state):
+        if state.method == "post":
+            merged.append(state.api_body)
+            result.PolicyBucket = policies
+        state.results = DotMap(PolicyBucket=policies) if self.category == "templates" else result
+        return state
+
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    monkeypatch.setattr(module.configure, "api_get", lambda _self, _empty, _names, _kind, state: state)
+    monkeypatch.setattr(module.api, "calls", calls)
+    provision = module.configure(category="profiles", type="chassis")
+    if case == "verify-drift":
+        with pytest.raises(RuntimeError, match="inheritance"):
+            provision.profiles_sync_templates([profile], kwargs, verify_only=True)
+    else:
+        _, changed = provision.profiles_sync_templates([profile], kwargs)
+        assert changed == ([profile] if case == "merge" else [])
+    assert len(merged) == (1 if case == "merge" else 0)
+    if merged:
+        assert merged[0]["MergeAction"] == "Merge"
+        assert merged[0]["Targets"] == [{"Moid": "profile", "ObjectType": "chassis.Profile"}]
+        assert merged[0]["Sources"] == [{"Moid": "template", "ObjectType": "chassis.ProfileTemplate"}]
+
+
+@pytest.mark.parametrize("kind", ["server", "chassis", "domain", "unified_edge"])
+def test_sync_redeploys_once_then_verifies_without_another_sync(monkeypatch, kind):
+    kwargs = configuration(check=False)
+    profiles = [DotMap(name="Profile", action="Deploy")]
+    events = []
+
+    def sync(_self, selected, state, verify_only=False):
+        assert selected == profiles
+        events.append("verify" if verify_only else "sync")
+        return state, [] if verify_only else profiles
+
+    def deploy(_self, selected, state, sync_templates=True, force=False):
+        assert selected == profiles
+        assert sync_templates is False
+        assert force is True
+        events.append("redeploy")
+        return state
+
+    monkeypatch.setattr(module.configure, "profiles_sync_templates", sync)
+    monkeypatch.setattr(module.configure, "profiles_domain_deploy", deploy)
+    monkeypatch.setattr(module.configure, "profiles_chassis_server_deploy", deploy)
+    module.configure(category="profiles", type=kind).profiles_finish_template_sync(profiles, kwargs)
+    assert events == ["sync", "redeploy", "verify"]
+
+
+@pytest.mark.parametrize("kind", ["chassis", "server"])
+@pytest.mark.parametrize("case", ["deploy", "force", "failed", "timeout", "check"])
+def test_chassis_server_sync_runs_only_after_successful_deployment(monkeypatch, kind, case):
+    kwargs = configuration(check=case == "check")
+    kwargs.ezdata[f"intersight.profiles.{kind}"] = {"x-intersight-uri": f"{kind}/Profiles"}
+    profile = DotMap(name="Profile", action="Deploy", serial_number="FOX2651P1WQ")
+    kwargs.intersight_api[kwargs.org].profiles[kind]["Profile"] = DotMap(
+        moid="profile", result={"ConfigContext": {
+            "ControlAction": "No-op", "ConfigState": "Associated" if case == "force" else "Assigned"}})
+    events = []
+
+    def calls(_self, state):
+        events.append(state.method)
+        state.results = DotMap(ConfigContext={
+            "ControlAction": "Deploy" if case == "timeout" else "No-op",
+            "ConfigState": "Failed" if case == "failed" else "Associated",
+            "ErrorState": None,
+        })
+        return state
+
+    def sync(_self, _profiles, state):
+        events.append("sync")
+        return state
+
+    def lookup(_self, _empty, _names, _kind, state):
+        state.results = [DotMap(Name="Profile", ConfigChanges={"PolicyDisruptions": []})]
+        return state
+
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    monkeypatch.setattr(module.configure, "api_get", lookup)
+    monkeypatch.setattr(module.configure, "profiles_finish_template_sync", sync)
+    monkeypatch.setattr(module.api, "calls", calls)
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    provision = module.configure(category="profiles", type=kind)
+    if case in ["failed", "timeout"]:
+        with pytest.raises(RuntimeError if case == "failed" else TimeoutError):
+            provision.profiles_chassis_server_deploy([profile], kwargs)
+        assert "sync" not in events
+    else:
+        provision.profiles_chassis_server_deploy([profile], kwargs, force=case == "force")
+        assert events == (["sync"] if case == "check" else ["patch", "get_by_moid", "sync"])
+
+
+@pytest.mark.parametrize("case", ["failed", "force-failed", "timeout", "missing-profile"])
+def test_server_activation_failure_stops_template_sync(monkeypatch, case):
+    kwargs = configuration(check=False)
+    kwargs.ezdata["intersight.profiles.server"] = {"x-intersight-uri": "server/Profiles"}
+    kwargs.intersight_api[kwargs.org].profiles.server["Profile"] = DotMap(
+        moid="profile", result=({"ConfigContext": {"ConfigState": "Associated", "ControlAction": "No-op"}}
+                                if case == "force-failed" else
+                                {"ConfigChanges": {"PolicyDisruptions": ["reboot"]}}))
+    profile = DotMap(name="Profile", action="Deploy", serial_number="FOX2651P1WQ")
+    workflow = DotMap(Moid="workflow", CreateTime="2026-11-11T00:00:00Z",
+                      AssociatedObject={"Moid": "profile"},
+                      WorkflowStatus="Failed" if case in ("failed", "force-failed") else "Running")
+    payloads = []
+
+    def lookup(_self, _empty, _names, _kind, state):
+        state.results = ([] if case == "missing-profile" else
+                         [DotMap(Name="Profile", ConfigChanges={"PolicyDisruptions": ["reboot"]})])
+        return state
+
+    def calls(_self, state):
+        if state.method == "patch":
+            payloads.append(state.api_body)
+        if state.method == "get_by_moid" and state.pmoid == "profile":
+            state.results = DotMap(ConfigContext={"ControlAction": "No-op"})
+        else:
+            state.results = [workflow] if state.method == "get" else workflow
+        return state
+
+    finish_sync = Mock()
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    monkeypatch.setattr(module.configure, "api_get", lookup)
+    monkeypatch.setattr(module.configure, "profiles_finish_template_sync", finish_sync)
+    monkeypatch.setattr(module.api, "calls", calls)
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    provision = module.configure(category="profiles", type="server")
+    with pytest.raises(ValueError if case == "missing-profile" else RuntimeError):
+        provision.profiles_chassis_server_deploy([profile], kwargs, force=case == "force-failed")
+    expected = [] if case == "missing-profile" else [
+        {"ScheduledActions": [{"Action": "Activate", "ProceedOnReboot": True}]}]
+    if case == "force-failed":
+        expected.insert(0, {"Action": "Deploy", "Name": "Profile"})
+    assert payloads == expected
+    finish_sync.assert_not_called()
 
 
 @pytest.mark.parametrize("resource_type,uri,object_type", [

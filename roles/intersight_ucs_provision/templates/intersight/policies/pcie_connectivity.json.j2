@@ -1,73 +1,59 @@
 {
-  "Description": "The default configuration which will be applied on the server when a policy is removed from the server and whenever server configuration is cleaned up.",
-  "Name": "SystemDefault",
+  "Description": {{ item.description | default('') | tojson }},
+  "Name": {{ (name_prefix ~ item.name ~ name_suffix) | tojson }},
   "ObjectType": "compute.PcieConnectivityPolicy",
   "Organization": {
-    "Moid": "{{ org_moids[organization].moid }}",
+    "Moid": {{ org_moids[organization].moid | tojson }},
     "ObjectType": "organization.Organization"
   },
   "PcieZones": [
+{% for mapping in item.mappings %}
     {
       "ObjectType": "compute.PcieZone",
       "PcieEndpoints": [
         {
           "GpuPropFilters": [
             {
-              "Count": 1,
-              "Model": "Any",
+              "Count": {{ mapping.gpu_quantity | default(1) | tojson }},
+              "Model": {{ item.gpu_model | default('Any') | tojson }},
               "ObjectType": "compute.GpuPropFilter"
             }
           ],
           "ObjectType": "compute.GpuConfig",
           "PcieEndpointType": "GPU"
-        },
+        }{% if mapping.smart_nic is defined %},
         {
           "AdapterUnitPropFilters": [
             {
               "Count": 1,
-              "Model": "Any",
+              "Model": {{ mapping.smart_nic | tojson }},
               "ObjectType": "compute.AdapterUnitPropFilter"
             }
           ],
           "ObjectType": "compute.AdapterUnitConfig",
           "PcieEndpointType": "Adapter"
         }
+{% endif %}
       ],
       "RootPcieEndpoint": {
-        "CpuId": "Any",
+        "CpuId": {{ ('Any' if mapping.cpus == 'any' else mapping.cpus | string) | tojson }},
         "ObjectType": "compute.CpuConfig",
         "RootPcieEndpointType": "CPU"
       }
-    },
-    {
-      "ObjectType": "compute.PcieZone",
-      "PcieEndpoints": [
-        {
-          "GpuPropFilters": [
-            {
-              "Count": 1,
-              "Model": "Any",
-              "ObjectType": "compute.GpuPropFilter"
-            }
-          ],
-          "ObjectType": "compute.GpuConfig",
-          "PcieEndpointType": "GPU"
-        }
-      ],
-      "RootPcieEndpoint": {
-        "CpuId": "Any",
-        "ObjectType": "compute.CpuConfig",
-        "RootPcieEndpointType": "CPU"
-      }
-    }
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
   ],
   "Tags": [
+{% for tag in item.tags %}
     {
-      "Key": "cisco.meta.SystemDefault",
-      "Propagated": false,
-      "SysTag": true,
+      "Key": {{ tag.key | tojson }},
+{% if tag.type | default(tag.tag_type | default('KeyValue')) == 'PathTag' %}
+      "Type": "PathTag"
+{% else %}
       "Type": "KeyValue",
-      "Value": "true"
-    }
+      "Value": {{ tag.value | tojson }}
+{% endif %}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
   ]
 }
