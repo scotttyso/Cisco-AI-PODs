@@ -265,7 +265,7 @@ class WorkspaceStore:
         return self._settings().get("shared_services_overrides", {})
 
     def shared_services(self) -> dict:
-        detected, _ = self.detected()
+        detected, _unused_value = self.detected()
         return merge(detected, self.overrides())
 
     def save_shared_services(self, shared_services: dict) -> dict:
@@ -273,7 +273,7 @@ class WorkspaceStore:
         problems = self.validate(shared_services)
         if problems:
             raise ValueError("\n".join(problems))
-        detected, _ = self.detected()
+        detected, _unused_value = self.detected()
         overrides = overrides_from(shared_services, detected)
         with SETTINGS_LOCK:
             document = self._settings()

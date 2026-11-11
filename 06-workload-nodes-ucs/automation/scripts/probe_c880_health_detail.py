@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced GET-only C880 chassis health check with sanitized output."""
 
 import argparse

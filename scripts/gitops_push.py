@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Commit the rendered OpenShift GitOps content (openshift.destination_directory) and push it to the GitOps repository.
 
 The directory becomes a working copy of the repository: the remote branch is fetched, the rendered files are committed
@@ -22,7 +22,7 @@ TOKEN_ENV = "gitops_git_token"
 
 def git(directory: Path, *arguments: str, env: dict, check: bool = True) -> subprocess.CompletedProcess:
     print("+ git " + " ".join(arguments), flush=True)
-    result = subprocess.run(["git", "-C", str(directory), *arguments], env=env, text=True, capture_output=True)
+    result = subprocess.run(["git", "-C", str(directory), *arguments], env=env, text=True, capture_output=True, check=False)
     output = (result.stdout + result.stderr).strip()
     if output:
         print(output, flush=True)

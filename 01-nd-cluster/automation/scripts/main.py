@@ -170,7 +170,7 @@ def build_telemetry(phase: str, exit_code: int, run_log: RunLog, *,
             "cluster_state": cluster_state,
             "nodes_total": len(node_states or []),
             "nodes_healthy": sum(str(state).lower() in {"active", "ready", "operational"}
-                                 for _, state in (node_states or [])),
+                                 for _unused_value, state in (node_states or [])),
         },
         "checks_table": checks,
         "console_drawer": {
@@ -266,12 +266,12 @@ def _dispatch(args) -> int:
             changed = install_node1.run(inv, dry_run=args.dry_run)
             _emit_changed(ph, changed)
             print(json.dumps({"nodes": [{"name": inv.bootstrap_node.hostname,
-                                          "state": "phase completed"}]}))
+                                         "state": "phase completed"}]}))
         elif ph == "bootstrap":
             changed = install_node1.bootstrap_only(inv, dry_run=args.dry_run)
             _emit_changed(ph, changed)
             print(json.dumps({"nodes": [{"name": inv.bootstrap_node.hostname,
-                                          "state": "phase completed"}]}))
+                                         "state": "phase completed"}]}))
         elif ph == "secondary":
             if not args.node:
                 raise InventoryError("secondary requires --node")
@@ -279,7 +279,7 @@ def _dispatch(args) -> int:
             changed = install_secondaries.run_one(inv, node)
             _emit_changed(ph, changed)
             print(json.dumps({"nodes": [{"name": node.hostname,
-                                          "state": "phase completed"}]}))
+                                         "state": "phase completed"}]}))
         elif ph == "validate":
             validation = validator.run(inv, dry_run=args.dry_run)
             if isinstance(validation, dict):
@@ -338,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
                 node_states=[("nd-node-1", "active"), ("nd-node-2", "active")],
                 offline=True,
             ),
-                              indent=2, sort_keys=True))
+                indent=2, sort_keys=True))
         return 0
 
     action = f"{args.phase}-{args.node}" if args.node and args.phase in {"secondary", "tail-sol"} else args.phase

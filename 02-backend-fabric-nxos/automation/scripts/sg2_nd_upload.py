@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Stream a pinned, SHA512-verified NX-OS image into ND.
 
 This helper is invoked by 03_sg2_software_upgrade.yml. It never retries a

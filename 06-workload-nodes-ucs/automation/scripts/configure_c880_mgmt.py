@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Automated configuration and verification of Procedure 1 & 2 for Cisco UCS C880A M8.
 
 Configures:
@@ -15,7 +15,6 @@ import base64
 import json
 from pathlib import Path
 import ssl
-import sys
 import time
 import urllib.error
 import urllib.request
@@ -37,7 +36,7 @@ def _get_opener(allow_self_signed=True):
 
 def _redfish_patch(opener, url, auth, payload, retries=3):
     """Execute Redfish PATCH with mandatory ETag handling and retry on HTTP 412.
-    
+
     Handles BMC-specific behavior where patching an already-applied value returns
     HTTP 400 with MessageId SyncAgent.1.0.PatchValueAlreadyExists.
     """
@@ -147,7 +146,7 @@ def configure_node(inventory_dir, host, *, allow_self_signed=True, logger=print)
     static_dns = list(dns_servers)
     if "::" not in static_dns:
         static_dns.append("::")
-    
+
     curr_dns = curr_eth0.get("StaticNameServers", [])
     curr_hn = curr_eth0.get("HostName")
     curr_fqdn = curr_eth0.get("FQDN")
@@ -178,10 +177,10 @@ def configure_node(inventory_dir, host, *, allow_self_signed=True, logger=print)
         try:
             audit_res = audit_settings_persistence(reader, host_spec, shared_spec)
             if audit_res["all_passed"]:
-                log(f"  - Audit verified on attempt {attempt+1}.")
+                log(f"  - Audit verified on attempt {attempt + 1}.")
                 break
         except Exception as e:
-            log(f"  - Attempt {attempt+1}: waiting for BMC to become responsive ({type(e).__name__})...")
+            log(f"  - Attempt {attempt + 1}: waiting for BMC to become responsive ({type(e).__name__})...")
         time.sleep(5)
 
     if not audit_res or not audit_res["all_passed"]:

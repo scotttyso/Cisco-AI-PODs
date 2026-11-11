@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """C880 chapter workflow: offline plan, strict downgrade check, and in-memory OOB upgrade.
 
 This module provides:
@@ -332,7 +332,7 @@ class UnverifiedVersionError(ValueError):
 
 def parse_component_version(component, value):
     """Parse component version strings into numeric tuples for strict comparison.
-    
+
     Supports:
     - BMC: 4.0(2.260022), 4.0.2.260022
     - BIOS: 4.0.2.67
@@ -345,7 +345,7 @@ def parse_component_version(component, value):
     val = value.strip()
     if not val or val.upper() in ("N/A", "UNKNOWN", "NONE"):
         return None
-    
+
     if component == "BMC":
         m = re.fullmatch(r"(\d+)\.(\d+)\((\d+)\.(\d+)\)", val)
         if m:
@@ -378,7 +378,7 @@ def parse_component_version(component, value):
 
 def check_downgrade_safety(components_info, required_components=None):
     """Strict downgrade prevention across all components.
-    
+
     Zero-tolerance: if running > packaged on ANY component, execution is blocked.
     If running == packaged on ALL components, no flash is attempted (idempotent skip).
     If running is unparseable or unrecognized, execution fails closed.
@@ -403,7 +403,7 @@ def check_downgrade_safety(components_info, required_components=None):
                 "components": {},
                 "reason": f"Inventory discovery incomplete; missing required core components: {', '.join(missing)}.",
             }
-    
+
     results = {}
     downgrades = []
     unverified = []
@@ -414,7 +414,7 @@ def check_downgrade_safety(components_info, required_components=None):
             results[comp] = {"status": "BLOCKED_MALFORMED", "versions": versions}
             unverified.append(comp)
             continue
-        
+
         running_str, packaged_str = str(versions[0]), str(versions[1])
         running_t = parse_component_version(comp, running_str)
         packaged_t = parse_component_version(comp, packaged_str)
@@ -824,7 +824,7 @@ def _run_live_oob_upgrade_impl(
     capture_log=None,
 ):
     """Execute credential-safe, in-memory OOB firmware evaluation and upgrade.
-    
+
     1. Validates host scope and platform configuration in inventory.
     2. Protects validated reference nodes from accidental live re-flash.
     3. Runs Redfish pre-upgrade health check against /redfish/v1/ServiceConditions.

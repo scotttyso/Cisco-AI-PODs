@@ -128,7 +128,7 @@ class ParserTests(unittest.TestCase):
 
 class GateTests(unittest.TestCase):
     def test_cloud_pass_without_bgp(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         result = M.evaluate("backend", obs)
         self.assertEqual(result["physical_gate"], "PASS")
         self.assertEqual(result["reciprocal_connections"], 8)
@@ -154,12 +154,12 @@ class GateTests(unittest.TestCase):
         self.assertIn("port_down", str(M.evaluate("backend_800g", obs, expected)["issues"]))
 
     def test_one_way_neighbor(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[0]["links"].pop()
         self.assertIn("one_way_lldp", str(M.evaluate("backend", obs)["issues"]))
 
     def test_missing_switch_not_success(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         self.assertEqual(M.evaluate("backend", obs[:-1])["physical_gate"], "INCOMPLETE")
 
     def test_failed_switch_not_reported_as_missing_cables(self):
@@ -169,46 +169,46 @@ class GateTests(unittest.TestCase):
         self.assertFalse(result["issues"])
 
     def test_cabling_plan_is_optional_for_any_fabric(self):
-        obs, _ = full_fabric("backend_800g")
+        obs, _unused_value = full_fabric("backend_800g")
         self.assertEqual(M.evaluate("backend_800g", obs)["physical_gate"], "PASS")
 
     def test_duplicate_observation_rejected(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         with self.assertRaises(ValueError):
             M.evaluate("backend", obs + [obs[0]])
 
     def test_unknown_port_state_not_success(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[0]["ports"].clear()
         self.assertEqual(M.evaluate("backend", obs)["physical_gate"], "INCOMPLETE")
 
     def test_unknown_core_state_never_passes(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         next(iter(obs[0]["ports"].values()))["state"] = "unverified"
         self.assertEqual(M.evaluate("backend", obs)["physical_gate"], "INCOMPLETE")
 
     def test_cross_fabric_neighbor(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[0]["links"][0]["peer"] = "EXAMPLE-BE-800G-LEAF-1"
         self.assertIn("unexpected_core_peer", str(M.evaluate("backend", obs)["issues"]))
 
     def test_spare_down_ports_ignored(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[0]["ports"]["Eth1/64"] = {"state": "notconnect", "speed": "auto"}
         self.assertEqual(M.evaluate("backend", obs)["physical_gate"], "PASS")
 
     def test_server_facing_leaf_links_ignored(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[2]["links"].append({"local_port": "Eth1/2", "peer": "outside_be_core", "peer_port": None})
         self.assertEqual(M.evaluate("backend", obs)["physical_gate"], "PASS")
 
     def test_non_core_spine_uplinks_not_invented_as_faults(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         obs[0]["links"].append({"local_port": "Eth1/65", "peer": "outside_be_core", "peer_port": None})
         self.assertEqual(M.evaluate("backend", obs)["physical_gate"], "PASS")
 
     def test_speed_mismatch(self):
-        obs, _ = full_fabric()
+        obs, _unused_value = full_fabric()
         next(iter(obs[0]["ports"].values()))["speed"] = "100G"
         self.assertIn("link_speed_mismatch", str(M.evaluate("backend", obs)["issues"]))
 
@@ -228,7 +228,7 @@ class GateTests(unittest.TestCase):
 
 class PlanSafetyTests(unittest.TestCase):
     def write_plan(self, directory, duplicate=False):
-        _, expected = full_fabric("backend_800g")
+        _unused_value, expected = full_fabric("backend_800g")
         text = "Fabric,Source switch,Source port,Destination switch,Destination port\n"
         rows = [f"AIPOD-Backend-800G,{a},{ap},{b},{bp}\n" for (a, ap), (b, bp) in sorted(expected)]
         path = Path(directory) / "plan.csv"
@@ -278,7 +278,11 @@ class PlanSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             prefix = Path(d) / "report"
             prefix.with_suffix(".json").write_text("keep")
-            with patch("sys.argv", [str(SCRIPT), d, "--fabric", "backend", "--report-prefix", str(prefix)]), patch.object(M, "read_switch") as read, patch("sys.stdout", new=io.StringIO()):
+            with (
+                patch("sys.argv", [str(SCRIPT), d, "--fabric", "backend", "--report-prefix", str(prefix)]),
+                patch.object(M, "read_switch") as read,
+                patch("sys.stdout", new=io.StringIO()),
+            ):
                 self.assertEqual(M.main(), 2)
                 read.assert_not_called()
             self.assertEqual(prefix.with_suffix(".json").read_text(), "keep")
@@ -286,13 +290,21 @@ class PlanSafetyTests(unittest.TestCase):
     def test_strict_inventory_blocks_deployment_without_physical_faults(self):
         with tempfile.TemporaryDirectory() as d:
             plan = self.write_plan(d)
-            obs, _ = full_fabric("backend_800g")
+            obs, _unused_value = full_fabric("backend_800g")
             for o in obs:
                 o["inventory_core_ports"] = []
+
             def fake_read(inv, name, fabric):
                 return next(o for o in obs if o["hostname"] == name)
-            args = [str(SCRIPT), d, "--fabric", "backend_800g", "--plan", "backend_800g=" + str(plan), "--require-inventory-match", "--report-prefix", str(Path(d) / "report")]
-            with patch("sys.argv", args), patch.object(M, "load_inventory", return_value=Path(d)), patch.object(M, "read_switch", side_effect=fake_read), patch.object(M.time, "sleep"), patch("sys.stdout", new=io.StringIO()):
+            args = [str(SCRIPT), d, "--fabric", "backend_800g", "--plan", "backend_800g=" + str(plan),
+                    "--require-inventory-match", "--report-prefix", str(Path(d) / "report")]
+            with (
+                patch("sys.argv", args),
+                patch.object(M, "load_inventory", return_value=Path(d)),
+                patch.object(M, "read_switch", side_effect=fake_read),
+                patch.object(M.time, "sleep"),
+                patch("sys.stdout", new=io.StringIO()),
+            ):
                 self.assertEqual(M.main(), 1)
             import json
             result = json.loads((Path(d) / "report.json").read_text())
@@ -313,9 +325,16 @@ class DeploymentCliTests(unittest.TestCase):
                 plan = PlanSafetyTests().write_plan(d)
                 args += ["--plan", "backend_800g=" + str(plan)]
             stream = io.StringIO()
+
             def fake_read(inv, name, selected, **kwargs):
                 return next(o for o in obs if o["hostname"] == name)
-            with patch("sys.argv", args), patch.object(M, "load_inventory", return_value=Path(d)), patch.object(M, "read_switch", side_effect=fake_read) as read, patch.object(M.time, "sleep") as pause, patch("sys.stdout", stream):
+            with (
+                patch("sys.argv", args),
+                patch.object(M, "load_inventory", return_value=Path(d)),
+                patch.object(M, "read_switch", side_effect=fake_read) as read,
+                patch.object(M.time, "sleep") as pause,
+                patch("sys.stdout", stream),
+            ):
                 code = M.main()
             return code, json.loads(stream.getvalue()), read.call_args_list, pause.call_args_list
 
@@ -329,13 +348,13 @@ class DeploymentCliTests(unittest.TestCase):
         self.assertFalse(result["mutations_performed"])
 
     def test_backend_800g_gate_requires_inventory_and_exact_cables(self):
-        code, result, _, _ = self.run_gate("backend_800g")
+        code, result, _unused_value, _unused_value = self.run_gate("backend_800g")
         self.assertEqual(code, 0)
         self.assertTrue(result["deployment_ready"])
         self.assertTrue(result["require_inventory_match"])
 
     def test_stale_inventory_is_not_a_physical_fault_but_holds_deployment(self):
-        code, result, _, _ = self.run_gate("backend_800g", lambda obs: obs[0].update(inventory_core_ports=[]))
+        code, result, _unused_value, _unused_value = self.run_gate("backend_800g", lambda obs: obs[0].update(inventory_core_ports=[]))
         self.assertEqual(code, 1)
         self.assertEqual(result["fabrics"][0]["physical_gate"], "PASS")
         self.assertFalse(result["deployment_ready"])
@@ -343,12 +362,12 @@ class DeploymentCliTests(unittest.TestCase):
     def test_down_port_holds_deployment(self):
         def down(obs):
             next(iter(obs[0]["ports"].values()))["state"] = "notconnect"
-        code, result, _, _ = self.run_gate(change=down)
+        code, result, _unused_value, _unused_value = self.run_gate(change=down)
         self.assertEqual(code, 1)
         self.assertFalse(result["deployment_ready"])
 
     def test_unknown_port_holds_deployment(self):
-        code, result, _, _ = self.run_gate(change=lambda obs: obs[0]["ports"].clear())
+        code, result, _unused_value, _unused_value = self.run_gate(change=lambda obs: obs[0]["ports"].clear())
         self.assertEqual(code, 2)
         self.assertFalse(result["deployment_ready"])
 
@@ -361,23 +380,35 @@ class DeploymentCliTests(unittest.TestCase):
         self.assertFalse(json.loads(stream.getvalue())["deployment_ready"])
 
     def test_unplanned_fabric_is_validated_from_live_topology(self):
-        obs, _ = full_fabric("backend_800g")
+        obs, _unused_value = full_fabric("backend_800g")
+
         def fake_read(inv, name, fabric):
             return next(item for item in obs if item["hostname"] == name)
         args = [str(SCRIPT), "/inventory", "--gate-json", "--fabrics", "backend_800g"]
         stream = io.StringIO()
-        with patch("sys.argv", args), patch.object(M, "load_inventory", return_value=Path("/inventory")), patch.object(M, "read_switch", side_effect=fake_read), patch.object(M.time, "sleep"), patch("sys.stdout", stream):
+        with (
+            patch("sys.argv", args),
+            patch.object(M, "load_inventory", return_value=Path("/inventory")),
+            patch.object(M, "read_switch", side_effect=fake_read),
+            patch.object(M.time, "sleep"),
+            patch("sys.stdout", stream),
+        ):
             self.assertEqual(M.main(), 0)
         self.assertTrue(json.loads(stream.getvalue())["deployment_ready"])
 
     def test_selected_vault_path_is_forwarded_without_secret_arguments(self):
-        _, _, calls, _ = self.run_gate(extra=("--vault-file", "/site/restricted/vault.yml"))
+        _unused_value, _unused_value, calls, _unused_value = self.run_gate(extra=("--vault-file", "/site/restricted/vault.yml"))
         self.assertTrue(all(c.kwargs == {"vault_file": Path("/site/restricted/vault.yml")} for c in calls))
 
     def test_read_failure_is_sanitized_and_never_passes(self):
         stream = io.StringIO()
         args = [str(SCRIPT), "/site", "--gate-json", "--fabrics", "backend"]
-        with patch("sys.argv", args), patch.object(M, "read_switch", side_effect=RuntimeError("SECRET-RAW-RESPONSE")), patch.object(M.time, "sleep"), patch("sys.stdout", stream):
+        with (
+            patch("sys.argv", args),
+            patch.object(M, "read_switch", side_effect=RuntimeError("SECRET-RAW-RESPONSE")),
+            patch.object(M.time, "sleep"),
+            patch("sys.stdout", stream),
+        ):
             self.assertEqual(M.main(), 2)
         self.assertNotIn("SECRET", stream.getvalue())
         self.assertFalse(json.loads(stream.getvalue())["deployment_ready"])

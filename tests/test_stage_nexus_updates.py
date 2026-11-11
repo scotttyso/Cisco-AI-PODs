@@ -63,23 +63,23 @@ class StageNexusUpdatesTests(unittest.TestCase):
         self.assertEqual(len(checks), 21)
         self.assertTrue(all(check["reportCheckName"].startswith("nxos_") for check in checks))
         self.assertEqual(client.catalog, original)
-        self.assertTrue(all(method == "GET" for method, _, _ in client.calls))
+        self.assertTrue(all(method == "GET" for method, _unused_value, _unused_value in client.calls))
         staging.ensure_check_catalog(client, current, checks)
         source_count = len(original)
         self.assertEqual(client.catalog[:source_count], original)
         for before, after in zip(original, client.catalog[source_count:]):
             self.assertEqual(after, dict(before, postUpdateDelay=360, checkType="custom",
-                                        reportCheckName="nxos_" + before["reportCheckName"]))
+                                         reportCheckName="nxos_" + before["reportCheckName"]))
         added = {item["reportCheckName"]: item for item in client.catalog[2 * source_count:]}
         self.assertEqual(added["nxos_Running_config"]["cliCommand"], "show running-config")
         self.assertEqual(added["nxos_Default_route"]["cliCommand"], "show ip route 0.0.0.0 vrf all")
         self.assertTrue(all(item["postUpdateDelay"] == 360 for item in added.values()))
-        create = next(payload for method, _, payload in client.calls if method == "POST")
+        create = next(payload for method, _unused_value, payload in client.calls if method == "POST")
         self.assertTrue(all(check["postUpdateDelay"] == 0 for check in create["updateChecks"]))
         before_retry = len(client.calls)
         current, checks = staging.load_check_catalog(client)
         staging.ensure_check_catalog(client, current, checks)
-        self.assertTrue(all(method == "GET" for method, _, _ in client.calls[before_retry:]))
+        self.assertTrue(all(method == "GET" for method, _unused_value, _unused_value in client.calls[before_retry:]))
 
     def test_mac_address_check_does_not_require_existing_definition(self):
         client = CatalogClient()
@@ -115,7 +115,7 @@ class StageNexusUpdatesTests(unittest.TestCase):
         self.assertEqual(len(client.calls), 1)
 
     def test_device_specific_selection(self):
-        _, checks = staging.load_check_catalog(CatalogClient())
+        _unused_value, checks = staging.load_check_catalog(CatalogClient())
         chassis = self.switch()
         self.assertTrue(all(staging.check_applies_to_switch(check, chassis) for check in checks))
         standalone = self.switch("N9K-C93108TC-EX", "none", "none")
@@ -135,8 +135,8 @@ class StageNexusUpdatesTests(unittest.TestCase):
         names = tuple("nxos_" + name for name in staging.REQUESTED_CHECK_NAMES)
         plan = staging.Plan((switch,), "10.6.4", "image.bin", "group", names)
         staging.apply_plan(client, plan, client.catalog, [], True)
-        methods_and_paths = [(method, path) for method, path, _ in client.calls]
-        self.assertFalse(any("prePostCustomReport" in path for _, path in methods_and_paths))
+        methods_and_paths = [(method, path) for method, path, _unused_value in client.calls]
+        self.assertFalse(any("prePostCustomReport" in path for _unused_value, path in methods_and_paths))
         self.assertTrue(client.calls[2][1].endswith("startPreReport"))
         self.assertTrue(client.calls[-1][1].endswith("actions/stage"))
         self.assertEqual(client.calls[0][2]["updateReportChecks"],
@@ -159,10 +159,10 @@ class StageNexusUpdatesTests(unittest.TestCase):
         client.request = with_default
         with self.assertRaisesRegex(RuntimeError, "custom-only"):
             staging.apply_plan(client, plan, client.catalog, [], True)
-        self.assertFalse(any(method == "POST" for method, _, _ in client.calls))
+        self.assertFalse(any(method == "POST" for method, _unused_value, _unused_value in client.calls))
 
     def test_named_group_plan_and_validation(self):
-        _, checks = staging.load_check_catalog(CatalogClient())
+        _unused_value, checks = staging.load_check_catalog(CatalogClient())
         images = [{"imageName": "nxos64-cs.10.6.4.M.bin", "releaseVersion": "10.6.4", "platform": "N9K"}]
         a = staging.Switch("S1", "leaf1", "192.0.2.1", "N9K-C93180YC-FX", "10.3(8)", "n9k", "leaf2", "primary", "F1")
         b = staging.Switch("S2", "leaf2", "192.0.2.2", "N9K-C93180YC-FX", "10.3(8)", "n9k", "leaf1", "secondary", "F1")
@@ -270,7 +270,7 @@ class StageNexusUpdatesTests(unittest.TestCase):
                 self.assertEqual(staging.main(), 0)
         self.assertEqual(client.group["installImageData"]["nosImageName"], "nxos64-cs.10.6.4.M.bin")
         self.assertTrue(any(method == "POST" and path.endswith("/actions/stage")
-                            for method, path, _ in client.calls))
+                            for method, path, _unused_value in client.calls))
 
     def test_yaml_update_groups(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """One paced SG2 observation pass; no configuration or raw output retained.
 
 Observed LLDP reciprocity is not proof of intended cabling or E2E readiness.
@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 import re
 import stat
-import sys
 import time
 
 import paramiko

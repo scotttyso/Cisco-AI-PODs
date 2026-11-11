@@ -92,7 +92,7 @@ class UiContext:
     def seed_context(self) -> seeds.SeedContext:
         files = sorted(path.name for path in self.media_dir.glob("*") if path.is_file()) if self.media_dir.is_dir() else []
         state = {key: self.store.page_state(key) for key in ("ocp-cluster", "intersight-registration", "dhcp",
-                                                              *seeds.FABRIC_PAGES.values())}
+                                                             *seeds.FABRIC_PAGES.values())}
         return seeds.SeedContext(self.store.inventory(), self.store.shared_services(), state, self.media_url,
                                  str(self.media_dir), files, self.collected_macs())
 
@@ -262,7 +262,7 @@ class CredentialsPanel:
     def missing(self, keys: tuple[str, ...]) -> list[str]:
         if not keys:
             return []
-        data, _ = self._data()
+        data, _unused_value = self._data()
         known = {item.key: item for item in self.current()}
         wanted = ([known[key] for key in keys if key in known] if "*" not in keys
                   else [item for item in known.values() if not item.optional])
@@ -473,7 +473,7 @@ class Workbench:
         await run.io_bound(write_text, self.path(target), text)
         self._add_upload(file_name)
         self.refresh_options()
-        _, issues = await run.io_bound(validate_yaml, text, self.context.schema_path)
+        _unused_value, issues = await run.io_bound(validate_yaml, text, self.context.schema_path)
         if self.selector.value == target:
             self.editor.set_value(text)
             self.source.set_text(f"Saved: {self.path(target)}")
@@ -593,11 +593,11 @@ class Workbench:
 
     async def check(self) -> tuple[str, list[str]]:
         content = await self.editor.get_value()
-        _, issues = await run.io_bound(validate_yaml, content, self.context.schema_path)
+        _unused_value, issues = await run.io_bound(validate_yaml, content, self.context.schema_path)
         return content, issues
 
     async def validate(self) -> None:
-        _, issues = await self.check()
+        _unused_value, issues = await self.check()
         show_problems(self.problems, issues, "Schema validation failed")
         ui.notify("Valid" if not issues else f"{len(issues)} schema problems", type="positive" if not issues else "negative")
 
@@ -679,7 +679,7 @@ class Workbench:
                 if not self.specs[target].optional:
                     problems.append(f"{target}: not saved yet. Open it in the File list and Save.")
                 continue
-            _, issues = await run.io_bound(validate_yaml, path.read_text(encoding="utf-8"), self.context.schema_path)
+            _unused_value, issues = await run.io_bound(validate_yaml, path.read_text(encoding="utf-8"), self.context.schema_path)
             problems += [f"{target}: {issue}" for issue in issues]
         show_problems(self.problems, problems, "Resolve these before running automation")
         if problems:
@@ -725,12 +725,12 @@ def sudo_needs_password() -> bool:
     if shutil.which("sudo") is None:
         raise RuntimeError("sudo is not installed on this server")
     return subprocess.run(["sudo", "-n", "true"], stdin=subprocess.DEVNULL, capture_output=True,
-                          timeout=15).returncode != 0
+                          timeout=15, check=False).returncode != 0
 
 
 def sudo_password_ok(password: str) -> bool:
     result = subprocess.run(["sudo", "-k", "-S", "-p", "", "true"], input=password + "\n", text=True,
-                            capture_output=True, timeout=30)
+                            capture_output=True, timeout=30, check=False)
     return result.returncode == 0
 
 
@@ -881,7 +881,7 @@ class JobConsole:
         text, self.offset = JobManager.read(self.viewing, self.offset)
         if text:
             text = self.pending + text
-            complete, _, self.pending = text.rpartition("\n")
+            complete, _unused_value, self.pending = text.rpartition("\n")
             if complete:
                 self.log.push(complete)
         job = self.viewing
@@ -954,6 +954,7 @@ class JobConsole:
                     ui.button("Select all", on_click=lambda: choices.set_value(list(sorted(available)))).props("flat")
                     ui.button("Clear", on_click=lambda: choices.set_value([])).props("flat")
                     ui.button("Cancel", on_click=lambda: dialog.submit(None)).props("flat")
+
                     def submit_selection():
                         if not choices.value:
                             ui.notify("Select at least one file", type="negative")
@@ -968,8 +969,8 @@ class JobConsole:
                 selected_models = []
                 for name in selected_files:
                     text = available[name].read_text(encoding="utf-8")
-                    _, issues = await run.io_bound(validate_yaml, text,
-                                                   self.context.schema_path)
+                    _unused_value, issues = await run.io_bound(validate_yaml, text,
+                                                               self.context.schema_path)
                     problems.extend(f"{name}: {issue}" for issue in issues)
                     selected_models.append(yaml.safe_load(text) or {})
                 if problems:
@@ -1018,7 +1019,7 @@ class JobConsole:
             if sudo_password is not None:
                 extra.update(sudo_environment(sudo_password))
             env, redact = await run.io_bound(job_environment, self.context, scratch, extra,
-                                              vault_section_for(self.page))
+                                             vault_section_for(self.page))
             if sudo_password:
                 redact = [*redact, sudo_password]
             job = self.context.jobs.start(self.page, action.label, commands, env, self.context.repository, redact,

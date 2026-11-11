@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Capture secret-free, pre-reset ND release evidence bound to CIMC serials."""
 from __future__ import annotations
 

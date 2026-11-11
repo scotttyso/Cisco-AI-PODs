@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Compare one manual ND baseline with one automated ND baseline."""
 from __future__ import annotations
 

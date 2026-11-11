@@ -27,7 +27,6 @@ if str(CLASSES_PATH) not in sys.path:
 
 try:
     from roles.intersight_ucs_provision.library.src import bmc
-    from roles.intersight_ucs_provision.library.src import pcolor
     from roles.intersight_ucs_provision.library.src.intersight.api import api
     from roles.intersight_ucs_provision.library.src.intersight.configure import configure
     from roles.intersight_ucs_provision.library.src.intersight.system import system

@@ -35,7 +35,7 @@ class ApplianceBuildTests(unittest.TestCase):
                         ),
                         subprocess.CompletedProcess(["openssl"], 0, "$6$hash\n", ""),
                     ],
-                ) as run:
+        ) as run:
             environment = build_appliance.load_build_environment(self.vault_file, self.password_file)
 
         self.assertEqual(environment, {
@@ -64,7 +64,7 @@ class ApplianceBuildTests(unittest.TestCase):
                         ),
                         subprocess.CompletedProcess(["openssl"], 0, "$6$hash\n", ""),
                     ],
-                ):
+        ):
             environment = build_appliance.load_build_environment(self.vault_file, self.password_file)
 
         self.assertEqual(environment["PKR_VAR_vsphere_password"], "vcenter-secret")

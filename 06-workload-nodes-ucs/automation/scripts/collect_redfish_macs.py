@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Collect host NIC MAC addresses from CIMC / BMC Redfish for the OpenShift install and network-operator YAML.
 
 Output (``--output``) is ``{"source": "redfish", "hosts": {<host>: {<port name>: <mac>}}}``. NVIDIA / Mellanox

@@ -100,7 +100,7 @@ def test_real_role_selection_excludes_unclaimable_nodes_before_credentials(
     # credential lookup or connector discovery for it would fail this run.
     hosts = {
         "fixture-excluded": {"ucs": {"platform": "standalone", "role": "gpu",
-                                      "intersight_claim_supported": False}},
+                                     "intersight_claim_supported": False}},
         "fixture-domain-a": {"ucs": deepcopy(domain)},
         "fixture-domain-b": {"ucs": deepcopy(domain)},
         "fixture-rack": {"ucs": rack},
@@ -145,7 +145,7 @@ def test_real_role_selection_excludes_unclaimable_nodes_before_credentials(
     env = dict(os.environ, ANSIBLE_CONFIG=str(config), ANSIBLE_LOCAL_TEMP=str(tmp_path / "local"),
                ANSIBLE_REMOTE_TEMP=str(tmp_path / "remote"), ANSIBLE_NOCOLOR="1")
     result = subprocess.run([str(executable), "-i", str(inventory), str(playbook)],
-                            env=env, capture_output=True, text=True, timeout=45)
+                            env=env, capture_output=True, text=True, timeout=45, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
     if expected_skipped:
         assert "Not supported on UCS C880." in result.stdout

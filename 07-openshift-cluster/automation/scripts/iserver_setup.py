@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Configure iserver access to the Red Hat OpenShift console and the Isovalent registry.
 
 Secrets come from the environment (the Automation UI provides them from the vault):
@@ -59,7 +59,7 @@ def run(*arguments: str) -> int:
     return process.returncode
 
 
-def console(_: argparse.Namespace) -> int:
+def console(_unused_value: argparse.Namespace) -> int:
     token, pull_secret = secret("ocp_console_token"), secret("ocp_pull_secret")
     try:
         json.loads(pull_secret)
@@ -72,10 +72,10 @@ def console(_: argparse.Namespace) -> int:
             with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                 stream.write(value + "\n")
         status = run(iserver(), "set", "ocp", "console", "--token", str(token_file), "--secret", str(secret_file))
-    return status or console_check(_)
+    return status or console_check(_unused_value)
 
 
-def console_check(_: argparse.Namespace) -> int:
+def console_check(_unused_value: argparse.Namespace) -> int:
     return run(iserver(), "get", "openshift", "login")
 
 
@@ -84,7 +84,7 @@ def isovalent(args: argparse.Namespace) -> int:
                "--token", secret("isovalent_registry_token"))
 
 
-def isovalent_check(_: argparse.Namespace) -> int:
+def isovalent_check(_unused_value: argparse.Namespace) -> int:
     return run(iserver(), "get", "ocp", "cilium", "registry")
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Collect Nexus switch identity data and update DHCP and fabric YAML."""
 
 import argparse
@@ -198,7 +198,7 @@ def parse_switch_output(output: str) -> Dict[str, str]:
 
 def set_string_preserving_style(mapping, key: str, value: str) -> None:
     previous = mapping.get(key)
-    if isinstance(previous, str) and type(previous) is not str:
+    if isinstance(previous, str):
         value = type(previous)(value)
     mapping[key] = value
 
@@ -220,7 +220,7 @@ def write_documents(documents: List[Tuple[Path, object]]) -> None:
         for temporary_path, path in staged:
             os.replace(temporary_path, path)
     finally:
-        for temporary_path, _ in staged:
+        for temporary_path, _unused_value in staged:
             temporary_path.unlink(missing_ok=True)
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Build an initial inventory from order spreadsheets."""
 
 import argparse
@@ -138,8 +138,8 @@ def build_inventory_document(inventory: list[dict[str, str]], shared_services: d
                 not pool_ip and not entry["ip"]):
             raise ValueError(f"Row {position}: all inventory fields are required")
         if len(entry["hostname"]) > 253 or not all(
-            re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
-            for label in entry["hostname"].split(".")):
+                re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+                for label in entry["hostname"].split(".")):
             raise ValueError(f"Row {position}: invalid hostname")
         try:
             if not pool_ip:

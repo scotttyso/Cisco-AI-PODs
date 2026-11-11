@@ -481,7 +481,7 @@ def _resolve_via(server: str, host: str, timeout: float = 3.0) -> tuple[bool, st
         try:
             r = subprocess.run(
                 ["dig", f"@{server}", "+short", f"+time={int(timeout)}", "+tries=1", host],
-                capture_output=True, text=True, timeout=timeout + 2,
+                capture_output=True, text=True, timeout=timeout + 2, check=False,
             )
             answers = [ln for ln in r.stdout.splitlines() if ln and not ln.startswith(";")]
             if r.returncode == 0 and answers:
@@ -493,7 +493,7 @@ def _resolve_via(server: str, host: str, timeout: float = 3.0) -> tuple[bool, st
         try:
             r = subprocess.run(
                 ["nslookup", host, server],
-                capture_output=True, text=True, timeout=timeout + 2,
+                capture_output=True, text=True, timeout=timeout + 2, check=False,
             )
             ok = ("Address:" in r.stdout and "NXDOMAIN" not in r.stdout
                   and "can't find" not in r.stdout and "** server can't find" not in r.stdout)
@@ -782,7 +782,7 @@ def _ssh_run_pings(host: str, password: str, targets: list[tuple[str, str]],
         import paramiko  # type: ignore
     except Exception as e:  # noqa: BLE001
         return {label: (False, f"paramiko unavailable: {e.__class__.__name__}")
-                for label, _ in targets}
+                for label, _unused_value in targets}
     cli = paramiko.SSHClient()
     cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -793,7 +793,7 @@ def _ssh_run_pings(host: str, password: str, targets: list[tuple[str, str]],
         )
     except Exception as e:  # noqa: BLE001
         return {label: (False, f"ssh to {host} failed: {e.__class__.__name__}: {e}")
-                for label, _ in targets}
+                for label, _unused_value in targets}
 
     results: dict[str, tuple[bool, str]] = {}
     stdin = stdout = stderr = None
@@ -824,7 +824,7 @@ def _ssh_run_pings(host: str, password: str, targets: list[tuple[str, str]],
                 m = re.search(r"min/avg/max[^=]*=\s*([\d./]+)\s*ms", out)
                 rtt = m.group(1) if m else None
                 results[label] = (True,
-                                  f"2/2 replies" + (f", rtt {rtt} ms" if rtt else ""))
+                                  "2/2 replies" + (f", rtt {rtt} ms" if rtt else ""))
             else:
                 # Surface a minimal cause hint from the ping output; first non-empty line.
                 first = next((ln for ln in out.splitlines() if ln.strip()), "")
@@ -1039,7 +1039,7 @@ def check_node_os_version_match(inv: Inventory, *, tcp_timeout: float = 3.0,
                 if n.hostname not in unavailable:
                     continue
                 try:
-                    _, current = _discover(n, verify)
+                    _unused_value, current = _discover(n, verify)
                     prior = evidence_nodes.get(n.hostname, {})
                     if prior.get("cimc_ip") != n.cimc.ip:
                         raise ValueError(f"{n.hostname}: evidence CIMC mismatch")
@@ -1252,21 +1252,21 @@ def check_bootstrap_no_pending_state(inv: Inventory, *, tcp_timeout: float = 3.0
         # Cluster is fully committed. There cannot be a pending-draft state
         # if commit completed, so this is a clean PASS.
         out.append(Result(rid, PASS,
-                          f"nd-1 reports cluster bootstrapped=true; no pending state"))
+                          "nd-1 reports cluster bootstrapped=true; no pending state"))
         return out
 
     # bootstrapped=false + admin pw works = ambiguous: legit first-attempt
     # mid-flow, OR retry after failed commit (the §1 footgun). API cannot
     # distinguish — surface the WARN with both interpretations.
     out.append(Result(rid, WARN,
-                      f"nd-1 admin pw is set AND cluster reports not-bootstrapped. "
-                      f"This matches BOTH (a) a legit first attempt mid-flow [no action] "
-                      f"AND (b) a retry after a previous failed cluster commit, in "
-                      f"which case POST /v2/bootstrap/cluster will 500 with 'Pending "
-                      f"cluster bootstrap exists' until you `acs reboot factory-reset` "
-                      f"nd-1 (troubleshooting.md §1 / §10). The /bootstrap/status API "
-                      f"cannot distinguish (a) from (b). If you have NOT previously run "
-                      f"a cluster commit against this node, ignore this warning."))
+                      "nd-1 admin pw is set AND cluster reports not-bootstrapped. "
+                      "This matches BOTH (a) a legit first attempt mid-flow [no action] "
+                      "AND (b) a retry after a previous failed cluster commit, in "
+                      "which case POST /v2/bootstrap/cluster will 500 with 'Pending "
+                      "cluster bootstrap exists' until you `acs reboot factory-reset` "
+                      "nd-1 (troubleshooting.md §1 / §10). The /bootstrap/status API "
+                      "cannot distinguish (a) from (b). If you have NOT previously run "
+                      "a cluster commit against this node, ignore this warning."))
     return out
 
 
@@ -1304,14 +1304,14 @@ def run_all(ansible_inventory: str, *,
     repo_root = Path(__file__).resolve().parents[3]  # cisco-aipod/
 
     plan: list[tuple[str, callable]] = [
-        ("secrets",   lambda: check_secrets_set(inv)),
-        ("secrets",   lambda: [check_no_plaintext_credentials_in_repo(repo_root)]),
-        ("network",   lambda: check_cimc_subnet_placement(inv)),
-        ("network",   lambda: check_cimc_tcp_443(inv)),
-        ("network",   lambda: check_cimc_tcp_22(inv)),
-        ("network",   lambda: check_nd1_path_to_cimc_and_data_gw(inv)),
-        ("iso",       lambda: [check_iso_sha512_set(inv)]),
-        ("iso",       lambda: check_iso_reachable(inv)),
+        ("secrets", lambda: check_secrets_set(inv)),
+        ("secrets", lambda: [check_no_plaintext_credentials_in_repo(repo_root)]),
+        ("network", lambda: check_cimc_subnet_placement(inv)),
+        ("network", lambda: check_cimc_tcp_443(inv)),
+        ("network", lambda: check_cimc_tcp_22(inv)),
+        ("network", lambda: check_nd1_path_to_cimc_and_data_gw(inv)),
+        ("iso", lambda: [check_iso_sha512_set(inv)]),
+        ("iso", lambda: check_iso_reachable(inv)),
         (
             "iso",
             lambda: (
@@ -1320,12 +1320,12 @@ def run_all(ansible_inventory: str, *,
                 else [check_iso_sha512_url(inv)]
             ),
         ),
-        ("dns",       lambda: check_dns_resolves_ntp(inv)),
-        ("topology",  lambda: check_node_ips_in_subnet(inv)),
-        ("topology",  lambda: check_persistent_ips(inv)),
-        ("version",   lambda: check_node_os_version_match(inv)),
+        ("dns", lambda: check_dns_resolves_ntp(inv)),
+        ("topology", lambda: check_node_ips_in_subnet(inv)),
+        ("topology", lambda: check_persistent_ips(inv)),
+        ("version", lambda: check_node_os_version_match(inv)),
         ("bootstrap", lambda: check_bootstrap_no_pending_state(inv)),
-        ("config",    lambda: [check_timezone(inv)]),
+        ("config", lambda: [check_timezone(inv)]),
     ]
     if iso_file is not None:
         # Keep the potentially expensive full-file hash in the ISO section,

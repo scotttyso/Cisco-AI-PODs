@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Generate the UCS management chapter workflow figures as SVG and PNG.
 
 Layout mirrors the canvas at:

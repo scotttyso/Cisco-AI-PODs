@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Authenticated inventory and installation-media workspace for Cisco AI PODs."""
 
 import argparse
@@ -70,7 +70,7 @@ LDAP_INPUTS = (("url", "LDAP URL", "ldaps://ad.example.com:636"), ("base_dn", "B
                ("bind_dn", "Bind DN", "CN=Service Account,OU=Service Accounts,DC=example,DC=com"),
                ("base_dn_users", "Users base DN (optional)", "OU=Users,DC=example,DC=com"),
                ("base_dn_groups", "Groups base DN (optional)", "OU=Groups,DC=example,DC=com"))
-LDAP_FIELDS = tuple(name for name, _, _ in LDAP_INPUTS)
+LDAP_FIELDS = tuple(name for name, _unused_value, _unused_value in LDAP_INPUTS)
 AUTH_FILE = APP_DIR / "users.json"
 AUTH_LOCK = threading.Lock()
 MEDIA_LOCK = asyncio.Lock()
@@ -295,7 +295,7 @@ def updates_dialog():
             unit = update_unit(tag)
             try:
                 started = await run.io_bound(launch_update, tag, unit,
-                                            {**os.environ, **sudo_environment(password)})
+                                             {**os.environ, **sudo_environment(password)})
             except (OSError, subprocess.SubprocessError, ValueError) as error:
                 ui.notify(f"Could not start the update: {error}", type="negative", multi_line=True)
                 return
@@ -453,7 +453,7 @@ class ArrayInput:
         with ui.column().classes("w-full gap-2").style("min-width:0"):
             with ui.row().classes("w-full items-center justify-between no-wrap"):
                 ui.label(label).classes("text-sm font-medium")
-                self.add_button = ui.button(icon="add", on_click=lambda: self.add_value()).props(f'flat round dense aria-label="Add {label} value"')
+                self.add_button = ui.button(icon="add", on_click=lambda: self.add_value("")).props(f'flat round dense aria-label="Add {label} value"')
                 self.add_button.tooltip(f"Add {label} value")
             self.container = ui.column().classes("w-full gap-2")
         self.set_values(values or [])
@@ -471,8 +471,10 @@ class ArrayInput:
             return
         with self.container:
             with ui.row().classes("w-full items-center no-wrap gap-2") as row:
-                field = ui.input(self.label, value=value if isinstance(value, str) else "", placeholder=self.placeholder).props("outlined dense").classes("flex-1").style("min-width:0")
-                ui.button(icon="remove", on_click=lambda: self.remove_value(field, row)).props(f'flat round dense aria-label="Remove {self.label} value"').tooltip(f"Remove {self.label} value")
+                field = ui.input(self.label, value=value if isinstance(value, str) else "", placeholder=self.placeholder).props(
+                    "outlined dense").classes("flex-1").style("min-width:0")
+                ui.button(icon="remove", on_click=lambda: self.remove_value(field, row)).props(
+                    f'flat round dense aria-label="Remove {self.label} value"').tooltip(f"Remove {self.label} value")
         self.fields.append(field)
         self.add_button.set_enabled(len(self.fields) < self.max_items)
 
@@ -635,13 +637,13 @@ def git_section():
             ui.button("Save repository settings", icon="save", on_click=save).props("outline")
         credentials = CredentialsPanel(git_context, lambda: [GIT_TOKEN] + ([REPO_PASSWORD] if store_secrets.value else []),
                                        title="Repository credentials")
-        store_secrets.on_value_change(lambda _: credentials.render())
+        store_secrets.on_value_change(lambda _unused_value: credentials.render())
         message = ui.input("Commit message", value="Update deployment environments").props("outlined dense").classes("w-full")
         user = app.storage.user.get("username", "")
         environment = {"env": lambda run_context: ENVIRONMENTS.git_environment(GIT_ASKPASS)}
         JobConsole(git_context, "git", (
             Action("commit", "Commit", "commit", lambda rc: ENVIRONMENTS.git_commands("commit", rc.state["message"], user,
-                                                                                       sys.executable),
+                                                                                      sys.executable),
                    group="Tools", files=False, tooltip="Stage and commit every environment"),
             Action("pull", "Pull", "cloud_download", lambda rc: ENVIRONMENTS.git_commands("pull", python=sys.executable),
                    group="Tools",
@@ -1107,17 +1109,22 @@ def workspace_page():
                             ):
                                 shared_inputs[name] = ArrayInput(label, placeholder, schema["definitions"][name]["maxItems"],
                                                                  settings_now.get(name, []))
-                            shared_inputs["domain_name"] = ui.input("Domain name", value=settings_now.get("domain_name", ""), placeholder="example.com").props("outlined dense").classes("w-full")
+                            shared_inputs["domain_name"] = ui.input("Domain name", value=settings_now.get(
+                                "domain_name", ""), placeholder="example.com").props("outlined dense").classes("w-full")
                             zones = schema["definitions"]["timezone"]["enum"]
-                            shared_inputs["timezone"] = ui.select(zones, value=settings_now.get("timezone", "UTC") if settings_now.get("timezone", "UTC") in zones else "UTC", label="Timezone", with_input=True, clearable=True).props("outlined dense").classes("w-full")
+                            shared_inputs["timezone"] = ui.select(zones, value=settings_now.get("timezone", "UTC") if settings_now.get(
+                                "timezone", "UTC") in zones else "UTC", label="Timezone", with_input=True, clearable=True).props(
+                                    "outlined dense").classes("w-full")
                         ldap_now = settings_now.get("ldap", {})
                         with ui.expansion("LDAP / Active Directory", icon="groups", value=bool(ldap_now)).classes("w-full mt-2"):
                             ui.label("Used by OpenShift - LDAP (identity provider and group sync). The bind password is "
                                      "stored in Ansible Vault, not with the shared services.").classes("muted text-xs")
                             with ui.element("div").classes("proxy-grid"):
                                 for name, label, placeholder in LDAP_INPUTS:
-                                    ldap_inputs[name] = ui.input(label, value=ldap_now.get(name, ""), placeholder=placeholder).props("outlined dense").classes("w-full")
-                                ldap_inputs["password"] = ui.input("Bind password", password=True, password_toggle_button=True).props("outlined dense autocomplete=new-password").classes("w-full")
+                                    ldap_inputs[name] = ui.input(label, value=ldap_now.get(
+                                        name, ""), placeholder=placeholder).props("outlined dense").classes("w-full")
+                                ldap_inputs["password"] = ui.input("Bind password", password=True, password_toggle_button=True).props(
+                                    "outlined dense autocomplete=new-password").classes("w-full")
                                 ldap_inputs["secure_ldap"] = ui.switch("Secure LDAP (LDAPS)", value=ldap_now.get("secure_ldap", True))
 
                             @ui.refreshable
@@ -1135,8 +1142,10 @@ def workspace_page():
                             with ui.element("div").classes("proxy-grid"):
                                 for name, label in (("http_proxy", "HTTP proxy"), ("https_proxy", "HTTPS proxy"), ("username", "Proxy username")):
                                     proxy_inputs[name] = ui.input(label, value=proxy_now.get(name, "")).props("outlined dense").classes("w-full")
-                                proxy_inputs["password"] = ui.input("Proxy password", password=True, password_toggle_button=True).props("outlined dense autocomplete=new-password").classes("w-full")
-                                proxy_inputs["reference"] = ui.number("Password reference", min=1, max=64, precision=0, value=proxy_now.get("password")).props("outlined dense").classes("w-full")
+                                proxy_inputs["password"] = ui.input("Proxy password", password=True, password_toggle_button=True).props(
+                                    "outlined dense autocomplete=new-password").classes("w-full")
+                                proxy_inputs["reference"] = ui.number("Password reference", min=1, max=64, precision=0,
+                                                                      value=proxy_now.get("password")).props("outlined dense").classes("w-full")
                                 proxy_schema = schema["definitions"]["proxy_servers"]["allOf"][0]["properties"]
                                 proxy_inputs["no_proxy"] = ArrayInput("Proxy bypass list", "localhost", proxy_schema["no_proxy"]["maxItems"],
                                                                       proxy_now.get("no_proxy", []))
@@ -1171,7 +1180,9 @@ def workspace_page():
                             dict(name="size", label="Size", field="bytes", align="right", sortable=True),
                             dict(name="modified", label="Modified", field="modified", align="left", sortable=True),
                         ], row_key="name", selection="multiple", pagination=10).classes("w-full")
-                        media_table.add_slot("body-cell-name", '<q-td :props="props"><a :href="props.row.url" target="_blank" rel="noopener" style="color:var(--accent)">{{ props.row.name }}</a></q-td>')
+                        media_table.add_slot(
+                            "body-cell-name", '<q-td :props="props"><a :href="props.row.url" target="_blank" rel="noopener" '
+                            'style="color:var(--accent)">{{ props.row.name }}</a></q-td>')
                         media_table.add_slot("body-cell-size", '<q-td :props="props">{{ props.row.size }}</q-td>')
                         media_search.bind_value(media_table, "filter")
             for spec in pages.PAGES.values():

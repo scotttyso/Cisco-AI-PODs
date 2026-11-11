@@ -201,7 +201,6 @@ def fields(state: dict, page: str) -> list[SecretField]:
             result.append(SecretField(name, f"{policy.title}: {label}{suffix} (vault key {name})",
                                       ((section, name),),
                                       help=f"Reference it in the YAML as "
-                                           f"{dict(policy.yaml).get(prefix) or YAML_KEYS.get(prefix, prefix)}: {number}.",
+                                      f"{dict(policy.yaml).get(prefix) or YAML_KEYS.get(prefix, prefix)}: {number}.",
                                       optional=prefix in OPTIONAL_PREFIXES))
     return result
-

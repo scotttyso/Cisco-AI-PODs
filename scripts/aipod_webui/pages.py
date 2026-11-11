@@ -474,7 +474,7 @@ def backend_collections(rc: RunContext) -> list[list[str]]:
 BACKEND_ACTIONS = (
     Action("cabling", "Spine-leaf cabling gate", "cable", backend_cabling, group="Pre-check", secrets=("*",),
            inventory=True, files=False, tooltip="Read-only LLDP check of the spine-to-leaf links over SSH. Reports are "
-                                               "written to the environment's reports/ folder."),
+           "written to the environment's reports/ folder."),
     Action("stage02", "Run backend fabric workflow", "account_tree", backend_workflow, secrets=("*",), inventory=True,
            confirm="Runs the stage 02 workflow: read-only cabling gate, switch discovery access (SSH, SHA/AES), then "
                    "creates the AI backend fabrics on Nexus Dashboard, adds the switches, and deploys. Switch "
@@ -605,8 +605,8 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
         Action("deploy", "Deploy to Intersight", "cloud_upload", selected_deploy(),
                secrets=INTERSIGHT_KEYS, select_files=True,
                confirm=f"Creates or updates pools, policies, templates, and profiles from this page's {label} files "
-                       f"(host_vars/intersight/{scope}/), then deploys the profiles. "
-                       "Organizations and resource groups are not changed; deploy them from System (Orgs) first."),
+               f"(host_vars/intersight/{scope}/), then deploys the profiles. "
+               "Organizations and resource groups are not changed; deploy them from System (Orgs) first."),
         DOMAIN_CONNECTIVITY if scope == "domains" else INTERSIGHT_MACS,
     )
 
@@ -628,7 +628,7 @@ def hgx_secrets(handle: PageHandle) -> list[SecretField]:
                 references.setdefault(str(bmc["password_ref"]), f"{server.get('hostname', 'server')} BMC password")
     return [secret(stage_inventory.vault_key(reference), label, min_length=stage_inventory.FACTORY_PASSWORD_MIN,
                    help=f"Exported to the automation as {reference}. Used to configure the BMC and collect MACs. "
-                        "C880A and C885A nodes use the separate HGX workflow, not Intersight claiming.")
+                   "C880A and C885A nodes use the separate HGX workflow, not Intersight claiming.")
             for reference, label in references.items()]
 
 
@@ -692,7 +692,9 @@ def ocp_cluster_secrets(handle: PageHandle) -> list[SecretField]:
             + linked(registration_secrets(handle), "Compute - Intersight - Claim Targets"))
 
 
-PHASE2_SECRETS = lambda handle: model_secrets(handle) + list(OCP_API)  # noqa: E731
+def PHASE2_SECRETS(handle):
+    return model_secrets(handle) + list(OCP_API)
+
 
 SECTIONS = (
     Section("environment", "Environment Preparation", "construction", (
@@ -757,7 +759,7 @@ SECTIONS = (
                  files=(FileSpec("examples/intersight/system/system.ezai.yaml", "intersight/system.ezai.yaml", "system",
                                  "system.ezai.yaml (organizations and resource groups)"),),
                  actions=intersight_actions("system", "system"), secrets=lambda handle: [INTERSIGHT_KEY_ID,
-                                                                                        INTERSIGHT_SECRET_KEY],
+                                                                                         INTERSIGHT_SECRET_KEY],
                  upload_dirs=("intersight/system/uploads",),
                  notes=("The default resource group is built in and always holds every target; it is not changed. A "
                         "target listed under another resource group is left out of the regenerated default list.",
@@ -857,7 +859,7 @@ SECTIONS = (
                                  deploy("openshift", "--openshift-only-stage", "phase1", "--check"), group="Pre-check",
                                  secrets=("*",)),
                           Action("phase1", "Prepare install (phase 1)", "build", deploy("openshift", "--openshift-only-stage",
-                                                                                         "phase1"), secrets=("*",)),
+                                                                                        "phase1"), secrets=("*",)),
                           Action("iserver", "Install cluster (iserver)", "rocket_launch",
                                  deploy("openshift", "--openshift-only-stage", "iserver"), secrets=("*",),
                                  confirm="Boots the nodes from the discovery ISO and installs OpenShift. Node disks are "
@@ -992,7 +994,7 @@ def stage_page(context: UiContext, spec: PageSpec) -> PageHandle:
         with form_area:
             spec.form(handle)
     workbench = handle.workbench
-    JobConsole(context, spec.key, spec.actions, lambda: handle.state(), workbench.ready if workbench else None,
+    JobConsole(context, spec.key, spec.actions, handle.state, workbench.ready if workbench else None,
                handle.credentials,
                (lambda: {key: path for key, path in workbench.saved_paths().items() if path.is_file()})
                if workbench else None)
@@ -1072,56 +1074,6 @@ def dhcp_page(context: UiContext) -> None:
     render_file = context.output_dir / spec.stage / "kea-dhcp4.conf"
 
     stage_overview(context, spec)
-    with collapsible("DHCP Bootstrap", "lan"):
-        with ui.element("div").classes("w-full p-3 rounded").style(
-                "border:1px solid var(--border);background:rgba(2,123,193,.06)"):
-            summary = ui.label().classes("text-sm")
-            source = ui.label().classes("muted text-xs")
-        with ui.row().classes("w-full items-center gap-2 no-wrap p-3 rounded").style(
-                "border:1px solid #f2a93b;background:rgba(242,169,59,.12)") as stale:
-            ui.icon("warning", size="sm").style("color:#f2a93b")
-            ui.label("The Initial Inventory or shared services changed since dhcp.yaml was generated. Generate from "
-                     "inventory to update the reservations, DNS, and NTP (this replaces manual edits).").classes("text-sm grow")
-            ui.button("Generate now", icon="description", on_click=lambda: generate()).props("outline dense")
-        with ui.element("div").classes("services-grid"):
-            interface_select = ui.select({item["name"]: f"{item['name']} ({item['address']}, {item['network']})" for item in interfaces},
-                                         value=[name for name in (saved.get("interfaces") or suggested["interfaces"]) if name in known],
-                                         multiple=True, label="Listen interfaces (required to install Kea)").props("outlined dense use-chips hint=\"Ports facing the bootstrap network or the DHCP relay\"").classes("w-full")
-            network = ui.input("Bootstrap network (CIDR)", value=saved.get("network") or suggested["network"]).props(
-                "outlined dense").classes("w-full")
-            routers = ui.input("Default gateway (optional)",
-                               value=", ".join(saved.get("routers") if "routers" in saved else suggested["routers"])).props(
-                "outlined dense").classes("w-full")
-            pool_start = ui.input("Dynamic pool start (optional)", value=saved.get("pool_start", "")).props("outlined dense").classes("w-full")
-            pool_end = ui.input("Dynamic pool end (optional)", value=saved.get("pool_end", "")).props("outlined dense").classes("w-full")
-            lease = ui.number("Lease time (seconds)", value=saved.get("lease_time", 3600), min=300, precision=0).props("outlined dense").classes("w-full")
-            tftp = ui.input("POAP / TFTP server (optional)", value=saved.get("tftp_server", ""),
-                            placeholder="Nexus Dashboard address (switch POAP)").props("outlined dense").classes("w-full")
-            bootfile = ui.input("Boot file (optional)", value=saved.get("bootfile", ""),
-                                placeholder="poap_dcnm.py").props("outlined dense").classes("w-full")
-            ui.label("Switch POAP with Nexus Dashboard: option 66 is the Nexus Dashboard data / management address "
-                     "and option 67 is poap_dcnm.py. Enable POAP on the fabric (Create / update fabric) first.").classes(
-                "muted text-xs")
-            deny_unknown = ui.switch("Only serve inventory devices", value=saved.get("deny_unknown_clients", True))
-        with ui.row().classes("w-full justify-end gap-2"):
-            ui.button("Fill from inventory", icon="auto_fix_high", on_click=lambda: fill()).props("outline").tooltip(
-                "Reset the network, interfaces, and gateway to the values suggested from the Initial Inventory addresses")
-            ui.button("Generate from inventory", icon="description", on_click=lambda: generate())
-        problems = ui.column().classes("w-full")
-        with ui.column().classes("w-full gap-2"):
-            with ui.row().classes("w-full items-center gap-2"):
-                ui.label("dhcp.yaml").classes("font-medium")
-                file_label = ui.label().classes("muted text-xs grow")
-                ui.button("Validate", icon="fact_check", on_click=lambda: validate()).props("outline dense")
-                ui.button("Save", icon="save", on_click=lambda: save()).props("dense")
-                ui.button(icon="download", on_click=lambda: download()).props("flat round dense").tooltip("Download dhcp.yaml")
-            ui.label("Reservations come from the hostnames, MAC addresses, and IPs on the Initial Inventory page. Edit the "
-                     "YAML here for anything else (extra subnets, per-host options); hover a key for help. Generate from "
-                     "inventory rebuilds the file and replaces manual edits.").classes("muted text-xs")
-            editor = YamlEditor(vars_file.read_text(encoding="utf-8") if vars_file.is_file() else "", context.schema_uri,
-                                height="420px")
-            editor_problems = ui.column().classes("w-full")
-    JobConsole(context, "dhcp", dhcp_actions(vars_file, render_file), lambda: context.store.page_state("dhcp"))
 
     def refresh_summary() -> None:
         settings = context.store.shared_services()
@@ -1140,8 +1092,6 @@ def dhcp_page(context: UiContext) -> None:
             file_label.set_text("not generated yet")
         stale.set_visibility(vars_file.is_file() and bool(rows)
                              and context.store.page_state("dhcp-source").get("fingerprint") != dhcp_inputs_fingerprint(context))
-
-    refresh_summary()
 
     def fill() -> None:
         current = dhcp_defaults(context, interfaces)
@@ -1182,11 +1132,11 @@ def dhcp_page(context: UiContext) -> None:
 
     async def check() -> tuple[str, list[str]]:
         content = await editor.get_value()
-        _, issues = await run.io_bound(validate_yaml, content, context.schema_path)
+        _unused_value, issues = await run.io_bound(validate_yaml, content, context.schema_path)
         return content, issues
 
     async def validate() -> None:
-        _, issues = await check()
+        _unused_value, issues = await check()
         show_problems(editor_problems, issues, "Schema validation failed")
         ui.notify("Valid" if not issues else f"{len(issues)} schema problems", type="positive" if not issues else "negative")
 
@@ -1200,6 +1150,61 @@ def dhcp_page(context: UiContext) -> None:
 
     async def download() -> None:
         ui.download.content(await editor.get_value(), "dhcp.yaml")
+
+    with collapsible("DHCP Bootstrap", "lan"):
+        with ui.element("div").classes("w-full p-3 rounded").style(
+                "border:1px solid var(--border);background:rgba(2,123,193,.06)"):
+            summary = ui.label().classes("text-sm")
+            source = ui.label().classes("muted text-xs")
+        with ui.row().classes("w-full items-center gap-2 no-wrap p-3 rounded").style(
+                "border:1px solid #f2a93b;background:rgba(242,169,59,.12)") as stale:
+            ui.icon("warning", size="sm").style("color:#f2a93b")
+            ui.label("The Initial Inventory or shared services changed since dhcp.yaml was generated. Generate from "
+                     "inventory to update the reservations, DNS, and NTP (this replaces manual edits).").classes("text-sm grow")
+            ui.button("Generate now", icon="description", on_click=lambda: generate(quiet=False)).props("outline dense")
+        with ui.element("div").classes("services-grid"):
+            interface_select = ui.select({item["name"]: f"{item['name']} ({item['address']}, {item['network']})" for item in interfaces},
+                                         value=[name for name in (saved.get("interfaces") or suggested["interfaces"]) if name in known],
+                                         multiple=True, label="Listen interfaces (required to install Kea)").props(
+                                             "outlined dense use-chips hint=\"Ports facing the bootstrap network or the DHCP relay\"").classes("w-full")
+            network = ui.input("Bootstrap network (CIDR)", value=saved.get("network") or suggested["network"]).props(
+                "outlined dense").classes("w-full")
+            routers = ui.input("Default gateway (optional)",
+                               value=", ".join(saved.get("routers") if "routers" in saved else suggested["routers"])).props(
+                "outlined dense").classes("w-full")
+            pool_start = ui.input("Dynamic pool start (optional)", value=saved.get("pool_start", "")).props("outlined dense").classes("w-full")
+            pool_end = ui.input("Dynamic pool end (optional)", value=saved.get("pool_end", "")).props("outlined dense").classes("w-full")
+            lease = ui.number("Lease time (seconds)", value=saved.get("lease_time", 3600), min=300, precision=0).props("outlined dense").classes("w-full")
+            tftp = ui.input("POAP / TFTP server (optional)", value=saved.get("tftp_server", ""),
+                            placeholder="Nexus Dashboard address (switch POAP)").props("outlined dense").classes("w-full")
+            bootfile = ui.input("Boot file (optional)", value=saved.get("bootfile", ""),
+                                placeholder="poap_dcnm.py").props("outlined dense").classes("w-full")
+            ui.label("Switch POAP with Nexus Dashboard: option 66 is the Nexus Dashboard data / management address "
+                     "and option 67 is poap_dcnm.py. Enable POAP on the fabric (Create / update fabric) first.").classes(
+                "muted text-xs")
+            deny_unknown = ui.switch("Only serve inventory devices", value=saved.get("deny_unknown_clients", True))
+        with ui.row().classes("w-full justify-end gap-2"):
+            ui.button("Fill from inventory", icon="auto_fix_high", on_click=fill).props("outline").tooltip(
+                "Reset the network, interfaces, and gateway to the values suggested from the Initial Inventory addresses")
+            ui.button("Generate from inventory", icon="description", on_click=lambda: generate(quiet=False))
+        problems = ui.column().classes("w-full")
+        with ui.column().classes("w-full gap-2"):
+            with ui.row().classes("w-full items-center gap-2"):
+                ui.label("dhcp.yaml").classes("font-medium")
+                file_label = ui.label().classes("muted text-xs grow")
+                ui.button("Validate", icon="fact_check", on_click=validate).props("outline dense")
+                ui.button("Save", icon="save", on_click=save).props("dense")
+                ui.button(icon="download", on_click=download).props("flat round dense").tooltip("Download dhcp.yaml")
+            ui.label("Reservations come from the hostnames, MAC addresses, and IPs on the Initial Inventory page. Edit the "
+                     "YAML here for anything else (extra subnets, per-host options); hover a key for help. Generate from "
+                     "inventory rebuilds the file and replaces manual edits.").classes("muted text-xs")
+            editor = YamlEditor(vars_file.read_text(encoding="utf-8") if vars_file.is_file() else "", context.schema_uri,
+                                height="420px")
+            editor_problems = ui.column().classes("w-full")
+
+    JobConsole(context, "dhcp", dhcp_actions(vars_file, render_file), lambda: context.store.page_state("dhcp"))
+
+    refresh_summary()
 
     # First visit: build the file from the inventory so the page opens with the generated reservations.
     if not vars_file.is_file() and context.store.inventory():

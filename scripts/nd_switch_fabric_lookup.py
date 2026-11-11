@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Look up the Nexus Dashboard fabric name for each switch IP in a YAML input sheet.
 
 The input sheet uses the same nexus_dashboard and switches sections as nxos_bootflash_stage.yaml;
@@ -121,7 +121,7 @@ def main() -> int:
 
     by_ip = {}
     for item in inventory:
-        ip = field(item, *IP_FIELDS).split("/")[0]
+        ip = field(item, *IP_FIELDS).split("/", maxsplit=1)[0]
         fabric = field(item, "fabricName")
         if ip and fabric:
             by_ip[ip] = {"hostname": field(item, "hostname", "switchName", "name"), "fabric": fabric}

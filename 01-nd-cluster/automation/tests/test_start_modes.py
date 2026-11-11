@@ -107,7 +107,7 @@ def test_factory_preinstalled_accepts_serial_bound_pre_reset_evidence(
     monkeypatch.setattr(
         precheck.socket,
         "create_connection",
-        lambda *_a, **_k: (_ for _ in ()).throw(OSError("factory reset")),
+        lambda *_a, **_k: (_unused_value for _unused_value in ()).throw(OSError("factory reset")),
     )
     import discover_serials
 
@@ -159,7 +159,7 @@ def test_iso_reimage_allows_current_release_probe_to_skip(monkeypatch):
     monkeypatch.setattr(
         precheck.socket,
         "create_connection",
-        lambda *_a, **_k: (_ for _ in ()).throw(OSError("unreachable")),
+        lambda *_a, **_k: (_unused_value for _unused_value in ()).throw(OSError("unreachable")),
     )
 
     results = precheck.check_node_os_version_match(inv)

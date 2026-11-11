@@ -15,7 +15,6 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
-
 class InventoryError(ValueError):
     pass
 
@@ -216,7 +215,7 @@ def load_ansible(
     try:
         completed = subprocess.run(
             command,
-            cwd=Path(__file__).resolve().parents[2],
+            cwd=Path(__file__).resolve().parents[4],
             check=False,
             capture_output=True,
             text=True,
@@ -235,7 +234,7 @@ def load_ansible(
 
     composed = _composed_from_ansible(payload)
     resolved_schema = Path(schema_path) if schema_path else (
-        Path(__file__).resolve().parents[2] / "schemas" / "nd-cluster.schema.json"
+        Path(__file__).resolve().parents[4] / "schemas" / "nd-cluster.schema.json"
     )
     _validate_schema_instance(composed, resolved_schema)
     return _inventory_from_composed_dict(composed)
@@ -427,7 +426,8 @@ def _composed_from_ansible(payload: dict[str, Any]) -> dict[str, Any]:
         elif candidate_admin != admin_ref:
             raise InventoryError(f"nd_admin_pass_ref differs between hosts; mismatch at {host!r}")
 
-    assert cluster_spec is not None and admin_username is not None and admin_ref is not None
+    if cluster_spec is None or admin_username is None or admin_ref is None:
+        raise InventoryError("ND inventory must resolve a cluster specification and administrator credentials")
     return {
         "cluster": cluster_spec,
         "runtime": runtime or {},
@@ -452,10 +452,9 @@ def _validate_schema_instance(instance: dict[str, Any], schema_path: Path) -> No
         ) from e
 
     seen: dict[Path, dict[str, Any]] = {}
-    registry = Registry()
+    resources = {}
 
     def load_schema(path: Path) -> dict[str, Any]:
-        nonlocal registry
         path = path.resolve()
         if path in seen:
             return seen[path]
@@ -466,8 +465,8 @@ def _validate_schema_instance(instance: dict[str, Any], schema_path: Path) -> No
         seen[path] = document
         resource = Resource(contents=document, specification=DRAFT202012)
         if "$id" in document:
-            registry = registry.with_resource(uri=document["$id"], resource=resource)
-        registry = registry.with_resource(uri=path.as_uri(), resource=resource)
+            resources[document["$id"]] = resource
+        resources[path.as_uri()] = resource
 
         def walk(value: Any) -> None:
             if isinstance(value, dict):
@@ -487,7 +486,7 @@ def _validate_schema_instance(instance: dict[str, Any], schema_path: Path) -> No
 
     load_schema(schema_path)
     validator = Draft202012Validator(
-        {"$ref": schema_path.resolve().as_uri()}, registry=registry
+        {"$ref": schema_path.resolve().as_uri()}, registry=Registry().with_resources(resources.items())
     )
     errors = sorted(validator.iter_errors(instance), key=lambda error: list(error.absolute_path))
     if errors:

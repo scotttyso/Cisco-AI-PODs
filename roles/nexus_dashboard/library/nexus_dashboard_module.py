@@ -30,7 +30,6 @@ Version: 2.0.0
 from ansible.module_utils.basic import AnsibleModule
 import json
 import yaml
-import logging
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import requests

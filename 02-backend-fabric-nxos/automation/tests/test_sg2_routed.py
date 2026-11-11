@@ -12,7 +12,8 @@ SPEC.loader.exec_module(MODULE)
 
 def sample():
     return ["BE-SG2-SP1\n", "!Command: show running-config bgp\nrouter bgp 65102\n  neighbor 21.0.0.2\n    password SECRET_NOT_TO_EMIT\n",
-            "!Command: show running-config interface\ninterface Ethernet1/1/1\n  no switchport\n  ip address 21.0.0.1/31\n  no shutdown\n\ninterface Ethernet1/1/2\n  shutdown\n\ninterface Ethernet1/40/1\n  ip address 21.1.0.1/31\n"]
+            "!Command: show running-config interface\ninterface Ethernet1/1/1\n  no switchport\n  ip address 21.0.0.1/31\n"
+            "  no shutdown\n\ninterface Ethernet1/1/2\n  shutdown\n\ninterface Ethernet1/40/1\n  ip address 21.1.0.1/31\n"]
 
 
 class RoutedTests(unittest.TestCase):

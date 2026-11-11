@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Compatibility wrapper for 00-environment-prep/automation/scripts/build_initial_inventory.py."""
 
 import runpy

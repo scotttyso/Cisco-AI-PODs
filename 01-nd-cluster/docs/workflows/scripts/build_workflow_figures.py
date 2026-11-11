@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Generate the ND chapter flow figures as SVG, then rasterize to PNG.
 
 Replaces the mermaid fences that previously lived in MOP-ND4-install.md.
@@ -262,6 +262,7 @@ def overview_figure() -> tuple[str, int, int]:
     run = gap - 2
 
     x0 = MARGIN + gutter
+
     def slot(i: int) -> float:
         return x0 + i * (BOX_W + gap)
 

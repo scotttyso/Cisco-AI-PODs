@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Configure HGX server BMCs (Cisco UCS C880A / C885A) through Redfish from an ``hgx_servers`` variables file.
 
 Sets, per server and as enabled in ``hgx_servers.bmc_settings.configure``:
@@ -88,7 +88,7 @@ class Bmc:
             self.sleep(self.spacing)
             manager = self.client.manager()
             self.sleep(self.spacing)
-            interface, _ = self.client.manager_interface(self.address)
+            interface, _unused_value = self.client.manager_interface(self.address)
             self.paths = {"manager": manager, "protocol": manager.rstrip("/") + "/NetworkProtocol", "interface": interface}
         return self.paths
 

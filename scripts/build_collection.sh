@@ -67,8 +67,11 @@ cp "${REPO_ROOT}/galaxy.yml" "${COLL_ROOT}/galaxy.yml"
 if [ -d "${REPO_ROOT}/plugins/filter" ]; then
   cp -R "${REPO_ROOT}/plugins/filter/." "${COLL_ROOT}/plugins/filter/"
 fi
-mkdir -p "${COLL_ROOT}/plugins/module_utils/shared"
-cp -R "${REPO_ROOT}/shared/." "${COLL_ROOT}/plugins/module_utils/shared/"
+cp -R "${REPO_ROOT}/plugins/module_utils" "${COLL_ROOT}/plugins/"
+mkdir -p "${COLL_ROOT}/shared"
+cp "${REPO_ROOT}/shared/__init__.py" "${COLL_ROOT}/shared/__init__.py"
+mkdir -p "${COLL_ROOT}/schemas"
+cp "${REPO_ROOT}/schemas/nd-cluster.schema.json" "${COLL_ROOT}/schemas/"
 
 # --- Tier 1: roles from each subsystem -------------------------------------
 echo "==> Roles"
@@ -121,7 +124,17 @@ if $DO_BUILD; then
   ( cd "${COLL_ROOT}" && ansible-galaxy collection build --force --output-path "${REPO_ROOT}/build" )
 fi
 if $DO_INSTALL; then
-  TARBALL="$(ls -t "${REPO_ROOT}"/build/cisco-aipod-*.tar.gz | head -1)"
+  TARBALL=""
+  for artifact in "${REPO_ROOT}"/build/cisco-aipod-*.tar.gz; do
+    [ -f "$artifact" ] || continue
+    if [ -z "$TARBALL" ] || [ "$artifact" -nt "$TARBALL" ]; then
+      TARBALL="$artifact"
+    fi
+  done
+  if [ -z "$TARBALL" ]; then
+    echo "No built cisco.aipod collection tarball found" >&2
+    exit 1
+  fi
   echo "==> ansible-galaxy collection install ${TARBALL}"
   ansible-galaxy collection install "${TARBALL}" --force
 fi

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Collect vNIC / host interface MAC addresses from Intersight for OpenShift node inventory.
 
 For every ``--profile`` name the script reads the server profile vNICs (domain-attached X-Series and standalone

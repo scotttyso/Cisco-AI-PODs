@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Generate the UCS C880 M8 deployment chapter workflow figures as SVG and PNG.
 
 Layout mirrors the Cisco CVD 6.00-inch text column standard.

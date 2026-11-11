@@ -5,11 +5,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import requests
-import urllib3
-import yaml
+try:
+    import requests
+    import urllib3
+except ImportError:
+    requests = None
+    urllib3 = None
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+if urllib3 is not None:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class RedfishError(RuntimeError):
@@ -18,6 +22,8 @@ class RedfishError(RuntimeError):
 
 class Redfish:
     def __init__(self, address: str, username: str, password: str, timeout: float = 20.0, verify: bool = False):
+        if requests is None:
+            raise RedfishError("Redfish requires requests and urllib3; install the Python requirements before using it")
         self.base = f"https://{address}"
         self.session = requests.Session()
         self.session.auth = (username, password)
@@ -63,6 +69,8 @@ class Redfish:
 
 def endpoints(inventory_dir: Path, roles: tuple[str, ...] = ()) -> dict[str, dict]:
     """UCS endpoints from the UI-generated stage inventory (``host_vars/<host>.yml`` with a ``ucs`` key)."""
+    import yaml
+
     hosts = {}
     for path in sorted((Path(inventory_dir) / "host_vars").glob("*.yml")):
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

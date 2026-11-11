@@ -158,7 +158,7 @@ class JobManagerTest(unittest.TestCase):
                 self.assertIn(job, JobManager.all_running())
                 with self.assertRaises(RuntimeError):
                     manager.start("page", "Again", [["true"]], {}, Path(directory))
-                for _ in range(100):
+                for _unused_value in range(100):
                     if not manager.running("page"):
                         break
                     await asyncio.sleep(0.05)
@@ -169,7 +169,7 @@ class JobManagerTest(unittest.TestCase):
             self.assertEqual(finished.id, job.id)
             self.assertEqual(finished.status, "failed")
             self.assertEqual(finished.returncode, 3)
-            text, _ = JobManager.read(finished)
+            text, _unused_value = JobManager.read(finished)
             self.assertIn("hello", text)
             self.assertNotIn("TopSecret99", text)
 
@@ -179,7 +179,7 @@ class SudoAndDhcpGuardTest(unittest.TestCase):
         env = panels.sudo_environment("Sudo-Pass-123")
         self.assertEqual(env["BECOME_PASSWORD"], "Sudo-Pass-123")
         answer = subprocess.run([env["SUDO_ASKPASS"], "[sudo] password:"], capture_output=True, text=True,
-                                env={"AIPOD_SUDO_PASSWORD": env["AIPOD_SUDO_PASSWORD"]}).stdout
+                                env={"AIPOD_SUDO_PASSWORD": env["AIPOD_SUDO_PASSWORD"]}, check=False).stdout
         self.assertEqual(answer, "Sudo-Pass-123\n")
         self.assertFalse(any(field.key == "vault_become_password" for field in vars(pages).values()
                              if hasattr(field, "key")))
@@ -337,7 +337,7 @@ class SeedTest(unittest.TestCase):
         profiles = result["intersight"]["configure"]["default"]["profiles"]["server"]
         self.assertEqual([target["name"] for target in profiles[0]["targets"]], ["c240-1"])
         self.assertEqual(profiles[1]["targets"], [{"name": "c845-1", "serial_number": "A",
-                                                "description": "Keep this"}])
+                                                   "description": "Keep this"}])
         self.assertEqual(profiles[1]["action"], "Deploy")
         self.assertEqual(profiles[1]["ucs_server_profile_template"], "Custom845")
 
@@ -463,7 +463,7 @@ class SeedTest(unittest.TestCase):
             self.assertEqual(pages.run_config(only, pages.HGX_VARS, pages.HGX_UPLOADS), main)
             upload.write_text("hgx_servers:\n  dns: [8.8.8.8]\n  timezone: UTC\n")
             run = panels.RunContext(context, "hgx-nodes", {}, {pages.HGX_VARS: main,
-                                                              "hgx/uploads/extra.ezai.yaml": upload})
+                                                               "hgx/uploads/extra.ezai.yaml": upload})
             merged = pages.run_config(run, pages.HGX_VARS, pages.HGX_UPLOADS)
             self.assertEqual(merged, root / "merged/hgx.ezai.yaml")
             self.assertEqual(yaml.safe_load(merged.read_text()),

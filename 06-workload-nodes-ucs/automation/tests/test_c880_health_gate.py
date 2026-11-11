@@ -95,13 +95,16 @@ class HealthGateTests(unittest.TestCase):
 
     def test_component_inventory_checks_all_instances(self):
         status = {"Status": {"Health": "OK", "State": "Enabled", "Conditions": []}}
-        gpu = lambda: {**status, "ProcessorType": "GPU", "Model": "NVIDIA B300"}
+
+        def gpu():
+            return {**status, "ProcessorType": "GPU", "Model": "NVIDIA B300"}
+
         fpga = {**status, "ProcessorType": "FPGA"}
-        processors = [gpu() for _ in range(8)] + [fpga]
+        processors = [gpu() for _unused_value in range(8)] + [fpga]
         checks = MODULE.evaluate_components(status, status, processors, [status, status])
         self.assertTrue(all(checks.values()))
         processors[0] = {**gpu(), "Status": {"Health": "OK", "State": "Enabled",
-                                              "Conditions": [{"Message": "DO_NOT_EMIT"}]}}
+                                             "Conditions": [{"Message": "DO_NOT_EMIT"}]}}
         checks = MODULE.evaluate_components(status, status, processors, [status, status])
         self.assertFalse(checks["eight_b300_gpus_ok_and_no_conditions"])
         self.assertFalse(checks["all_processor_resources_ok_and_no_conditions"])

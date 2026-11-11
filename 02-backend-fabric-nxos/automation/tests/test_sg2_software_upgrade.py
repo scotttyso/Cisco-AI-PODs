@@ -195,7 +195,7 @@ def test_groups_phase_creates_only_missing_records_without_staging() -> None:
                  "updateGroupSwitches": [
                      {"switchName": name, "switchUpdateStatus": "none"}
                      for name in paired.WAVES[index]
-                 ]}
+                ]}
                 for index, group in enumerate(self.created)
             ]
 
@@ -210,7 +210,10 @@ def test_future_pair_refuses_partial_or_failed_install() -> None:
     import pytest
 
     paired = _paired_module()
-    status = lambda value: {"switchUpdateStatus": value}
+
+    def status(value):
+        return {"switchUpdateStatus": value}
+
     assert paired.wave_action([status("none"), status("none")]) == "start"
     assert paired.wave_action([status("inProgress"), status("none")]) == "observe"
     assert paired.wave_action([status("success"), status("success")]) == "done"
@@ -332,7 +335,10 @@ def test_explicit_same_version_experiment_only_requests_left_group(monkeypatch, 
                "lastReset": "2026-09-20 10:11:12"}
         for wave in paired.WAVES for name in wave
     }
-    mock_snapshots = lambda _vault, names: {name: snapshots[name] for name in names}
+
+    def mock_snapshots(_vault, names):
+        return {name: snapshots[name] for name in names}
+
     monkeypatch.setattr(paired, "read_switch_snapshots", mock_snapshots)
     monkeypatch.setattr(paired, "wait_for_switch_snapshots", mock_snapshots)
     monkeypatch.setattr(paired, "wait_for", lambda nd, index, field, **kwargs:

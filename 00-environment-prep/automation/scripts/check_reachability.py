@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Check that inventory devices answer on their management address before (and after) a deployment step.
 
 Input is a JSON list of ``{"hostname", "ip", "role"}`` objects. Each address gets one ICMP echo and TCP probes on

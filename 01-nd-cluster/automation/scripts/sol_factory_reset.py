@@ -11,13 +11,20 @@ Sequence:
 Idempotent: if the OS is already at first-boot prompt instead of login, this script bails and exits 2 (the node is already fresh).
 """
 from __future__ import annotations
-import os, sys, time, argparse, paramiko
+import os
+import sys
+import time
+import argparse
+import paramiko
+
 
 def log(msg):
-    sys.stdout.write(msg.rstrip()+"\n"); sys.stdout.flush()
+    sys.stdout.write(msg.rstrip() + "\n")
+    sys.stdout.flush()
+
 
 def drain(ch, secs=1.0):
-    end = time.time()+secs
+    end = time.time() + secs
     buf = bytearray()
     while time.time() < end:
         if ch.recv_ready():
@@ -26,8 +33,9 @@ def drain(ch, secs=1.0):
             time.sleep(0.1)
     return buf.decode("utf-8", errors="replace")
 
+
 def expect(ch, *needles, timeout=30):
-    end = time.time()+timeout
+    end = time.time() + timeout
     buf = ""
     while time.time() < end:
         if ch.recv_ready():
@@ -38,6 +46,7 @@ def expect(ch, *needles, timeout=30):
         else:
             time.sleep(0.2)
     return None, buf
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -63,32 +72,36 @@ def main():
     ch.send(b"\r")
 
     hit, buf = expect(ch,
-        "login:",
-        "Press Enter to manually bootstrap",
-        "Welcome to Nexus Dashboard",
-        timeout=20)
+                      "login:",
+                      "Press Enter to manually bootstrap",
+                      "Welcome to Nexus Dashboard",
+                      timeout=20)
     log(f"[{args.cimc}] expect hit={hit!r}")
     if hit and "Press Enter" in hit:
         log(f"[{args.cimc}] node is ALREADY at first-boot prompt — fresh state, skipping reset")
-        ch.close(); c.close()
+        ch.close()
+        c.close()
         sys.exit(2)
     if not hit or "login:" not in hit:
         log(f"[{args.cimc}] did not see login prompt; tail buf:")
         log(buf[-400:])
-        ch.close(); c.close()
+        ch.close()
+        c.close()
         sys.exit(3)
 
     log(f"[{args.cimc}] logging in as rescue-user...")
     ch.send(b"rescue-user\n")
     hit, buf = expect(ch, "Password:", "password:", timeout=10)
     if not hit:
-        log(f"[{args.cimc}] no password prompt; tail:"); log(buf[-400:])
+        log(f"[{args.cimc}] no password prompt; tail:")
+        log(buf[-400:])
         sys.exit(4)
-    ch.send(nd_pw.encode()+b"\n")
+    ch.send(nd_pw.encode() + b"\n")
     hit, buf = expect(ch, "$", "#", "incorrect", "Last login", timeout=15)
     log(f"[{args.cimc}] login result={hit!r}")
     if hit and "incorrect" in (hit or ""):
-        log(f"[{args.cimc}] login incorrect"); sys.exit(5)
+        log(f"[{args.cimc}] login incorrect")
+        sys.exit(5)
 
     log(f"[{args.cimc}] sending: acs reboot factory-reset")
     ch.send(b"acs reboot factory-reset\n")
@@ -108,6 +121,7 @@ def main():
     except Exception:
         pass
     log(f"[{args.cimc}] DONE")
+
 
 if __name__ == "__main__":
     main()

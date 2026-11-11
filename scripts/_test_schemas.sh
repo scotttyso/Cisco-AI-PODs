@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Negative tests for the AI POD schemas. Each case mutates the example
 # inventory in a known-bad way and asserts the validator rejects it.
 set +e

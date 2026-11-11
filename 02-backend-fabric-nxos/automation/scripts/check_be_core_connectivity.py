@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """BE-only physical core gate before fabric-template deployment through ND.
 
 Exit 0: physical expectation met; 1: connectivity discrepancy (or inventory
@@ -62,7 +62,7 @@ def load_cabling_plan(path, fabric_key):
             raise ValueError("Duplicate cable or reused plan port")
         expected.add(edge)
         endpoints.update(edge)
-    pairs = {tuple(sorted((a, b))) for (a, _), (b, _) in expected}
+    pairs = {tuple(sorted((a, b))) for (a, _unused_value), (b, _unused_value) in expected}
     spines = [n for n in names if SWITCH_ROLES[n] == "spine"]
     leaves = [n for n in names if SWITCH_ROLES[n] == "leaf"]
     required = {tuple(sorted((s, l))) for s in spines for l in leaves}
@@ -192,7 +192,7 @@ def evaluate(fabric, observations, expected=None):
             issues.append({"type": "core_port_not_in_inventory", "switch": name, "port": port_name})
     reciprocal = {cable(*e) for e in directed if (e[2], e[3], e[0], e[1]) in directed}
     for edge in sorted(edges - reciprocal):
-        if all(n in by_name for n, _ in edge):
+        if all(n in by_name for n, _unused_value in edge):
             issues.append({"type": "one_way_lldp", "endpoints": edge})
     targets = edges | (expected or set())
     discovered = []
@@ -217,7 +217,7 @@ def evaluate(fabric, observations, expected=None):
                 issues.append({"type": "link_speed_mismatch", "endpoints": edge})
     if expected is not None:
         for edge in sorted(expected - reciprocal):
-            if all(n in by_name for n, _ in edge):
+            if all(n in by_name for n, _unused_value in edge):
                 issues.append({"type": "expected_cable_missing_or_not_reciprocal", "endpoints": edge})
         for edge in sorted(edges - expected):
             issues.append({"type": "unexpected_cable", "endpoints": edge})
@@ -230,7 +230,7 @@ def evaluate(fabric, observations, expected=None):
             for l in leaves:
                 if s not in by_name or l not in by_name:
                     continue
-                count = sum({a, b} == {s, l} for (a, _), (b, _) in reciprocal)
+                count = sum({a, b} == {s, l} for (a, _unused_value), (b, _unused_value) in reciprocal)
                 if count != 2:
                     issues.append({"type": "pair_link_count", "spine": s, "leaf": l, "expected": 2, "observed": count})
     return {"fabric": fabric, "expectation": expectation, "discovered_connections": discovered,
@@ -252,13 +252,13 @@ def read_switch(inventory, host, fabric, pause=time.sleep, vault_file=None):
     if raw.lstrip().startswith("$ANSIBLE_VAULT"):
         # Encrypted vaults may be committed; decrypt with the configured ANSIBLE_VAULT_PASSWORD_FILE.
         decrypted = subprocess.run(["ansible-vault", "view", str(vault_path)], capture_output=True, text=True,
-                                   timeout=30)
+                                   timeout=30, check=False)
         if decrypted.returncode != 0:
             raise ValueError("Vault could not be decrypted")
         raw = decrypted.stdout
     else:
         ignored = subprocess.run(["git", "check-ignore", "--quiet", str(vault_path.resolve())],
-                                 cwd=inventory, capture_output=True, timeout=5)
+                                 cwd=inventory, capture_output=True, timeout=5, check=False)
         if ignored.returncode != 0:
             raise ValueError("Vault is not Git ignored")
     vault = yaml.safe_load(raw)
@@ -297,19 +297,24 @@ def read_switch(inventory, host, fabric, pause=time.sleep, vault_file=None):
 
 def render_report(result):
     lines = ["# Backend fabric core connectivity", "", f"Read-only sample: {result['started_utc']} to {result['finished_utc']}.", "",
-             "Spine–leaf core only. Unused and server-facing ports are excluded. This checks cabling before fabric-template deployment through the existing ND system, not ND installation or BGP, optics/counter, traffic or fabric-health sign-off.", "", "## Discovered connectivity", ""]
+             "Spine–leaf core only. Unused and server-facing ports are excluded. This checks cabling before "
+             "fabric-template deployment through the existing ND system, not ND installation or BGP, "
+             "optics/counter, traffic or fabric-health sign-off.", "", "## Discovered connectivity", ""]
     for check in result["fabrics"]:
         lines += [f"### {check['fabric']}", "", f"{check['reciprocal_connections']} reciprocal connections. Physical gate: {check['physical_gate']}.", "",
                   "| Switch | Port | Peer | Peer port | State at both ends | Speed at both ends | Reciprocal |", "| --- | --- | --- | --- | --- | --- | --- |"]
         for link in check["discovered_connections"]:
             a, b = link["ends"]
-            lines.append(f"| {a['switch']} | {a['port']} | {b['switch']} | {b['port']} | {a['state']} / {b['state']} | {a['speed']} / {b['speed']} | {'yes' if link['reciprocal'] else 'no'} |")
+            lines.append(
+                f"| {a['switch']} | {a['port']} | {b['switch']} | {b['port']} | {a['state']} / {b['state']} | "
+                f"{a['speed']} / {b['speed']} | {'yes' if link['reciprocal'] else 'no'} |")
         lines.append("")
     lines += ["## What does not seem right", ""]
     for check in result["fabrics"]:
         lines += [f"### {check['fabric']}", "", f"Expected: {check['expectation']}.", ""]
         findings = check["issues"] + check["incomplete_evidence"]
-        lines += ["- " + json.dumps(f, sort_keys=True) for f in findings] if findings else ["No missing, down, one-way or unexpected core connections detected against this expectation."]
+        lines += ["- " + json.dumps(f, sort_keys=True)
+                  for f in findings] if findings else ["No missing, down, one-way or unexpected core connections detected against this expectation."]
         lines.append("")
     if result["inventory_warnings"]:
         lines += ["### Inventory differs from supplied cabling plan", "",
@@ -317,10 +322,15 @@ def render_report(result):
                   "| --- | --- | --- |"]
         for warning in result["inventory_warnings"]:
             lines.append(f"| {warning['switch']} | {len(warning['plan_ports_missing_from_inventory'])} | {len(warning['inventory_ports_not_in_plan'])} |")
-        lines += ["", "These are stale local automation inputs, not missing live cables or ND-discovered inventory. Reconcile the fabric port lists before fabric-template deployment through ND. Exact differences are retained in the JSON report. This check did not change them."]
-    lines += ["", "## Check method", "", "Three fixed show commands per switch, serial switches, at least three seconds between commands/switches, no automatic retries. Known SSH host keys and Git-ignored vault references are required. Raw responses and credentials are not retained.", "",
+        lines += ["", "These are stale local automation inputs, not missing live cables or ND-discovered inventory. "
+                  "Reconcile the fabric port lists before fabric-template deployment through ND. Exact differences "
+                  "are retained in the JSON report. This check did not change them."]
+    lines += ["", "## Check method", "", "Three fixed show commands per switch, serial switches, at least three seconds "
+              "between commands/switches, no automatic retries. Known SSH host keys and Git-ignored vault references "
+              "are required. Raw responses and credentials are not retained.", "",
               "Cabling-plan sources: " + json.dumps(result.get("sg2_plan"), sort_keys=True), "",
-              "Cloud-scale pair count comes from the existing repository upgrade verifier. Exact cloud-scale port assignments are observations, not a separately confirmed cabling plan.", ""]
+              "Cloud-scale pair count comes from the existing repository upgrade verifier. Exact cloud-scale port "
+              "assignments are observations, not a separately confirmed cabling plan.", ""]
     return "\n".join(lines)
 
 

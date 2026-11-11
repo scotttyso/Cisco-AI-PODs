@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Two paced API-key GETs for SG2 fabric/inventory; no ND login or mutation."""
 
 import argparse
@@ -24,7 +24,7 @@ MAX_BYTES = 1024 * 1024
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, request, response, code, message, headers, url):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
 
@@ -85,7 +85,7 @@ def read_once(inventory_dir, allow_self_signed_lab=False, pause=time.sleep):
         raise ValueError("API-key reference unresolved")
     context = ssl._create_unverified_context() if allow_self_signed_lab else ssl.create_default_context()
     opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context),
-                                        urllib.request.ProxyHandler({}), NoRedirect())
+                                         urllib.request.ProxyHandler({}), NoRedirect())
     replies = []
     for index, path in enumerate(PATHS):
         if index:

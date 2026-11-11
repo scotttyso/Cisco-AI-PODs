@@ -12,7 +12,7 @@ SPEC.loader.exec_module(MODULE)
 
 def fixture():
     expected = {host.upper(): {"mgmt_ip": "192.0.2." + str(index),
-                              "role": "spine" if "-sp" in host else "leaf"}
+                               "role": "spine" if "-sp" in host else "leaf"}
                 for index, host in enumerate(MODULE.HOSTS, 1)}
     records = [{"logicalName": name, "ipAddress": spec["mgmt_ip"],
                 "switchRole": spec["role"], "model": "N9364E-SG2-O", "status": "ok",

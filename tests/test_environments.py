@@ -100,14 +100,14 @@ class EnvironmentManagerTest(unittest.TestCase):
         self.assertIn(".gitignore", tracked)
         self.assertNotIn("environments/Production/tls.key", tracked)
         self.assertNotIn("environments/Production/vault.yaml", tracked)
-        output = subprocess.run(self.manager.git_commands("commit")[-1], capture_output=True, text=True).stdout
+        output = subprocess.run(self.manager.git_commands("commit")[-1], capture_output=True, text=True, check=False).stdout
         self.assertIn("Nothing to commit", output)
         push = self.manager.git_commands("push")[0]
         self.assertEqual(push[-3:], ["--set-upstream", "origin", "HEAD:refs/heads/main"][-3:])
         env = self.manager.git_environment(REPOSITORY / "scripts/git_askpass.sh")
         self.assertEqual(env["AIPOD_GIT_USERNAME"], "octocat")
         askpass = subprocess.run([env["GIT_ASKPASS"], "Password for 'https://github.com':"], capture_output=True,
-                                 text=True, env={"GIT_TOKEN": "tok-123"}).stdout.strip()
+                                 text=True, env={"GIT_TOKEN": "tok-123"}, check=False).stdout.strip()
         self.assertEqual(askpass, "tok-123")
         self.assertEqual(len(self.manager.git_commands("pull")), 1)
 
@@ -172,12 +172,11 @@ class RepositoryVaultTest(unittest.TestCase):
             env = dict(os.environ, GIT_REPO_PASSWORD="wrong-password-000")
             result = subprocess.run([sys.executable, str(REPOSITORY / "scripts/repo_vault.py"), "import", "--root",
                                      str(root), "--password-file", str(other_pw)], capture_output=True, text=True,
-                                    env=env)
+                                    env=env, check=False)
             self.assertEqual(result.returncode, 1)
             self.assertIn("ERROR", result.stderr)
             self.assertEqual(remove_exported(root), ["Production"])
             self.assertFalse(shared.exists())
-
 
     def test_certificate_private_keys_are_committed_only_encrypted(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -232,7 +231,7 @@ class GitopsPushTest(unittest.TestCase):
     def run_push(self, directory: Path, url: str) -> subprocess.CompletedProcess:
         return subprocess.run([sys.executable, str(REPOSITORY / "scripts/gitops_push.py"), "--directory", str(directory),
                                "--url", url, "--branch", "main"], capture_output=True, text=True,
-                              env=dict(os.environ, gitops_git_token="secret-token-1"))
+                              env=dict(os.environ, gitops_git_token="secret-token-1"), check=False)
 
     def test_push_creates_branch_then_keeps_remote_only_files(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -376,7 +375,7 @@ class VaultPrecedenceTest(unittest.TestCase):
     def test_file_selection_cli_arguments(self):
         args = deploy_ai_pod.parse_args(["--role", "intersight", "--intersight-scope", "domains",
                                         "--intersight-file", "domains/templates.ezai.yaml",
-                                        "--intersight-file", "domains/profiles.ezai.yaml", "--check"])
+                                         "--intersight-file", "domains/profiles.ezai.yaml", "--check"])
         self.assertEqual(args.intersight_files, ["domains/templates.ezai.yaml", "domains/profiles.ezai.yaml"])
         self.assertTrue(args.check)
         self.assertIsNone(deploy_ai_pod.parse_args([]).intersight_files)

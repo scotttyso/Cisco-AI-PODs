@@ -104,7 +104,7 @@ never resubmitted. Task completion is not activation or independent readback.
         if not isinstance(sample, dict):
             raise ValueError("Malformed replay sample")
         elapsed = sample.get("elapsed_seconds")
-        if type(elapsed) is not int or elapsed - previous < POLL_SECONDS:
+        if not isinstance(elapsed, int) or isinstance(elapsed, bool) or elapsed - previous < POLL_SECONDS:
             raise ValueError("Task replay violates poll spacing")
         if elapsed >= TIMEOUTS[component]:
             result["decision"] = "stop_deadline_no_retry"
@@ -116,7 +116,7 @@ never resubmitted. Task completion is not activation or independent readback.
             result["decision"] = "stop_task_failure_no_retry"
             return result
         if state == "Completed":
-            if status != "OK" or type(percent) is not int or percent != 100:
+            if status != "OK" or not isinstance(percent, int) or isinstance(percent, bool) or percent != 100:
                 result["decision"] = "stop_completion_unverified_no_retry"
                 return result
             result["decision"] = "task_completed_activation_readback_still_required"

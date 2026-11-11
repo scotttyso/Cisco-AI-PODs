@@ -65,17 +65,17 @@ class HgxBmcTests(unittest.TestCase):
 
     def test_check_mode_does_not_patch(self):
         client, lines = FakeRedfish(), []
-        bmc = MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _: None)
+        bmc = MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _unused_value: None)
         self.assertTrue(MODULE.configure(bmc, MODULE.desired(SETTINGS, {"hostname": "hgx-1"}, WINTER), False, lines.append))
         self.assertEqual(client.patches, [])
         self.assertTrue(any("would set interface" in line for line in lines))
 
     def test_apply_patches_and_verifies(self):
         client, lines = FakeRedfish(), []
-        bmc = MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _: None)
+        bmc = MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _unused_value: None)
         target = MODULE.desired(SETTINGS, {"hostname": "hgx-1", "model": "C880A"}, WINTER)
         self.assertTrue(MODULE.configure(bmc, target, True, lines.append))
-        self.assertEqual([path for path, _ in client.patches], ["/m/1/NetworkProtocol", "/m/1", "/m/1/eth/0"])
+        self.assertEqual([path for path, _unused_value in client.patches], ["/m/1/NetworkProtocol", "/m/1", "/m/1/eth/0"])
         self.assertIn("    verified", lines)
         lines.clear()
         self.assertTrue(MODULE.configure(bmc, target, True, lines.append))
@@ -84,7 +84,7 @@ class HgxBmcTests(unittest.TestCase):
     def test_already_set_response_is_success(self):
         client = FakeRedfish()
         client.patch = lambda path, body: Response(400, '{"error": "PatchValueAlreadyExists"}')
-        MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _: None).patch("manager", {"DateTimeLocalOffset": "+00:00"})
+        MODULE.Bmc(client, "192.0.2.10", 0, sleep=lambda _unused_value: None).patch("manager", {"DateTimeLocalOffset": "+00:00"})
 
     def test_load_filters_hosts_and_requires_settings(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,7 +92,7 @@ class HgxBmcTests(unittest.TestCase):
             path.write_text("hgx_servers:\n  bmc_settings: {dns_servers: [192.0.2.53], ntp_servers: [192.0.2.123],"
                             " domain_name: example.com, timezone: UTC}\n  servers:\n"
                             "  - {hostname: a, bmc: {ip: 192.0.2.1}}\n  - {hostname: b, bmc: {ip: 192.0.2.2}}\n")
-            _, servers = MODULE.load_servers(path, ["B"])
+            _unused_value, servers = MODULE.load_servers(path, ["B"])
             self.assertEqual([server["hostname"] for server in servers], ["b"])
             path.write_text("hgx_servers:\n  bmc_settings: {}\n")
             with self.assertRaises(ValueError):

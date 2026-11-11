@@ -72,7 +72,7 @@ def test_discovery_records_off_state_for_visible_ansible_gate(monkeypatch):
     monkeypatch.setattr(discover_serials, "resolve", lambda _ref: "secret")
     monkeypatch.setattr(discover_serials, "CimcRedfish", _client("Off"))
 
-    _, record = discover_serials._discover(_node(), verify=False)
+    _unused_value, record = discover_serials._discover(_node(), verify=False)
 
     assert record["power_state"] == "Off"
 
@@ -107,7 +107,7 @@ def test_discovery_falls_back_to_basic_auth_for_gets(monkeypatch):
     monkeypatch.setattr(discover_serials, "resolve", lambda _ref: "secret")
     monkeypatch.setattr(discover_serials, "CimcRedfish", FakeCimcRedfish)
 
-    _, record = discover_serials._discover(_node(), verify=False)
+    _unused_value, record = discover_serials._discover(_node(), verify=False)
 
     assert FakeCimcRedfish.used_basic is True
     assert record["serial_number"] == "WZP00000001"

@@ -22,11 +22,19 @@ Current sanity ignore entries are intentionally minimal:
 
 - `roles/splunk_observability/library/get_helm.sh shellcheck!skip`
   - Shellcheck skip for helper script behavior not aligned with shellcheck expectations.
+- `automation-appliance/files/aipod-config shebang` and `automation-appliance/files/aipod-update shebang`
+  - These privileged appliance helpers deliberately use `/usr/bin/python3`, not a caller-selected interpreter
+    from `PATH`. Keep their fixed interpreter; the generic non-module sanity rule expects `env python`.
+- Six explicit Helm template paths with `yamllint:error` and `yamllint:unparsable-with-libyaml`
+  - Unrendered Go template expressions are not YAML. These entries ignore the known syntax diagnostics for those
+    files (yamllint reports parser syntax errors with the `error` code), without skipping the test or excluding
+    ordinary YAML elsewhere in the repository.
 
 Important:
 
 - `yamllint!skip` entries are not permitted by ansible sanity (`sanity[cannot-ignore]`).
-- Helm template YAML under `roles/openshift_gitops/helm/**/templates/**/*.yaml` is ignored through `.yamllint`, not through sanity ignore files.
+- Standalone yamllint uses `.yamllint` to exclude raw Helm templates. Ansible sanity uses its own built-in
+  configuration and does not read that file, so its known Helm syntax diagnostics require the explicit entries above.
 
 ## Maintenance
 

@@ -29,29 +29,31 @@ def inventory(tmp_path, data):
 def test_reader_prefers_only_aipod_even_if_legacy_disagrees(tmp_path):
     expected = globals_spec()
     root = inventory(tmp_path, {'aipod': expected, 'aipod_spec': {'timezone': 'UTC'},
-                              'ucs_management_services': {'domain_name': 'wrong.local'}})
+                                'ucs_management_services': {'domain_name': 'wrong.local'}})
     assert post._read_shared_spec(root) == expected
 
 
 @pytest.mark.parametrize('data', [{}, {'aipod_spec': globals_spec()},
-                                 {'ucs_management_services': globals_spec()}, {'aipod': []}])
+                                  {'ucs_management_services': globals_spec()}, {'aipod': []}])
 def test_no_legacy_or_lab_fallback(tmp_path, data):
     with pytest.raises(ValueError):
         post._read_shared_spec(inventory(tmp_path, data))
 
 
 @pytest.mark.parametrize('field,value', [('dns_servers', []), ('dns_servers', '192.0.2.53'),
-    ('dns_servers', ['invalid']), ('ntp_servers', []), ('ntp_servers', '192.0.2.123'),
-    ('domain_name', ''), ('timezone', 'invalid/zone')])
+                                         ('dns_servers', ['invalid']), ('ntp_servers', []), ('ntp_servers', '192.0.2.123'),
+                                         ('domain_name', ''), ('timezone', 'invalid/zone')])
 def test_invalid_globals_block_before_credentials_or_transport(tmp_path, field, value):
-    spec = globals_spec(); spec[field] = value
+    spec = globals_spec()
+    spec[field] = value
     root = inventory(tmp_path, {'aipod': spec})
-    with patch.object(configure, '_read_host_spec', return_value={'pass_ref':'FAKE'}), \
-         patch.object(configure, '_read_vault_password', side_effect=AssertionError('no credential read')) as secret, \
-         patch.object(configure, '_get_opener', side_effect=AssertionError('no transport')) as opener:
+    with patch.object(configure, '_read_host_spec', return_value={'pass_ref': 'FAKE'}), \
+            patch.object(configure, '_read_vault_password', side_effect=AssertionError('no credential read')) as secret, \
+            patch.object(configure, '_get_opener', side_effect=AssertionError('no transport')) as opener:
         with pytest.raises((ValueError, KeyError)):
             configure.configure_node(root, 'ucs-c880-3')
-        secret.assert_not_called(); opener.assert_not_called()
+        secret.assert_not_called()
+        opener.assert_not_called()
 
 
 @pytest.mark.parametrize('zone,instant,expected', [
@@ -64,33 +66,38 @@ def test_timezone_offset_follows_global_and_season(zone, instant, expected):
 
 
 def test_configuration_payloads_use_globals_only(tmp_path):
-    spec = globals_spec(); root = inventory(tmp_path, {'aipod': spec})
+    spec = globals_spec()
+    root = inventory(tmp_path, {'aipod': spec})
     (root / 'host_vars').mkdir()
     (root / 'host_vars/ucs-c880-3.yml').write_text('ucs:\n  hostname: HOST3\n')
     host = dict(ip='192.0.2.3', user='synthetic', pass_ref='FAKE')
     with patch.object(configure, '_read_host_spec', return_value=host), \
-         patch.object(configure, '_read_vault_password', return_value='synthetic'), \
-         patch.object(configure, '_get_opener', return_value=object()), \
-         patch.object(configure, 'RedfishReader', return_value=lambda _: {}), \
-         patch.object(configure, '_redfish_patch') as writer, \
-         patch.object(configure, 'audit_settings_persistence', return_value={'all_passed':True}), \
-         patch.object(configure.time, 'sleep'):
+            patch.object(configure, '_read_vault_password', return_value='synthetic'), \
+            patch.object(configure, '_get_opener', return_value=object()), \
+            patch.object(configure, 'RedfishReader', return_value=lambda _: {}), \
+            patch.object(configure, '_redfish_patch') as writer, \
+            patch.object(configure, 'audit_settings_persistence', return_value={'all_passed': True}), \
+            patch.object(configure.time, 'sleep'):
         configure.configure_node(root, 'ucs-c880-3', logger=lambda *a, **k: None)
     payloads = [c.args[3] for c in writer.call_args_list]
-    assert payloads == [{'NTP': {'NTPServers':['192.0.2.123'], 'ProtocolEnabled':True}},
-                        {'DateTimeLocalOffset':'+05:30'},
-                        {'HostName':'HOST3','FQDN':'HOST3.example.test',
-                         'StaticNameServers':['192.0.2.53','::']}]
+    assert payloads == [{'NTP': {'NTPServers': ['192.0.2.123'], 'ProtocolEnabled': True}},
+                        {'DateTimeLocalOffset': '+05:30'},
+                        {'HostName': 'HOST3', 'FQDN': 'HOST3.example.test',
+                         'StaticNameServers': ['192.0.2.53', '::']}]
 
 
 def test_postcheck_rejects_wrong_season_offset_and_labels_scope():
-    shared = globals_spec(); shared['timezone'] = 'America/New_York'
+    shared = globals_spec()
+    shared['timezone'] = 'America/New_York'
     host = dict(ip='192.0.2.3', netmask='255.255.255.0', gateway='192.0.2.1')
     resources = {
-        '/redfish/v1/Managers/BMC/EthernetInterfaces/eth0': {'IPv4Addresses':[{'Address':host['ip'], 'SubnetMask':host['netmask'], 'Gateway':host['gateway']}]},
-        '/redfish/v1/Managers/BMC/NetworkProtocol': {'NTP': {'NTPServers':shared['ntp_servers'], 'ProtocolEnabled':True}, 'SSH': {'ProtocolEnabled':True,'Port':22}},
-        '/redfish/v1/Managers/BMC': {'DateTimeLocalOffset':'-04:00'}}
-    instant = datetime(2026,1,15,tzinfo=timezone.utc)
+        '/redfish/v1/Managers/BMC/EthernetInterfaces/eth0': {
+            'IPv4Addresses': [{'Address': host['ip'], 'SubnetMask': host['netmask'], 'Gateway': host['gateway']}]},
+        '/redfish/v1/Managers/BMC/NetworkProtocol': {
+            'NTP': {'NTPServers': shared['ntp_servers'], 'ProtocolEnabled': True},
+            'SSH': {'ProtocolEnabled': True, 'Port': 22}},
+        '/redfish/v1/Managers/BMC': {'DateTimeLocalOffset': '-04:00'}}
+    instant = datetime(2026, 1, 15, tzinfo=timezone.utc)
     result = post.audit_settings_persistence(resources.__getitem__, host, shared, at=instant)
     assert not result['all_passed']
     assert result['details']['timezone_offset']['expected'] == '-05:00'
@@ -101,7 +108,7 @@ def test_postcheck_rejects_wrong_season_offset_and_labels_scope():
 
 def test_planner_does_not_accept_legacy_only_globals(tmp_path):
     root = inventory(tmp_path, {'ucs_management_services': globals_spec()})
-    (root/'host_vars').mkdir()
-    (root/'host_vars/ucs-c880-3.yml').write_text('ucs: {}\n')
+    (root / 'host_vars').mkdir()
+    (root / 'host_vars/ucs-c880-3.yml').write_text('ucs: {}\n')
     checks = planner.build_plan(root)['hosts'][0]['inventory_checks']
     assert not checks['shared_dns_present'] and not checks['shared_ntp_present']

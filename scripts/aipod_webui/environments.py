@@ -80,7 +80,7 @@ def check_name(name: str) -> str:
     name = (name or "").strip()
     if not NAME_PATTERN.fullmatch(name) or name in (".", ".."):
         raise EnvironmentProblem("Use 1-63 letters, numbers, dots, underscores, or hyphens (no spaces), starting with a "
-                               "letter or number, for example Production or pre-production")
+                                 "letter or number, for example Production or pre-production")
     return name
 
 
@@ -205,7 +205,7 @@ class EnvironmentManager:
             self._git("remote", "add", "origin", settings.remote_url)
 
     def _git(self, *arguments: str, check: bool = True) -> str:
-        result = subprocess.run(["git", "-C", str(self.root), *arguments], capture_output=True, text=True, timeout=60)
+        result = subprocess.run(["git", "-C", str(self.root), *arguments], capture_output=True, text=True, timeout=60, check=False)
         if check and result.returncode:
             raise EnvironmentProblem(result.stderr.strip() or result.stdout.strip() or f"git {arguments[0]} failed")
         return result.stdout

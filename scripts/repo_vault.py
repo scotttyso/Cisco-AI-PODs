@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Share environment secrets through the deployments git repository.
 
 export  re-encrypt each environment's vault.yaml with the repository vault password into secrets.vault.yaml, and its

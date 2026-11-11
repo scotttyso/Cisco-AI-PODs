@@ -104,7 +104,7 @@ class DhcpModelTests(unittest.TestCase):
         rows = [dict(hostname="fi-a", ip="198.18.0.10", mac="00:25:b5:00:00:01"),
                 dict(hostname="blade1", ip="198.18.0.10", mac="00:25:b5:00:00:02", pool_ip=True),
                 dict(hostname="blade2", ip="", mac="00:25:b5:00:00:03", pool_ip=True)]
-        model, _ = dhcp_model.build_dhcp_model(rows, {}, {})
+        model, _unused_value = dhcp_model.build_dhcp_model(rows, {}, {})
         self.assertEqual([row["hostname"] for row in model["dhcp"]["reservations"]], ["fi-a"])
         with tempfile.TemporaryDirectory() as folder:
             store = site_settings.WorkspaceStore(Path(folder), validate, detect=lambda: {})
@@ -149,8 +149,8 @@ class DhcpModelTests(unittest.TestCase):
             dhcp_model.build_dhcp_model([], self.SERVICES, {})
 
     def test_pool_without_reservations(self):
-        model, _ = dhcp_model.build_dhcp_model([], {}, {"pool_start": "198.18.0.100", "pool_end": "198.18.0.200",
-                                                        "deny_unknown_clients": False})
+        model, _unused_value = dhcp_model.build_dhcp_model([], {}, {"pool_start": "198.18.0.100", "pool_end": "198.18.0.200",
+                                                                    "deny_unknown_clients": False})
         self.assertEqual(model["dhcp"]["subnets"][0]["ranges"], [{"start": "198.18.0.100", "end": "198.18.0.200"}])
         self.assertEqual(model["dhcp"]["reservations"], [])
 
@@ -168,7 +168,7 @@ class DhcpModelTests(unittest.TestCase):
         import yaml
         from aipod_webui.yaml_editor import validate_yaml
         schema = REPOSITORY / "schema/cisco-ai-pods.json"
-        model, _ = dhcp_model.build_dhcp_model(self.INVENTORY, self.SERVICES, {"routers": ["198.18.0.1"]})
+        model, _unused_value = dhcp_model.build_dhcp_model(self.INVENTORY, self.SERVICES, {"routers": ["198.18.0.1"]})
         self.assertEqual(validate_yaml(yaml.safe_dump(model), schema)[1], [])
         model["dhcp"]["subnets"][0]["unexpected"] = True
         self.assertNotEqual(validate_yaml(yaml.safe_dump(model), schema)[1], [])
@@ -176,9 +176,9 @@ class DhcpModelTests(unittest.TestCase):
 
 class YamlValidationTests(unittest.TestCase):
     def test_reports_syntax_and_schema_problems(self):
-        _, problems = validate_yaml("a: [1,\n", BUNDLE)
+        _unused_value, problems = validate_yaml("a: [1,\n", BUNDLE)
         self.assertTrue(problems[0].startswith("YAML syntax error"))
-        _, problems = validate_yaml("nexus_dashboard:\n  fabrics: 5\nbogus_root_key: 1\n", BUNDLE)
+        _unused_value, problems = validate_yaml("nexus_dashboard:\n  fabrics: 5\nbogus_root_key: 1\n", BUNDLE)
         self.assertTrue(any(problem.startswith("nexus_dashboard.fabrics") for problem in problems))
         self.assertFalse(any("Unevaluated" in problem for problem in problems))
         document, problems = validate_yaml("shared_services:\n  timezone: UTC\n", BUNDLE)

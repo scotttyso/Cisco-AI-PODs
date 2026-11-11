@@ -182,7 +182,7 @@ def _allocate(subnet: str, count: int, used: set[str], skip: tuple[str, ...] = (
         network = ipaddress.ip_network(subnet, strict=False)
     except ValueError:
         return []
-    reserved = set(used) | {value.split("/")[0] for value in skip if value}
+    reserved = set(used) | {value.split("/", maxsplit=1)[0] for value in skip if value}
     hosts = list(network.hosts())
     start = min(10, max(len(hosts) // 4, 0))
     picked = [str(address) for address in hosts[start:] if str(address) not in reserved]
@@ -282,7 +282,7 @@ def port_rows(report: dict, switches: list[dict], assigned: dict, current: dict 
     The role is the saved assignment, else the interface list it is in within the YAML (``current``: hostname ->
     switch), else a guess: an LLDP neighbor that is one of the fabric's switches means a fabric link, any other
     neighbor a host port, no neighbor unused."""
-    names = {str(item.get("hostname", "")).lower().split(".")[0] for item in switches if item.get("hostname")}
+    names = {str(item.get("hostname", "")).lower().split(".", maxsplit=1)[0] for item in switches if item.get("hostname")}
     current = current or {}
     rows = []
     for hostname, entry in sorted((report.get("switches") or {}).items()):
@@ -295,7 +295,7 @@ def port_rows(report: dict, switches: list[dict], assigned: dict, current: dict 
                 role = next((role for role, field_name in PORT_ROLES.items()
                              if name in (yaml_switch.get(field_name) or [])), None)
             if role is None:
-                neighbor = str(port.get("neighbor", "")).lower().split(".")[0]
+                neighbor = str(port.get("neighbor", "")).lower().split(".", maxsplit=1)[0]
                 role = "fabric" if neighbor in names else "host" if neighbor else "unused"
             rows.append({"id": f"{hostname}|{name}", "switch": hostname, "name": name,
                          "transceiver": port.get("transceiver", ""), "state": port.get("state", ""),
@@ -482,7 +482,7 @@ def seed_domain_profiles(data: CommentedMap, ctx: SeedContext) -> None:
     if not domains:
         return
     template = next(iter(profiles.get("domain") or []), None) or cmap(action="Deploy", attach_template=True,
-                                                                       ucs_domain_profile_template="XDirect")
+                                                                      ucs_domain_profile_template="XDirect")
     items = []
     for name, serials in domains.items():
         item = cmap(name=name)
@@ -693,7 +693,7 @@ def seed_hgx(data: CommentedMap, ctx: SeedContext) -> None:
     servers = CommentedSeq()
     for ucs in hosts:
         server = CommentedMap()
-        server["hostname"] = str(ucs["hostname"]).split(".")[0]
+        server["hostname"] = str(ucs["hostname"]).split(".", maxsplit=1)[0]
         model = hgx_model(ucs.get("pid", ""))
         if model:
             server["model"] = model

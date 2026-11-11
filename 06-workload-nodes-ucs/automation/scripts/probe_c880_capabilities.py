@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced GET-only C880 media/firmware capability check; never emits raw responses."""
 
 import argparse

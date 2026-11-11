@@ -254,6 +254,7 @@ credentials*
 # that the generic rules above would otherwise hide.
 !/inventories/*/host_vars/
 !/shared/lib/
+!/plugins/module_utils/shared/lib/
 !/schemas/_shared/credentials.schema.json
 # Site run evidence (test results, generated post-install reports) stays local;
 # keep it in the deployment environment, not the repository.
@@ -271,6 +272,7 @@ credentials*
 /build/
 # Site vaults (the keys-only .example template is tracked)
 /inventories/**/vault.yml
+/tests/output/
 
 # Automation UI editor build dependencies (the built bundle in scripts/aipod_webui/static is committed)
 /scripts/aipod_webui/editor/node_modules/

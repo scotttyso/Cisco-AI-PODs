@@ -18,7 +18,7 @@ class HealthDetailTests(unittest.TestCase):
         responses = {
             MODULE.PATHS[0]: {"Status": {"Health": "OK"}, "Secret": "DO_NOT_EMIT"},
             MODULE.PATHS[1]: {"Status": {"Health": "OK"}},
-            MODULE.PATHS[2]: {"Members": [{} for _ in range(12)]},
+            MODULE.PATHS[2]: {"Members": [{} for _unused_value in range(12)]},
             MODULE.PATHS[3]: {"Status": {"Health": "OK"}},
             MODULE.PATHS[4]: {"Conditions": [{"Severity": "OK", "Message": "private"}]},
         }
@@ -41,7 +41,7 @@ class HealthDetailTests(unittest.TestCase):
         responses = [
             {"Status": {"Health": "OK"}},
             {"Status": {"Health": "OK"}},
-            {"Members": [{} for _ in range(12)]},
+            {"Members": [{} for _unused_value in range(12)]},
             {"Status": {"Health": "OK"}},
             {"Conditions": [{"Severity": "Warning", "Message": "private"}]},
         ]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Two paced GETs for active BIOS tokens named in MOP Procedure 6.
 
 Values are compared to chapter intent, not asserted as verified factory
@@ -9,7 +9,6 @@ BlueField NIC mode needs its own verified interface and is never inferred.
 import argparse
 import json
 from pathlib import Path
-import sys
 import time
 
 from probe_c880_readonly import (RedfishReader, MIN_REQUEST_SPACING_SECONDS,
@@ -73,7 +72,7 @@ def main():
         address, username, reference = _read_host(args.inventory_dir, args.host)
         password = _read_vault_password(args.inventory_dir, reference)
         result = probe(RedfishReader(address, username, password,
-                                    allow_self_signed_lab=args.allow_self_signed_lab))
+                                     allow_self_signed_lab=args.allow_self_signed_lab))
         result["host"] = args.host
     except Exception:
         print(json.dumps({"read_or_projection_failed": True, "raw_response_retained": False}))

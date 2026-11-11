@@ -92,20 +92,20 @@ def node_operational_state(node: dict[str, Any]) -> str:
 # that needs a prefixed runtime path should use `_infra_url` explicitly.
 ENDPOINTS = {
     # Auth (always at root, not under /api/v1/infra).
-    "login":             "/login",                 # POST verified live
-    "logout":            "/logout",                # POST verified live (200)
-    "refresh":           "/refresh",               # POST per OpenAPI; not yet verified live
+    "login": "/login",                 # POST verified live
+    "logout": "/logout",                # POST verified live (200)
+    "refresh": "/refresh",               # POST per OpenAPI; not yet verified live
 
     # Cluster bring-up (pre-cluster, single-node bootstrap appliance).
     "bootstrap_cluster": "/bootstrap/cluster",     # GET verified, OPTIONS=GET,OPTIONS,POST
-    "bootstrap_status":  "/bootstrap/status",      # GET verified ({bootstrapped, message})
+    "bootstrap_status": "/bootstrap/status",      # GET verified ({bootstrapped, message})
 
     # Runtime cluster (post-bootstrap; expect 404 pre-cluster).
-    "cluster_status":    "/cluster/status",        # used as suffix off /api/v1/infra
-    "cluster_nodes":     "/cluster/nodes",         # used as suffix off /api/v1/infra
+    "cluster_status": "/cluster/status",        # used as suffix off /api/v1/infra
+    "cluster_nodes": "/cluster/nodes",         # used as suffix off /api/v1/infra
 
     # Platform v1 (legacy, may be present on 4.2.1 once cluster is up).
-    "platform_cluster":  "/nexus/infra/api/platform/v1/clusters",
+    "platform_cluster": "/nexus/infra/api/platform/v1/clusters",
     "platform_externalips": "/nexus/infra/api/platform/v1/externalips",
 }
 

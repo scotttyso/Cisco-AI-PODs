@@ -242,6 +242,6 @@ def _print_plan(node: object, inv: Inventory) -> None:
     print("DRY RUN: would perform the following on node 1 only:")
     print(f"  CIMC:           {n.cimc.ip} (user {n.cimc.user})")
     print(f"  ISO URL:        {inv.cluster.iso.url}")
-    print(f"  Boot override:  UEFI: Cisco CIMC-Mapped vDVD (one-time)")
+    print("  Boot override:  UEFI: Cisco CIMC-Mapped vDVD (one-time)")
     print(f"  After install:  SOL bootstrap -> mgmt {n.mgmt.cidr} gw {n.mgmt.gateway}")
     print(f"  Then verify:    https://{n.mgmt.ip}/ reachable")

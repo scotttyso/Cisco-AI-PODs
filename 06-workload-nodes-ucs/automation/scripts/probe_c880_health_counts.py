@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced, GET-only C880-3 condition baseline and current HGX health gate."""
 
 import argparse

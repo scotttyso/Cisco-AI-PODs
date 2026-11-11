@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Wait for an accepted Nexus Dashboard setup job to reach completion.
 
 ND restarts services while forming the cluster. A long-lived Ansible HTTPAPI

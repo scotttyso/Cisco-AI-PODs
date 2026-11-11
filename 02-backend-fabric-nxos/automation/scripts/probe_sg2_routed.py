@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced SG2 routed-config observation; no configuration, secrets or IPs emitted."""
 
 import argparse

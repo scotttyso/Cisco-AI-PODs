@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced, single-server, GET-only C880 BMC health probe.
 
 This is deliberately not a firmware updater or vMedia controller. It prints
@@ -24,7 +24,7 @@ MIN_REQUEST_SPACING_SECONDS = 3
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, request, response, code, message, headers, url):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
 
@@ -51,6 +51,7 @@ def _select_member(members, suffix):
 
 
 HOSTS = ("ucs-c880-1", "ucs-c880-2", "ucs-c880-3", "ucs-c880-4")
+
 
 def _read_host(inventory_dir, host):
     if host not in HOSTS:

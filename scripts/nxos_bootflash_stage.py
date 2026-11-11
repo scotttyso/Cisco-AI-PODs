@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Stage NX-OS upgrade images on switches, optionally through the Nexus Dashboard rescue-user shell.
 
 For every switch in the YAML file the script:

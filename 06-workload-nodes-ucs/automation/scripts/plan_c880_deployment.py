@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Read-only, sanitized C880 deployment preflight. Never contacts a BMC."""
 
 import argparse

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Nexus Dashboard fabric automation for the Automation UI fabric pages.
 
 Reads one ``nexus_dashboard.fabrics`` file (schema ``fabrics``) and talks to Nexus Dashboard 4.x with the
@@ -385,7 +385,7 @@ def ssh_json(host: str, username: str, password: str, commands: list[str]) -> li
     try:
         results = []
         for command in commands:
-            _, stdout, _ = client.exec_command(f"{command} | json", timeout=120)
+            _unused_value, stdout, _unused_value = client.exec_command(f"{command} | json", timeout=120)
             text = stdout.read().decode("utf-8", "replace").strip()
             results.append(json.loads(text) if text.startswith("{") else {})
         return results

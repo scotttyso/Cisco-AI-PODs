@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Turn the Packer vSphere OVF export into a vApp-enabled OVA and an OpenShift Virtualization qcow2."""
 import argparse
 import hashlib

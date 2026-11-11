@@ -338,9 +338,9 @@ class HostGateTests(unittest.TestCase):
             mock_persist = {"all_passed": True, "details": {}}
 
             with patch.object(MODULE, "RedfishReader"), \
-                 patch.object(MODULE, "audit_huu_firmware", return_value=mock_huu) as mock_huu_fn, \
-                 patch.object(MODULE, "audit_settings_persistence", return_value=mock_persist) as mock_persist_fn:
-                
+                    patch.object(MODULE, "audit_huu_firmware", return_value=mock_huu) as mock_huu_fn, \
+                    patch.object(MODULE, "audit_settings_persistence", return_value=mock_persist) as mock_persist_fn:
+
                 res = MODULE.run_huu_postcheck(root, "ucs-c880-1")
                 self.assertTrue(res["all_passed"])
                 self.assertEqual(res["host"], "ucs-c880-1")
@@ -374,7 +374,7 @@ class HostGateTests(unittest.TestCase):
             mock_persist = {"all_passed": True, "details": {}}
 
             with patch.object(MODULE, "RedfishReader"), \
-                 patch.object(MODULE, "audit_settings_persistence", return_value=mock_persist) as mock_persist_fn:
+                    patch.object(MODULE, "audit_settings_persistence", return_value=mock_persist) as mock_persist_fn:
 
                 res = MODULE.run_persistence_audit(root, "ucs-c880-1")
                 self.assertTrue(res["all_passed"])
@@ -656,7 +656,7 @@ class TelemetrySchemaAndExportTests(unittest.TestCase):
                 "--run-log-root",
                 str(root / "run-logs"),
             ]
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
             self.assertEqual(proc.returncode, 0, f"Process failed: {proc.stderr}")
 
             # Verify stdout is pure telemetry object
@@ -832,7 +832,7 @@ class TelemetrySchemaAndExportTests(unittest.TestCase):
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
+                text=True, check=False,
             )
             self.assertNotEqual(proc.returncode, 0)
 

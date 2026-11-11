@@ -86,10 +86,10 @@ def launch_update(tag: str, unit: str, environment: dict[str, str]) -> subproces
     options = dict(capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL, env=environment)
     # systemd opens StandardOutput before creating LogsDirectory.
     prepared = subprocess.run(
-        [*command[:4], "install", "-d", "-m", "0755", str(UPDATE_LOG_DIR)], **options)
+        [*command[:4], "install", "-d", "-m", "0755", str(UPDATE_LOG_DIR)], check=False, **options)
     if prepared.returncode != 0:
         return prepared
-    return subprocess.run(command, **options)
+    return subprocess.run(command, check=False, **options)
 
 
 def latest_update_log(limit: int = 60000) -> tuple[str, str]:

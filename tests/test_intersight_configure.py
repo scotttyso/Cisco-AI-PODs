@@ -94,8 +94,8 @@ def test_missing_pool_dependencies(monkeypatch, capsys, check, existing):
             render.assert_called_once()
             compare.assert_called_once()
             assert "deferred payload validation" not in output
-    assert [uri for _, uri, _ in calls] == ["access/Policies", "ippool/Pools"]
-    assert all(method == "get" for method, _, _ in calls)
+    assert [uri for _unused_value, uri, _unused_value in calls] == ["access/Policies", "ippool/Pools"]
+    assert all(method == "get" for method, _unused_value, _unused_value in calls)
 
 
 def test_dependency_api_errors_propagate_in_check_mode(monkeypatch):
@@ -355,12 +355,14 @@ def test_domain_orchestration_renders_valid_target_platform(
     monkeypatch.setattr(module.configure, "compare_resources_to_api", compare)
     monkeypatch.setattr(module.configure, "create_bulk_request", submit)
     monkeypatch.setattr(module.configure, "children_compare_api_body", compare_child)
+
     def attach(state):
         assert len(requests) == 3
         return state
 
     attachment = Mock(side_effect=attach)
     monkeypatch.setattr(module.configure, "profiles_domain_attach_templates", attachment)
+
     def deploy(_profiles, state):
         assert attachment.call_count == 1
         assert len(requests) == 3
@@ -865,7 +867,7 @@ def test_domain_template_binding_and_policy_inheritance(monkeypatch, resource_ty
         assert merged == {"target-parent", "target-A", "target-B"}
     if case == "delayed":
         assert sleeps.call_count == 2
-    assert not any(body and body.get("Action") == "Deploy" for _, _, body in requests)
+    assert not any(body and body.get("Action") == "Deploy" for _unused_value, _unused_value, body in requests)
 
 
 @pytest.mark.parametrize("resource_type", ["domain", "unified_edge"])
@@ -939,6 +941,7 @@ def test_domain_switch_deployment_requests_and_waiting(monkeypatch, case, capsys
     monkeypatch.setattr(module.api, "calls", api_calls)
     finish_sync = Mock(side_effect=lambda _profiles, state: state)
     monkeypatch.setattr(module.configure, "profiles_finish_template_sync", finish_sync)
+
     def sleep(seconds):
         assert seconds == 60
         output = " ".join(capsys.readouterr().out.split())
@@ -1036,7 +1039,7 @@ def test_profile_template_sync_actions_and_domain_children(monkeypatch, kind, st
     monkeypatch.setattr(module.api, "calls", calls)
     monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
     provision = module.configure(category="profiles", type=kind)
-    _, changed = provision.profiles_sync_templates(profiles, kwargs)
+    _unused_value, changed = provision.profiles_sync_templates(profiles, kwargs)
     assert changed == ([] if status == "OK" else profiles)
     patches = [request for request in requests if request[1] == "patch"]
     assert [request[2] for request in patches] == (ids if status in ["None", "OutOfSync"] else [])
@@ -1078,14 +1081,14 @@ def test_template_sync_failure_is_not_reported_as_success(monkeypatch, case):
 
 
 @pytest.mark.parametrize("check,attach,action", [(True, True, "Deploy"), (False, False, "Deploy"),
-                                               (False, True, "No-op")])
+                                                 (False, True, "No-op")])
 def test_template_sync_preserves_check_and_detached_profiles(monkeypatch, check, attach, action):
     kwargs = configuration(check=check)
     profile = DotMap(name="Profile", action=action, attach_template=attach,
                      ucs_server_profile_template="Template")
     calls = Mock()
     monkeypatch.setattr(module.api, "calls", calls)
-    _, changed = module.configure(category="profiles", type="server").profiles_sync_templates([profile], kwargs)
+    _unused_value, changed = module.configure(category="profiles", type="server").profiles_sync_templates([profile], kwargs)
     assert changed == []
     calls.assert_not_called()
 
@@ -1119,7 +1122,7 @@ def test_chassis_template_inheritance_is_verified_and_reconciled(monkeypatch, ca
         with pytest.raises(RuntimeError, match="inheritance"):
             provision.profiles_sync_templates([profile], kwargs, verify_only=True)
     else:
-        _, changed = provision.profiles_sync_templates([profile], kwargs)
+        _unused_value, changed = provision.profiles_sync_templates([profile], kwargs)
         assert changed == ([profile] if case == "merge" else [])
     assert len(merged) == (1 if case == "merge" else 0)
     if merged:

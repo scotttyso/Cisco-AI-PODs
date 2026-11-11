@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Query running firmware versions from standalone UCS C-Series servers via the Cisco IMC XML API.
 
 Examples:

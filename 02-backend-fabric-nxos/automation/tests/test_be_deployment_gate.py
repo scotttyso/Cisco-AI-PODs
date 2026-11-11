@@ -31,7 +31,9 @@ def execute(tmp_path, payload, code=0, check=False, selected=None):
     script.parent.mkdir(parents=True)
     script.write_text("print(" + repr(payload) + ")\nraise SystemExit(" + str(code) + ")\n")
     values = {"role_path": str(fake_role), "be_core_inventory_dir": str(tmp_path),
-              "be_core_sg2_plan": "", "be_core_cabling_plans": {}, "be_fabrics": [{"key": "backend", "name": "AIPOD-Backend"}, {"key": "backend_800g", "name": "AIPOD-Backend-800G"}], "be_target_fabric_keys": selected or ["backend"]}
+              "be_core_sg2_plan": "", "be_core_cabling_plans": {},
+              "be_fabrics": [{"key": "backend", "name": "AIPOD-Backend"}, {"key": "backend_800g", "name": "AIPOD-Backend-800G"}],
+              "be_target_fabric_keys": selected or ["backend"]}
     playbook = [
         {"hosts": "gate_hosts", "gather_facts": False, "connection": "local",
          "vars": values, "tasks": [{"ansible.builtin.include_tasks": str(TASK)}]},
@@ -42,10 +44,10 @@ def execute(tmp_path, payload, code=0, check=False, selected=None):
     path.write_text(yaml.safe_dump(playbook, sort_keys=False))
     inventory = tmp_path / "inventory.yml"
     inventory.write_text(yaml.safe_dump({"all": {"vars": {"ansible_python_interpreter": sys.executable},
-        "children": {"gate_hosts": {"hosts": {"fake-spine": {}, "fake-leaf": {}}},
-                     "controller": {"hosts": {"localhost": {}}}}}}))
+                                                 "children": {"gate_hosts": {"hosts": {"fake-spine": {}, "fake-leaf": {}}},
+                                                              "controller": {"hosts": {"localhost": {}}}}}}))
     argv = [str(ANSIBLE), "-i", str(inventory), str(path)] + (["--check"] if check else [])
-    return subprocess.run(argv, cwd=ROOT.parents[1], capture_output=True, text=True, timeout=45)
+    return subprocess.run(argv, cwd=ROOT.parents[1], capture_output=True, text=True, timeout=45, check=False)
 
 
 @pytest.mark.parametrize("check", [False, True])

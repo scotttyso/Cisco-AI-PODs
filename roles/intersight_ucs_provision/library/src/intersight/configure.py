@@ -2666,7 +2666,7 @@ class configure:
             deploy = (self.profiles_domain_deploy if self.type in ['domain', 'unified_edge']
                       else self.profiles_chassis_server_deploy)
             kwargs = deploy(synced, kwargs, sync_templates=False, force=True)
-            kwargs, _ = self.profiles_sync_templates(synced, kwargs, verify_only=True)
+            kwargs, _unused_value = self.profiles_sync_templates(synced, kwargs, verify_only=True)
         return kwargs
 
     def profiles_sync_templates(self, profiles, kwargs, verify_only=False):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """One GET to compare per-instance OOB versions from AMI embedded inventory.
 
 The local Cisco v1.2 source combines HGX_FW_GPU_n and HGX_InfoROM_GPU_n.
@@ -9,7 +9,6 @@ does not cover HUU components, activation, hardware health or image trust.
 import argparse
 import json
 from pathlib import Path
-import sys
 import urllib.error
 
 from probe_c880_readonly import RedfishReader, _read_host, _read_vault_password

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Create Nexus Dashboard update groups (named multi-switch or per-switch) and stage NX-OS images."""
 
 import argparse
@@ -711,7 +711,7 @@ def main() -> int:
             groups = [(device_group_name(s), [s]) for s in select_switches(switches, args.device)]
         else:
             groups = [(name, select_switches(switches, hosts)) for name, hosts in args.update_groups]
-            serials = [switch.serial for _, members in groups for switch in members]
+            serials = [switch.serial for _unused_value, members in groups for switch in members]
             if len(set(serials)) != len(serials):
                 raise ValueError("A switch is listed in more than one update group")
         current_checks, checks = load_check_catalog(client)

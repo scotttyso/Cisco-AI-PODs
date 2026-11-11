@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced GET-only post-HUU firmware baseline and settings persistence audit for Cisco UCS C880A M8.
 
 Audits:
@@ -19,7 +19,6 @@ import ipaddress
 import json
 from pathlib import Path
 import sys
-import time
 import yaml
 from zoneinfo import ZoneInfo
 
@@ -27,7 +26,6 @@ from probe_c880_readonly import (
     MIN_REQUEST_SPACING_SECONDS,
     RedfishReader,
     _read_vault_password,
-    _resource_path,
 )
 
 HUU_TARGETS = {
@@ -98,13 +96,15 @@ def _timezone_offset(zone, at=None):
     if instant.tzinfo is None:
         raise ValueError("Timezone comparison requires an aware instant")
     minutes = int(instant.astimezone(ZoneInfo(zone)).utcoffset().total_seconds() // 60)
-    return f"{'+' if minutes >= 0 else '-'}{abs(minutes)//60:02d}:{abs(minutes)%60:02d}"
+    return f"{'+' if minutes >= 0 else '-'}{abs(minutes) // 60:02d}:{abs(minutes) % 60:02d}"
 
 
-def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
+def audit_huu_firmware(reader, targets=None, pause=None):
     """Audit Procedure 5 firmware baselines for BlueField-3, Intel OCP, and Micron NVMe."""
+    if targets is None:
+        targets = HUU_TARGETS
     results = {"adapters": {}, "storage": {}, "all_passed": True}
-    
+
     # Audit Network Adapters
     for nic_id, spec in targets["network_adapters"].items():
         if pause:
@@ -114,11 +114,11 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
         actual_pkg = controllers[0].get("FirmwarePackageVersion") if controllers else None
         health = na.get("Status", {}).get("Health")
         state = na.get("Status", {}).get("State")
-        
+
         passed = (actual_pkg == spec["expected_package"]) and (health == "OK")
         if not passed:
             results["all_passed"] = False
-            
+
         results["adapters"][nic_id] = {
             "description": spec["desc"],
             "expected_version": spec["expected_package"],
@@ -127,7 +127,7 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
             "state": state,
             "passed": passed,
         }
-        
+
     # Audit Storage Controllers
     if pause:
         pause(MIN_REQUEST_SPACING_SECONDS)
@@ -137,7 +137,7 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
         for m in st_coll.get("Members", [])
         if isinstance(m, dict) and "@odata.id" in m
     }
-    
+
     for st_id, spec in targets["storage_controllers"].items():
         if st_id not in storage_members:
             results["storage"][st_id] = {
@@ -149,7 +149,7 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
             }
             results["all_passed"] = False
             continue
-            
+
         if pause:
             pause(MIN_REQUEST_SPACING_SECONDS)
         st = reader(storage_members[st_id])
@@ -157,11 +157,11 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
         actual_ver = ctrls[0].get("FirmwareVersion") if ctrls else None
         health = st.get("Status", {}).get("Health")
         state = st.get("Status", {}).get("State")
-        
+
         passed = (actual_ver == spec["expected_version"]) and (health == "OK")
         if not passed:
             results["all_passed"] = False
-            
+
         results["storage"][st_id] = {
             "description": spec["desc"],
             "expected_version": spec["expected_version"],
@@ -170,7 +170,7 @@ def audit_huu_firmware(reader, targets=HUU_TARGETS, pause=None):
             "state": state,
             "passed": passed,
         }
-        
+
     return results
 
 
@@ -180,7 +180,7 @@ def audit_settings_persistence(reader, host_spec, shared_spec, pause=None, *, at
     expected_offset = _timezone_offset(shared_spec["timezone"], at)
     if pause:
         pause(MIN_REQUEST_SPACING_SECONDS)
-    
+
     # Query eth0 with retry to allow BMC network services to settle if recovering from reboot
     eth0 = None
     for attempt in range(5):
@@ -195,36 +195,36 @@ def audit_settings_persistence(reader, host_spec, shared_spec, pause=None, *, at
     if pause:
         pause(MIN_REQUEST_SPACING_SECONDS)
     net = reader("/redfish/v1/Managers/BMC/NetworkProtocol")
-    
+
     if pause:
         pause(MIN_REQUEST_SPACING_SECONDS)
     mgr = reader("/redfish/v1/Managers/BMC")
-    
+
     ipv4_list = eth0.get("IPv4Addresses", [])
     ipv4 = ipv4_list[0] if (isinstance(ipv4_list, list) and ipv4_list) else {}
     actual_ip = ipv4.get("Address")
     actual_mask = ipv4.get("SubnetMask")
     actual_gw = ipv4.get("Gateway")
-    
+
     actual_hn = eth0.get("HostName")
     actual_fqdn = eth0.get("FQDN")
     actual_dns = eth0.get("StaticNameServers") or []
-    
+
     ntp = net.get("NTP", {})
     ntp_servers = ntp.get("NTPServers", [])
     ntp_enabled = ntp.get("ProtocolEnabled", False)
-    
+
     ssh = net.get("SSH", {})
     ssh_enabled = ssh.get("ProtocolEnabled", False)
     ssh_port = ssh.get("Port", 22)
-    
+
     tz_offset = mgr.get("DateTimeLocalOffset")
-    
+
     expected_ip = host_spec.get("ip")
     expected_mask = host_spec.get("netmask", "255.255.255.0")
     expected_gw = host_spec.get("gateway", "198.18.0.254")
     expected_ntp = shared_spec["ntp_servers"]
-    
+
     expected_hn = host_spec.get("hostname")
     hn_ok = (actual_hn == expected_hn) if (expected_hn is not None and "HostName" in eth0) else True
 
@@ -241,9 +241,9 @@ def audit_settings_persistence(reader, host_spec, shared_spec, pause=None, *, at
     ntp_ok = set(expected_ntp).issubset(set(ntp_servers)) and ntp_enabled
     ssh_ok = ssh_enabled and (ssh_port == 22)
     tz_ok = tz_offset == expected_offset
-    
+
     all_passed = all([ip_ok, mask_ok, gw_ok, ntp_ok, ssh_ok, tz_ok, hn_ok, fqdn_ok, dns_ok])
-    
+
     details = {
         "ipv4_address": {"expected": expected_ip, "actual": actual_ip, "passed": ip_ok},
         "subnet_mask": {"expected": expected_mask, "actual": actual_mask, "passed": mask_ok},

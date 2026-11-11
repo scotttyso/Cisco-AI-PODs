@@ -62,7 +62,7 @@ class HealthCountTests(unittest.TestCase):
         path = MODULE.GPU_COLLECTION + "/0"
         with self.assertRaises(ValueError):
             MODULE._read_members(lambda _p: {"Members": [{"@odata.id": path},
-                                                       {"@odata.id": path}]},
+                                                         {"@odata.id": path}]},
                                  MODULE.GPU_COLLECTION, 10, lambda _s: None)
 
     def test_summary_omits_condition_details(self):

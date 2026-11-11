@@ -34,6 +34,7 @@ class BiosTests(unittest.TestCase):
 
     def test_read_sequence_and_spacing_are_bounded(self):
         calls, pauses = [], []
+
         def fetch(path):
             calls.append(path)
             if len(calls) == 1:
@@ -45,6 +46,7 @@ class BiosTests(unittest.TestCase):
 
     def test_unreviewed_link_cannot_trigger_second_request(self):
         calls = []
+
         def fetch(path):
             calls.append(path)
             return {"Bios": {"@odata.id": "https://other.invalid/private"}}

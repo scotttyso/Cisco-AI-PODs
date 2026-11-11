@@ -69,7 +69,7 @@ def keychain(service: str, account: str | None = None) -> str:
 def jwt_csrf(jwt: str) -> str | None:
     """Extract csrf claim from the AuthCookie JWT (no signature verify)."""
     try:
-        _, payload_b64, _ = jwt.split(".")
+        _unused_value, payload_b64, _unused_value = jwt.split(".")
         # base64url with padding
         pad = "=" * ((4 - len(payload_b64) % 4) % 4)
         decoded = base64.urlsafe_b64decode(payload_b64 + pad)

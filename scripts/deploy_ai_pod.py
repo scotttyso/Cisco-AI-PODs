@@ -239,7 +239,7 @@ def selected_intersight_files(host_vars_dir: Path, scope: str, files: list[str])
 
 
 def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path,
-                         files: list[str] | None = None) -> Path:
+                          files: list[str] | None = None) -> Path:
     """Copy only the selected page's Intersight configuration into ``target``."""
     source = host_vars_dir / "intersight"
     if files is not None:

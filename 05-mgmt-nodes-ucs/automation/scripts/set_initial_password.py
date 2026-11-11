@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Change the factory default CIMC / BMC password ('password') to the password stored in the vault, over Redfish.
 
 Only hosts whose ``ucs.factory_default`` is true (the Factory default checkbox on the Claim Targets page) are

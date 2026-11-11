@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Slow, GET-only C880 firmware inventory comparison; prints no raw inventory."""
 
 import argparse

@@ -1,6 +1,6 @@
 ---
 namespace: cisco
-name: ai_pods
+name: aipod
 version: 0.1.3
 readme: README.md
 authors:

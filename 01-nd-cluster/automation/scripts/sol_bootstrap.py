@@ -446,7 +446,7 @@ class Sol:
         # nudges - the IP/Mask, Gateway, and confirmation prompts strictly
         # validate input.
         self._nudge()
-        idx, _ = self._expect_one_of(
+        idx, _unused_value = self._expect_one_of(
             [PROMPT_FIRSTBOOT, PROMPT_BOOTSTRAP_PRIMARY, PROMPT_ADMIN_PASSWORD],
             timeout_s=timeout_s,
         )

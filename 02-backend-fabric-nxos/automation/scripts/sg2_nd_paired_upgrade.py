@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paired ND upgrades: one spine and one leaf per guarded wave.
 
 This is deliberately separate from the active 2026-09-28 serial install.
@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
-import io
 import json
-import os
 import pathlib
 import re
 import signal
@@ -262,7 +260,7 @@ def build_telemetry(profile: str, phase: str, before_plan: list[dict],
                     switch_results: list[dict] | None = None, *, offline=False,
                     run_dir=None) -> dict:
     """Map ND's paired plan and verified switch result into the FE contract."""
-    before_switches, _ = _plan_maps(before_plan)
+    before_switches, _unused_value = _plan_maps(before_plan)
     after_switches, after_groups = _plan_maps(after_plan)
     switch_results = switch_results or []
     result_switches = {}
@@ -532,7 +530,7 @@ class Nd:
             raise
         return self
 
-    def __exit__(self, *_: object) -> None:
+    def __exit__(self, *_unused_value: object) -> None:
         try:
             self.request("POST", "/api/v1/infra/logout", accepted=(200, 204))
         except RuntimeError:
@@ -820,7 +818,7 @@ def run(nd: Nd, phase: str, vault: dict) -> None:
             (group.get("updateGroupName") != GROUPS[0] and
              group.get("updateGroupStatus") in {"inProgress", "paused"})
             for group in current_plan),
-                "An install in this fabric is active; Update-Pair-Left staging is blocked")
+            "An install in this fabric is active; Update-Pair-Left staging is blocked")
         nd.inventory(healthy=True)
         ensure_groups(nd, inventory)
         groups = wait_plan_groups(nd)

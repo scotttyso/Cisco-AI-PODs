@@ -203,8 +203,8 @@ def fabric_form(handle) -> None:
 
     role_name = next((role for role, name in seeds.SWITCH_ROLES.items() if name == kind), kind)
     with card("Switches", f"The YAML switches list. Starts from the initial inventory rows with the "
-                          f"{seeds.ROLES.get(role_name, role_name)} role; add switches that are not in the inventory "
-                          "here. Changes are applied to the YAML below (Save the file to keep them).", icon="dns"):
+              f"{seeds.ROLES.get(role_name, role_name)} role; add switches that are not in the inventory "
+              "here. Changes are applied to the YAML below (Save the file to keep them).", icon="dns"):
         @ui.refreshable
         def switch_table() -> None:
             table = ui.table(columns=SWITCH_COLUMNS, rows=model["switches"], row_key="id").props(
@@ -330,7 +330,7 @@ def registration_form(handle) -> None:
                                     "read from the API key.", icon="cloud"):
         url = ui.input("Intersight URL", value=state.get("api_uri", "https://intersight.com")).props(
             "outlined dense").classes("w-full")
-        url.on("blur", lambda: persist())
+        url.on("blur", lambda: persist(message=""))
         CredentialsPanel(context, lambda: [INTERSIGHT_KEY_ID, INTERSIGHT_SECRET_KEY], title="API key", embedded=True,
                          on_change=handle.refresh_credentials)
         ui.label("Targets are claimed into the default organization and resource group. Create other "
@@ -350,8 +350,8 @@ def registration_form(handle) -> None:
                 "outlined dense").classes("grow")
             cimc_user = ui.input("CIMC / BMC username", value=state.get("cimc_username", "admin")).props(
                 "outlined dense").classes("grow")
-            fi_user.on("blur", lambda: persist())
-            cimc_user.on("blur", lambda: persist())
+            fi_user.on("blur", lambda: persist(message=""))
+            cimc_user.on("blur", lambda: persist(message=""))
         CredentialsPanel(context, lambda: [
             secret(si.vault_key(si.FI_PASSWORD_REF), "Fabric Interconnect password", min_length=si.UCS_PASSWORD_MIN),
             secret(si.vault_key(si.CIMC_PASSWORD_REF), "CIMC / BMC password", min_length=si.UCS_PASSWORD_MIN,
@@ -406,7 +406,7 @@ def registration_form(handle) -> None:
                 if not redfish:
                     factory.value = False
 
-            role.on_value_change(lambda: sync_role())
+            role.on_value_change(sync_role)
             sync_role()
 
             def apply() -> None:
@@ -656,7 +656,11 @@ def certificate_files(handle) -> None:
         ui.code(certificate_example(folder, everpure), language="yaml").classes("w-full")
         with ui.row().classes("w-full justify-end"):
             ui.button("Done", on_click=dialog.close).props("flat")
-    dialog.on("hide", lambda: batch.clear())
+
+    def clear_batch() -> None:
+        batch.clear()
+
+    dialog.on("hide", clear_batch)
 
     async def received(event) -> None:
         if hasattr(event, "file"):
@@ -916,7 +920,7 @@ def certificates_form(handle) -> None:
                 ui.label(f"{name}: {', '.join(files) or 'nothing generated yet'}").classes("text-sm")
                 alt = certificate_alt_names(stem, cluster.value or "", domain.value or "")
                 ui.label("Subject alternative names: " + ", ".join(f"DNS.{index} = {value}" for index, value in
-                                                                  enumerate(alt, 1))).classes("muted text-xs mono")
+                                                                   enumerate(alt, 1))).classes("muted text-xs mono")
             ui.label("ca-bundle.pem " + ("uploaded" if (directory() / "ca-bundle.pem").is_file() else "not uploaded yet")
                      ).classes("text-sm")
             try:
@@ -984,6 +988,7 @@ def certificates_form(handle) -> None:
                                 ("ca-bundle", "CA bundle")):
                 ui.upload(label=label, auto_upload=True, max_files=1, max_file_size=1024 * 1024,
                           on_upload=lambda event, stem=stem: upload(event, stem)).props("flat bordered").classes("grow")
+
     def changed() -> None:
         handle.save_state({"cluster_name": (cluster.value or "").strip(), "base_dns_domain": (domain.value or "").strip()})
         render_status()
@@ -1074,24 +1079,6 @@ def everpure_certificates_form(handle) -> None:
         extra = [value.strip() for value in str(extra_names.get(fqdn) or "").split(",") if value.strip()]
         return list(dict.fromkeys([fqdn, *extra]))
 
-    with card("Appliance certificates", "Generate a private key and CSR for each FlashArray / FlashBlade, send the "
-                                        "CSRs to your certificate authority, upload the signed chains, then add them "
-                                        "to array_certificates in the YAML. Private keys stay on this server (mode "
-                                        "0600).", icon="workspace_premium", value=False):
-        with ui.element("div").classes("services-grid"):
-            subject = subject_inputs(subject_state)
-        extra = ui.input("Additional appliance FQDNs (comma separated)", value=str(state.get("csr_extra_appliances") or ""),
-                         placeholder="array03.example.com").props("outlined dense").classes("w-full")
-        ui.label("Appliances come from flash_arrays and flash_blades in everpure.ezai.yaml (the example until you Save; one row per array_fqdn, so add or remove appliances there). Each CSR uses "
-                 "the FQDN as the common name and first subject alternative name.").classes("muted text-xs")
-        table = ui.column().classes("w-full gap-1")
-        with ui.row().classes("gap-2 items-center"):
-            ui.button("Generate keys and CSRs", icon="key", on_click=lambda: generate())
-            ui.button("Download CSRs", icon="download", on_click=lambda: download()).props("outline")
-            ui.button("Add to YAML", icon="playlist_add", on_click=lambda: add_to_yaml()).props("outline").tooltip(
-                "Add or update array_certificates entries for appliances with a signed certificate")
-            ui.button(icon="refresh", on_click=lambda: render()).props("flat round").tooltip("Reload the appliance list")
-
     def store() -> None:
         handle.save_state({"csr_subject": {name: (item.value or "").strip() for name, item in subject.items()},
                            "csr_alt_names": dict(extra_names), "csr_extra_appliances": (extra.value or "").strip()})
@@ -1107,8 +1094,8 @@ def everpure_certificates_form(handle) -> None:
             for fqdn in names:
                 paths = everpure_certificate_paths(folder, fqdn)
                 have = [label for label, key in (("key", "private_key_file"), ("CSR", "csr"),
-                                                  ("certificate", "certificate_file"),
-                                                  ("intermediates", "intermediate_certificate_file"))
+                                                 ("certificate", "certificate_file"),
+                                                 ("intermediates", "intermediate_certificate_file"))
                         if paths[key].is_file()]
                 with ui.row().classes("w-full items-center gap-3 no-wrap"):
                     box = ui.checkbox(value=selected.get(fqdn, True)).tooltip("Include when generating")
@@ -1197,6 +1184,25 @@ def everpure_certificates_form(handle) -> None:
             return
         workbench.set_content(EVERPURE_TARGET, text, "array_certificates updated from Appliance certificates (not saved yet)")
         ui.notify(f"Added certificates for {', '.join(applied)}. Review, then Save.", type="positive")
+
+    with card("Appliance certificates", "Generate a private key and CSR for each FlashArray / FlashBlade, send the "
+                                        "CSRs to your certificate authority, upload the signed chains, then add them "
+                                        "to array_certificates in the YAML. Private keys stay on this server (mode "
+                                        "0600).", icon="workspace_premium", value=False):
+        with ui.element("div").classes("services-grid"):
+            subject = subject_inputs(subject_state)
+        extra = ui.input("Additional appliance FQDNs (comma separated)", value=str(state.get("csr_extra_appliances") or ""),
+                         placeholder="array03.example.com").props("outlined dense").classes("w-full")
+        ui.label("Appliances come from flash_arrays and flash_blades in everpure.ezai.yaml (the example until you Save; "
+                 "one row per array_fqdn, so add or remove appliances there). Each CSR uses "
+                 "the FQDN as the common name and first subject alternative name.").classes("muted text-xs")
+        table = ui.column().classes("w-full gap-1")
+        with ui.row().classes("gap-2 items-center"):
+            ui.button("Generate keys and CSRs", icon="key", on_click=generate)
+            ui.button("Download CSRs", icon="download", on_click=download).props("outline")
+            ui.button("Add to YAML", icon="playlist_add", on_click=add_to_yaml).props("outline").tooltip(
+                "Add or update array_certificates entries for appliances with a signed certificate")
+            ui.button(icon="refresh", on_click=render).props("flat round").tooltip("Reload the appliance list")
 
     extra.on_value_change(lambda _: (store(), render()))
     render()
@@ -1363,9 +1369,9 @@ def gitops_form(handle) -> None:
             if controls["gitea"].value:
                 suggestion = gitea_repo_url(cluster, domain)
                 hint.set_text("Gitea hosts the repository. " + (f"Suggested URL: {suggestion} - create the repository "
-                                                                 "for the lab-user account after Gitea is deployed."
-                                                                 if suggestion else
-                                                                 "Save the Cluster Deployment page to suggest its URL."))
+                                                                "for the lab-user account after Gitea is deployed."
+                                                                if suggestion else
+                                                                "Save the Cluster Deployment page to suggest its URL."))
                 current_url = controls["repo"].value or ""
                 if suggestion and (not current_url or current_url.startswith(GITEA_URL_PREFIX)):
                     controls["repo"].set_value(suggestion)

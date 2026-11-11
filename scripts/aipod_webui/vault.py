@@ -97,7 +97,7 @@ class VaultStore:
         command = [tool("ansible-vault"), *arguments, "--vault-password-file", str(self.password_file)]
         env = {key: value for key, value in os.environ.items() if not key.startswith("ANSIBLE_VAULT")}
         result = subprocess.run(command, input=data, capture_output=True, text=True, env=env,
-                                cwd=self.vault_file.parent if self.vault_file.parent.is_dir() else None)
+                                cwd=self.vault_file.parent if self.vault_file.parent.is_dir() else None, check=False)
         if result.returncode:
             message = (result.stderr or result.stdout).strip().splitlines()
             raise VaultError(message[-1] if message else f"ansible-vault {arguments[0]} failed")
@@ -207,7 +207,7 @@ def sensitive_fields(model: dict) -> list[SecretField]:
     sections_of = _example_sections()
     own = next((key for key in SECTIONS if key in model), "openshift")
     fields = []
-    for name, (prefix, _) in sorted(collect_required_sensitive_variables(model).items()):
+    for name, (prefix, _unused_value) in sorted(collect_required_sensitive_variables(model).items()):
         label = _SENSITIVE_VAR_PATTERNS.get(prefix, (None, prefix.replace("_", " ").title()))[1]
         candidates = sections_of.get(prefix, ())
         section = own if own in candidates or not candidates else candidates[0]

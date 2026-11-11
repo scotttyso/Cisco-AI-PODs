@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Read deployed UCS domain uplink state and CDP/LLDP neighbors without changing configuration."""
 
 from __future__ import annotations

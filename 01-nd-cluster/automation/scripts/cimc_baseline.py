@@ -106,7 +106,7 @@ def _collect_nics(c: CimcRedfish, sid: str) -> list[dict[str, Any]]:
                             if isinstance(p_doc, dict):
                                 out.append({
                                     "adapter": adapter.get("Model")
-                                        if isinstance(adapter, dict) else None,
+                                    if isinstance(adapter, dict) else None,
                                     "port_id": p_doc.get("Id"),
                                     "name": p_doc.get("Name"),
                                     "linkStatus": p_doc.get("LinkStatus"),
@@ -154,7 +154,7 @@ def baseline_one(host: str, ip: str, user: str, password: str,
                     "powerState": sysdoc.get("PowerState"),
                     "boot": sysdoc.get("Boot"),
                     "memoryGiB": (sysdoc.get("MemorySummary", {})
-                                       .get("TotalSystemMemoryGiB")),
+                                  .get("TotalSystemMemoryGiB")),
                     "processors":
                         sysdoc.get("ProcessorSummary", {}).get("Count"),
                     "status": sysdoc.get("Status"),
@@ -163,7 +163,7 @@ def baseline_one(host: str, ip: str, user: str, password: str,
         rec["manager_id"] = _safe("manager_id", c.manager_id)
         if isinstance(rec["manager_id"], str):
             mgr_doc = _safe(
-                f"manager_doc",
+                "manager_doc",
                 lambda: c._get(f"/Managers/{rec['manager_id']}"),  # noqa: SLF001
             )
             if isinstance(mgr_doc, dict):
@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         vmed = rec.get("vmedia") or []
         nic_summary = ", ".join(
             f"{n.get('port_id') or n.get('name')}"
-            f"={n.get('linkStatus','?')}"
+            f"={n.get('linkStatus', '?')}"
             for n in nics if isinstance(n, dict) and n.get("linkStatus")
         ) or "(no port LinkStatus)"
         v_note = []

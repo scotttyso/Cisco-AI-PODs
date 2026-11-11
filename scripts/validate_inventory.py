@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """validate_inventory.py - validate an inventory YAML against a JSON Schema.
 
 Used in CI and locally to verify per-subsystem and AI POD-wide inventory files.
@@ -39,7 +39,7 @@ def load_schema_tree(root_schema: Path) -> tuple[dict, Registry]:
     file:// URI so the validator can resolve refs deterministically.
     """
     seen: dict[Path, dict] = {}
-    registry = Registry()
+    resources = {}
 
     def _load(path: Path) -> dict:
         path = path.resolve()
@@ -49,13 +49,12 @@ def load_schema_tree(root_schema: Path) -> tuple[dict, Registry]:
             doc = json.load(f)
         seen[path] = doc
 
-        nonlocal registry
         resource = Resource(contents=doc, specification=DRAFT202012)
         # Register under the schema's $id (canonical) and under the file URI
         # (so relative $ref resolution against a file:// base finds it).
         if "$id" in doc:
-            registry = registry.with_resource(uri=doc["$id"], resource=resource)
-        registry = registry.with_resource(uri=path.as_uri(), resource=resource)
+            resources[doc["$id"]] = resource
+        resources[path.as_uri()] = resource
 
         # Recurse into any $ref values that look like local paths.
         def _walk(node):
@@ -76,7 +75,7 @@ def load_schema_tree(root_schema: Path) -> tuple[dict, Registry]:
         return doc
 
     root = _load(root_schema)
-    return root, registry
+    return root, Registry().with_resources(resources.items())
 
 
 # Default home for AI POD subsystem schemas. Resolved from this script's

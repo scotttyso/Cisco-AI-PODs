@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Build the automation appliance using credentials from an Ansible Vault file."""
 from __future__ import annotations
 

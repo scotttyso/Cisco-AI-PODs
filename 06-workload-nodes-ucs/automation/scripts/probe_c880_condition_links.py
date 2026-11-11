@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Bounded, paced, GET-only diagnostic of C880-3 condition-linked logs.
 
 Resolved=false is a log-entry field, not proof that the origin resource has a

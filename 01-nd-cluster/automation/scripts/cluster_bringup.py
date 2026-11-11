@@ -140,7 +140,7 @@ def run(inv: Inventory, *, dry_run: bool = False) -> bool:
         print(f"  DNS servers              : {cfg.dns_servers}")
         print(f"  NTP servers              : {cfg.ntp_servers}")
         print(f"  Proxy skip               : {cfg.proxy_skip}")
-        print(f"  Persistent IP pool ('data-persistent-pool'):")
+        print("  Persistent IP pool ('data-persistent-pool'):")
         for ip in inv.cluster.persistent_ips:
             print(f"    - {ip}")
         for n in secondaries:

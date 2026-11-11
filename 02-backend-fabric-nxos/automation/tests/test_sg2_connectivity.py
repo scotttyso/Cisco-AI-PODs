@@ -13,7 +13,8 @@ def outputs(name="BE-SG2-SP1"):
             "Device ID Local Intf Hold-time Capability Port ID\nBE-SG2-LF1 Eth1/1/1 120 BR Eth1/14/1\nTotal entries displayed: 1\n",
             "Port Name Status Vlan Duplex Speed Type\nEth1/1/1 -- connected routed full 400G QSFP-DD\n",
             "IP Interface Status for VRF default\n10.0.0.1 Eth1/1/1 protocol-up/link-up/admin-up\n",
-            "BGP summary information for VRF default\nNeighbor V AS MsgRcvd MsgSent TblVer InQ OutQ Up/Down State/PfxRcd\n10.0.0.2 4 65001 3 4 5 0 0 00:01:00 2\n"]
+            "BGP summary information for VRF default\nNeighbor V AS MsgRcvd MsgSent TblVer InQ OutQ Up/Down State/PfxRcd\n"
+            "10.0.0.2 4 65001 3 4 5 0 0 00:01:00 2\n"]
 
 
 class ConnectivityTests(unittest.TestCase):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Paced, GET-only C880-3 HGX summary after active service-condition alerts."""
 
 import argparse

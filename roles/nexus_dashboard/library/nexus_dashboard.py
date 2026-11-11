@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Nexus Dashboard Fabric Manager
 
@@ -71,10 +71,10 @@ class ConfigValidator:
 
         try:
             validate(instance=config, schema=self.schema)
-            logger.info(f"Configuration validated successfully for {fabric_type}")
+            logger.info("Configuration validated successfully for %s", fabric_type)
             return True
         except ValidationError as e:
-            logger.error(f"Validation error: {e.message}")
+            logger.error("Validation error: %s", e.message)
             raise
 
 
@@ -97,9 +97,9 @@ class VaultCredentials:
         if Path(self.vault_file).exists():
             with open(self.vault_file, 'r') as f:
                 self.credentials = yaml.safe_load(f) or {}
-            logger.info(f"Loaded vault from {self.vault_file}")
+            logger.info("Loaded vault from %s", self.vault_file)
         else:
-            logger.warning(f"Vault file not found: {self.vault_file}")
+            logger.warning("Vault file not found: %s", self.vault_file)
 
     def get_credential(self, path: str, default: Optional[str] = None) -> Optional[str]:
         """
@@ -114,13 +114,13 @@ class VaultCredentials:
         """
         keys = path.split('.')
         value = self.credentials
-        
+
         for key in keys:
             if isinstance(value, dict):
                 value = value.get(key)
             else:
                 return default
-        
+
         return value if value else default
 
 
@@ -226,7 +226,7 @@ class NexusDashboardClient:
         """
         # Default settings by fabric type
         default_settings = self._get_default_settings(fabric_type)
-        
+
         if fabric_settings:
             default_settings.update(fabric_settings)
 
@@ -358,18 +358,18 @@ def load_yaml_config(config_file: str) -> Dict[str, Any]:
 
 def create_fabric(args: argparse.Namespace) -> None:
     """Create a new fabric"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Creating Fabric: {args.fabric_name}")
     print(f"Fabric Type: {args.fabric_type}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Load credentials from vault
     vault = VaultCredentials(args.vault_file) if args.vault_file else None
-    
+
     nd_password = args.nd_password
     if not nd_password and vault:
         nd_password = vault.get_credential('nexus_dashboard.nd_password')
-    
+
     if not nd_password:
         print("Error: nd_password not provided and not found in vault")
         sys.exit(1)
@@ -399,17 +399,17 @@ def create_fabric(args: argparse.Namespace) -> None:
 
 def add_devices(args: argparse.Namespace) -> None:
     """Add switches to a fabric"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Adding Switches to Fabric: {args.fabric_name}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Load credentials from vault
     vault = VaultCredentials(args.vault_file) if args.vault_file else None
-    
+
     nd_password = args.nd_password
     if not nd_password and vault:
         nd_password = vault.get_credential('nexus_dashboard.nd_password')
-    
+
     switch_password = args.switch_password
     if not switch_password and vault:
         switch_password = vault.get_credential('nexus_dashboard.switch_password')
@@ -464,17 +464,17 @@ def add_devices(args: argparse.Namespace) -> None:
 
 def list_fabrics_cmd(args: argparse.Namespace) -> None:
     """List all fabrics"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Listing Nexus Dashboard Fabrics")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Load credentials from vault
     vault = VaultCredentials(args.vault_file) if args.vault_file else None
-    
+
     nd_password = args.nd_password
     if not nd_password and vault:
         nd_password = vault.get_credential('nexus_dashboard.nd_password')
-    
+
     if not nd_password:
         print("Error: nd_password not provided and not found in vault")
         sys.exit(1)
@@ -503,17 +503,17 @@ def list_fabrics_cmd(args: argparse.Namespace) -> None:
 
 def list_switches_cmd(args: argparse.Namespace) -> None:
     """List switches in a fabric"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Listing Switches in Fabric: {args.fabric_name}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Load credentials from vault
     vault = VaultCredentials(args.vault_file) if args.vault_file else None
-    
+
     nd_password = args.nd_password
     if not nd_password and vault:
         nd_password = vault.get_credential('nexus_dashboard.nd_password')
-    
+
     if not nd_password:
         print("Error: nd_password not provided and not found in vault")
         sys.exit(1)
