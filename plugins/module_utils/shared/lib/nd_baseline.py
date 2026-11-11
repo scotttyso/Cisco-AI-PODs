@@ -1,5 +1,8 @@
 """Normalize read-only Nexus Dashboard setup queries for parity comparison."""
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 from typing import Any, Mapping
 

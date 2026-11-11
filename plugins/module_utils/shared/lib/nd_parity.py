@@ -1,5 +1,8 @@
 """Semantic comparison for manual and automated Nexus Dashboard baselines."""
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 from copy import deepcopy
 from typing import Any, Mapping

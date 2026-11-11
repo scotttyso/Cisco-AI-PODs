@@ -1,9 +1,10 @@
 """Global-variable consequences, with every hardware/credential operation mocked."""
 from datetime import datetime, timezone
+import http.client
 import importlib
 from pathlib import Path
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -84,6 +85,17 @@ def test_configuration_payloads_use_globals_only(tmp_path):
                         {'DateTimeLocalOffset': '+05:30'},
                         {'HostName': 'HOST3', 'FQDN': 'HOST3.example.test',
                          'StaticNameServers': ['192.0.2.53', '::']}]
+
+
+def test_imported_patch_accepts_interface_reset():
+    response = MagicMock()
+    response.__enter__.return_value.headers = {'ETag': 'synthetic'}
+    opener = MagicMock()
+    opener.open.side_effect = [response, http.client.RemoteDisconnected('interface reset')]
+    with patch.object(configure.time, 'sleep'):
+        result = configure._redfish_patch(opener, 'https://192.0.2.3/redfish/v1/Managers/BMC', 'synthetic', {})
+    assert result == 202
+    assert opener.open.call_count == 2
 
 
 def test_postcheck_rejects_wrong_season_offset_and_labels_scope():

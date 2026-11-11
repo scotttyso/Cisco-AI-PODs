@@ -12,6 +12,7 @@ Configures:
 
 import argparse
 import base64
+import http.client
 import json
 from pathlib import Path
 import ssl
@@ -203,5 +204,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import http.client
     main()

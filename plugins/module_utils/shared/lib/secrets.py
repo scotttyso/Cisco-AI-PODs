@@ -8,6 +8,9 @@ Workspace rule codeguard-1-hardcoded-credentials: never log or print resolved
 secret values. Callers are expected to pass results into requests/SSH directly.
 """
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 import os
 

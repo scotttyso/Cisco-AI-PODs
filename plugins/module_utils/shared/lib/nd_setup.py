@@ -1,5 +1,8 @@
 """Pure mapping from canonical ND inventory to ``cisco.nd.nd_setup`` args."""
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 from typing import Any, Callable
 

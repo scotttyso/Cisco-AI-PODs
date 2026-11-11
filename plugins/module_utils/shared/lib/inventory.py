@@ -1,5 +1,8 @@
 """Canonical Ansible-inventory loading and validation for AI POD."""
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 import ipaddress
 from copy import deepcopy

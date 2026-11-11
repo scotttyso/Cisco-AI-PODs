@@ -1,6 +1,9 @@
 """Minimal Redfish client shared by the CIMC / BMC automation scripts (stdlib + requests only)."""
 
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 import os
 from pathlib import Path

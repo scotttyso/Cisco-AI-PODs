@@ -1,5 +1,8 @@
 """Shared run lifecycle and scrubbed output capture for AI POD orchestrators."""
 from __future__ import annotations
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
 
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from datetime import datetime, timezone

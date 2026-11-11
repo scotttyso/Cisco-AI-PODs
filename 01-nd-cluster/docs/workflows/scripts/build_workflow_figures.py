@@ -503,7 +503,7 @@ def main() -> int:
         status = "png ok" if ok else "png SKIPPED"
         print(
             f"{name}: {width}x{height} svg ok, {status}, "
-            f"embed at width={width / UNITS_PER_IN:.2f}in"
+            f"embed at width={width / UNITS_PER_IN:.2f}" "in"
         )
     return 0
 

@@ -78,6 +78,8 @@ existing `shared.lib` imports for standalone scripts. The collection builder cop
 the Nexus Dashboard inventory schema into the assembled collection.
 
 The unrelated retained `shared/lib/build_py.py` artifact is not an automation helper and is not copied by the builder.
+The helper modules retain legacy future-import and metaclass boilerplate for Ansible 2.16 sanity compatibility,
+alongside postponed annotations for the supported Python runtimes.
 
 ## Related docs
 
