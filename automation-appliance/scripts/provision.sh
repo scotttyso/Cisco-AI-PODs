@@ -18,10 +18,12 @@ dnf -y update
 dnf -y install \
     bash-completion chrony cloud-init cloud-utils-growpart firewalld git-core jq kea nginx \
     open-vm-tools openssl policycoreutils-python-utils python3 python3-pip qemu-guest-agent \
-    rsync tar unzip vim-enhanced
+    rsync tar tmux unzip vim-enhanced
 
 log "Installing appliance configuration files"
-install -d -m 0755 /etc/aipod /etc/issue.d /etc/cloud/cloud.cfg.d
+install -d -m 0755 /etc/aipod /etc/issue.d /etc/cloud/cloud.cfg.d /etc/sudoers.d
+install -m 0440 "${FILES_DIR}/aipod-sudo-path" /etc/sudoers.d/99-aipod-path
+visudo -c
 install -m 0755 "${FILES_DIR}/aipod-config" /usr/local/sbin/aipod-config
 install -m 0755 "${FILES_DIR}/aipod-update" /usr/local/sbin/aipod-update
 install -m 0644 "${FILES_DIR}/aipod-firstboot.service" "${FILES_DIR}/automation-ui.service" /etc/systemd/system/

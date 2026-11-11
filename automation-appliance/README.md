@@ -10,7 +10,7 @@ HashiCorp Packer build for the AI PODs automation appliance. One vSphere build c
 
 The appliance contains:
 
-- The Cisco-AI-PODs repository at `/home/automation-ui/Cisco-AI-PODs`, prepared by `scripts/setup.sh` (Python venv, Ansible tooling, collections, iServer).
+- The Cisco-AI-PODs repository at `/home/automation-ui/Cisco-AI-PODs`, prepared by `scripts/setup.sh` (Python venv, Ansible tooling, collections, iServer), with Git and tmux pre-installed.
 - The NiceGUI automation UI (`scripts/automation_ui.py`) as `automation-ui.service`, published by Nginx on HTTPS 443. ISO library at `https://<appliance>/os-images/`.
 - `kea` pre-installed for DHCP services, plus `firewalld`, `chrony`, SELinux enforcing, `open-vm-tools`, `qemu-guest-agent`, and `cloud-init`.
 - `aipod-config`, which sets hostname, domain, IPv4 (static or DHCP), DNS servers and search domains, NTP, timezone, the OS admin password, and the first automation UI account.
@@ -27,6 +27,9 @@ sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashi
 sudo dnf install -y packer
 ```
 
+The build launcher also requires `ansible-vault`, `openssl`, and the Python
+`PyYAML` module.
+
 Upload `Rocky-10.2-x86_64-dvd1.iso` to a datastore, or set `iso_url` and `iso_checksum` so Packer uploads it.
 
 > Rocky Linux 10 requires x86-64-v3 CPUs. The vSphere cluster EVC mode, if used, must expose AVX2.
@@ -37,15 +40,34 @@ Upload `Rocky-10.2-x86_64-dvd1.iso` to a datastore, or set `iso_url` and `iso_ch
 cd automation-appliance
 cp appliance.example.pkrvars.hcl appliance.auto.pkrvars.hcl   # git-ignored; edit for your vCenter
 
-export PKR_VAR_vsphere_password='<vcenter password>'
-export PKR_VAR_build_password='<temporary OS admin password>'
-export PKR_VAR_build_password_hash="$(openssl passwd -6 "$PKR_VAR_build_password")"
-export PKR_VAR_github_token='<optional GitHub PAT>'   # avoids iServer API rate limits
-
-packer init .
-packer validate .
-packer build -force -on-error=ask .
+mkdir -p ~/.config/cisco-ai-pods
+chmod 700 ~/.config/cisco-ai-pods
+chmod 600 ~/.config/cisco-ai-pods/vault-password
+ansible-vault create --vault-password-file ~/.config/cisco-ai-pods/vault-password \
+    ~/.config/cisco-ai-pods/appliance-build.yml
 ```
+
+Store these top-level keys in the encrypted file (the launcher also accepts
+the corresponding `vsphere_password` and `build_password` names without the
+`PKR_VAR_` prefix):
+
+```yaml
+vsphere_password: "<vCenter password>"
+build_password: "<temporary OS admin password>"
+```
+
+Then run the launcher, which decrypts the vault in memory, derives
+`PKR_VAR_build_password_hash` with `openssl passwd -6`, and runs Packer init,
+validation, and build:
+
+```bash
+python3 scripts/build_appliance.py --version 1.0.1
+```
+
+The vault password file must have mode `0600`. The launcher also accepts
+`--vault-file` and `--vault-password-file` to override the default paths under
+`~/.config/cisco-ai-pods`. An optional GitHub token can still be supplied as
+`PKR_VAR_github_token` in the environment to avoid GitHub API rate limits.
 
 The build:
 
@@ -74,6 +96,8 @@ Cisco AI PODs Automation Appliance
 ```
 
 Log in as the build admin (`aipod` by default). If no `ADMIN_PASSWORD` was supplied, you must change the expired build password. Then run `sudo aipod-config` to complete the prompts. You can rerun it any time; it recreates the NIC connection, so use the console when changing the IP.
+
+The image includes `/usr/local/sbin` in sudo's `secure_path` through `/etc/sudoers.d/99-aipod-path`, so `sudo aipod-config` works even when sudo overrides the user's PATH. On an existing image without this fix, use `sudo /usr/local/sbin/aipod-config`.
 
 | Key | vApp / guestinfo key | Notes |
 | --- | --- | --- |

@@ -108,6 +108,35 @@ def test_dependency_api_errors_propagate_in_check_mode(monkeypatch):
         module.configure(category="policies", type="imc_access").configure(kwargs)
 
 
+def test_vlan_multicast_references_use_policy_name_decoration():
+    kwargs = configuration(check=True)
+    org = kwargs.org
+    kwargs.imm_dict.orgs[org].policies.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].policies.name_suffix.default = "-Policy"
+    kwargs.intersight_api[org].policies.multicast = DotMap()
+    kwargs.cp = DotMap()
+    item = DotMap({
+        "name": "VLAN",
+        "vlans": [
+            {"name": "Management", "multicast_policy": "Multicast"},
+            {"name": "Storage", "multicast_policy": "Multicast"},
+        ],
+    })
+
+    item, state = module.configure(category="policies", type="vlan").existing_check(
+        item, kwargs
+    )
+
+    assert [vlan.multicast_policy for vlan in item.vlans] == [
+        f"{org}/AIPOD-AID-Multicast-Policy",
+        f"{org}/AIPOD-AID-Multicast-Policy",
+    ]
+    assert state.cp.multicast.category == "policies"
+    assert state.cp.multicast.names == [
+        f"{org}/AIPOD-AID-Multicast-Policy",
+    ]
+
+
 def test_empty_pool_lookup_plans_creation_in_check_mode(monkeypatch, capsys):
     kwargs = configuration(check=True)
     kwargs.imm_dict.orgs[kwargs.org].pools.ip = [

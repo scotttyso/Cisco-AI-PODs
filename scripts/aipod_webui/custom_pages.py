@@ -339,7 +339,12 @@ def registration_form(handle) -> None:
 
     # ------------------------------------------------------------------ credentials
     with card("Device credentials", "Defaults for every target. A target can override the username and password in its "
-                                    "Edit dialog. Passwords need at least 12 characters so every device accepts them.", icon="key"):
+                                    "Edit dialog. FI and CIMC passwords require at least 8 characters in the GUI. "
+                                    "Cisco UCS guidelines specify 8-80 characters, at least three of lowercase, "
+                                    "uppercase, digits, and special characters; no character repeated more than "
+                                    "three times consecutively; and no $, ?, or = symbols. Passwords must not match "
+                                    "the username or its reverse, or be based on dictionary words. Strength checks "
+                                    "and configurable device policies are enforced by the device.", icon="key"):
         with ui.row().classes("w-full gap-3"):
             fi_user = ui.input("Fabric Interconnect username", value=state.get("fi_username", "admin")).props(
                 "outlined dense").classes("grow")
@@ -348,8 +353,8 @@ def registration_form(handle) -> None:
             fi_user.on("blur", lambda: persist())
             cimc_user.on("blur", lambda: persist())
         CredentialsPanel(context, lambda: [
-            secret(si.vault_key(si.FI_PASSWORD_REF), "Fabric Interconnect password", min_length=si.FACTORY_PASSWORD_MIN),
-            secret(si.vault_key(si.CIMC_PASSWORD_REF), "CIMC / BMC password", min_length=si.FACTORY_PASSWORD_MIN,
+            secret(si.vault_key(si.FI_PASSWORD_REF), "Fabric Interconnect password", min_length=si.UCS_PASSWORD_MIN),
+            secret(si.vault_key(si.CIMC_PASSWORD_REF), "CIMC / BMC password", min_length=si.UCS_PASSWORD_MIN,
                    help="Targets marked factory default are logged into with password 'password' and changed to this.")],
             title="Default passwords", embedded=True, on_change=handle.refresh_credentials)
 
@@ -474,7 +479,8 @@ def registration_form(handle) -> None:
 
         def override_fields() -> list:
             return [secret(si.vault_key(si.target_pass_ref(item)), f"{item['hostname']} password",
-                           min_length=si.FACTORY_PASSWORD_MIN) for item in model["targets"] if item.get("override")]
+                           min_length=si.FACTORY_PASSWORD_MIN if item.get("role") == "hgx-node"
+                           else si.UCS_PASSWORD_MIN) for item in model["targets"] if item.get("override")]
 
         overrides = CredentialsPanel(context, override_fields, title="Target password overrides", embedded=True,
                                      on_change=handle.refresh_credentials)

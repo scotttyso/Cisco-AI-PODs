@@ -48,6 +48,13 @@ Claim Targets claims every target into the `default` organization and resource g
 group always holds every target and is not changed; to separate servers, list them under another resource group in
 `system.ezai.yaml` and point an organization at it.
 
+Claim Targets requires at least 8 characters for Fabric Interconnect and CIMC passwords, including target overrides.
+The GUI shows the [Cisco UCS password guidelines](https://www.cisco.com/c/en/us/td/docs/unified_computing/ucs/ucs-manager/GUI-User-Guides/Admin-Management/4-1/b_Cisco_UCS_Admin_Mgmt_Guide_4-1/m_password_management.html):
+8-80 characters, at least three character classes (lowercase, uppercase, digits, special characters), no character
+repeated more than three times consecutively, no `$`, `?`, or `=`, and no username, reversed username, or
+dictionary-based passwords. The GUI checks the minimum length; the device enforces its configured strength and
+dictionary checks. HGX BMC credentials retain their separate 12-character GUI minimum.
+
 Delete the files you do not deploy (for example the Fibre Channel files or templates); in the WebUI use the delete
 button on the Variables toolbar. `scripts/deploy_ai_pod.py --intersight-scope system` deploys only
 the top-level Intersight files and System-tab uploads; `--intersight-scope domains|servers`

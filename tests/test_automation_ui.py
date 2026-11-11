@@ -54,6 +54,33 @@ class AutomationUiTests(unittest.TestCase):
         self.assertEqual(first["mac"], "")
         self.assertEqual(web.new_inventory_row([dict(ip=f"198.18.0.{position}") for position in range(1, 255)])["ip"], "")
 
+    def test_duplicate_inventory_rows_copies_selected_rows_with_new_ids(self):
+        rows = [
+            dict(id="manual", hostname="node1", ip="198.18.0.10", mac="00:00:00:00:00:01",
+                 pid="UCSX-TEST", serial_number="SERIAL-1", pool_ip=False),
+            dict(id="pool", hostname="blade1", ip="", mac="00:00:00:00:00:02",
+                 pid="UCSX-BLADE", serial_number="SERIAL-2", pool_ip=True),
+        ]
+
+        result = web.duplicate_inventory_rows(rows, ["manual", "pool"])
+
+        self.assertEqual([row["id"] for row in result][::2], ["manual", "pool"])
+        self.assertEqual(result[0], rows[0])
+        self.assertEqual(result[2], rows[1])
+        for original, duplicate in ((result[0], result[1]), (result[2], result[3])):
+            self.assertNotEqual(original["id"], duplicate["id"])
+            self.assertEqual({key: value for key, value in duplicate.items() if key != "id"},
+                             {key: value for key, value in original.items() if key != "id"})
+        self.assertEqual(result[3]["ip"], "")
+        self.assertTrue(result[3]["pool_ip"])
+        self.assertEqual(rows[0]["id"], "manual")
+
+    def test_duplicate_inventory_rows_rejects_missing_or_stale_selection(self):
+        rows = [dict(id="row-1", hostname="node1")]
+        for selected_ids in ([], ["missing"], ["row-1", "row-1"]):
+            with self.subTest(selected_ids=selected_ids), self.assertRaises(ValueError):
+                web.duplicate_inventory_rows(rows, selected_ids)
+
     def test_array_input_values(self):
         field = object.__new__(web.ArrayInput)
         from types import SimpleNamespace

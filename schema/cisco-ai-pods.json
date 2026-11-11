@@ -19674,7 +19674,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "adapter_configuration",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19687,7 +19687,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "auditd",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19700,7 +19700,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "bios",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19713,7 +19713,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "boot_order",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19726,7 +19726,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "certificate_management",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19739,7 +19739,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "default",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19752,7 +19752,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "device_connector",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19765,7 +19765,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "drive_security",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19778,7 +19778,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19791,7 +19791,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19804,7 +19804,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19817,7 +19817,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network_group",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19830,7 +19830,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19843,7 +19843,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fc_zone",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19856,7 +19856,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19869,7 +19869,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_network",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19882,7 +19882,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19895,7 +19895,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "firmware",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19908,7 +19908,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "flow_control",
                     "type": "string",
                     "x-intersight-api": "FlowControl"
@@ -19921,7 +19921,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "id_mapping",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19934,7 +19934,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "imc_access",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19947,7 +19947,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ipmi_over_lan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19960,7 +19960,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19973,7 +19973,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_boot",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19986,7 +19986,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_static_target",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -19999,7 +19999,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "lan_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20012,7 +20012,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ldap",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20025,7 +20025,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "link_aggregation",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20038,7 +20038,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "link_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20051,7 +20051,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "local_user",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20064,7 +20064,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "mac_sec",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20077,7 +20077,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "memory",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20090,7 +20090,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "multicast",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20103,7 +20103,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "netflow_configuration",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20116,7 +20116,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "network_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20129,7 +20129,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ntp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20142,7 +20142,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "pcie_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20155,7 +20155,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "persistent_memory",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20168,7 +20168,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "port",
                     "type": "string",
                     "x-intersight-api": "Port"
@@ -20181,7 +20181,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "power",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20194,7 +20194,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "san_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20207,7 +20207,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "schedule_policy",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20220,7 +20220,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "scrub",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20233,7 +20233,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "sd_card",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20246,7 +20246,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "serial_over_lan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20259,7 +20259,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "server_pool_qualification",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20272,7 +20272,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "smtp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20285,7 +20285,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "snmp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20298,7 +20298,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ssh",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20311,7 +20311,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "storage",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20324,7 +20324,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "switch_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20337,7 +20337,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "syslog",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20350,7 +20350,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "system_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20363,7 +20363,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "thermal",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20376,7 +20376,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "virtual_kvm",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20389,7 +20389,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "virtual_media",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20402,7 +20402,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "vlan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -20415,7 +20415,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "vsan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -31092,10 +31092,10 @@
                     "x-intersight-uri": "fabric/SwitchClusterProfiles"
                 },
                 "name_prefix": {
-                    "$ref": "#/definitions/intersight.profiles.name.prefix_suffix"
+                    "$ref": "#/definitions/intersight.profiles.name_prefix"
                 },
                 "name_suffix": {
-                    "$ref": "#/definitions/intersight.profiles.name.prefix_suffix"
+                    "$ref": "#/definitions/intersight.profiles.name_suffix"
                 },
                 "server": {
                     "description": "In Cisco Intersight, a Server Profile enables resource management by streamlining policy alignment, and server configuration. You can create Server Profiles using the Server Profile wizard or you can import the configuration details of C-series servers in standalone mode and FI-attached servers in Intersight Managed Mode (IMM), directly from Cisco IMC. You can create Server Profiles using the Server Profile wizard to provision servers, create policies to ensure smooth deployment of servers, and eliminate failures that are caused by inconsistent configuration. The Server Profiles wizard groups the server policies into the following four categories to provide a quick Summary View of the policies that are attached to a profile:\n  * Compute Policies — BIOS, Boot Order, Firmware, Power, Thermal, UUID Pool, and Virtual Media.\n  * Management Policies — Certificate Management, Device Connector, IMC Access, IPMI Over LAN, LDAP, Local User, Network Connectivity, SMTP, SNMP, SSH, Serial over LAN, Syslog, NTP, and Virtual KVM policies\n  * Network Policies — Adapter Configuration, LAN Connectivity, and SAN Connectivity policies.\n     - The LAN Connectivity policy requires you to create an Ethernet Adapter Policy, Ethernet Network Policy (Standalone only), and Ethernet QoS Policy. When you attach a LAN Connectivity policy to a server profile, the addresses of the MAC address Pool, or the static MAC address, are automatically assigned.\n     - Note: A LAN Connectivity policy that has a static MAC address can be attached to only one server profile.\n     - The SAN Connectivity policy requires you to create an Fibre Channel Adapter Policy, Fibre Channel Network Policy, and Fiber Channel QoS Policy. When you attach a SAN Connectivity policy to a server profile, the addresses of the WWPN and WWNN Pools, or the static WWPN and WWNN addresses, are automatically assigned.\n     - Note:  A SAN Connectivity policy that has a static WWPN, or a static WWNN can be attached to only one server profile.\n  * Storage Policies — Drive Security, SD Card, and Storage policies.\n\nIMPORTANT:\n  * The server profile feature is available in Cisco Intersight only if:\n     - You have assigned a Cisco Intersight Essentials License to the physical servers.\n\nRequired Base Attributes:\n  * `action`\n  * `attach_template`\n  * `targets`\n  * `server_family` - Only required for Standalone\n  * `target_platform`\n\nRequired for FIAttached when using pre-assignment with the targets:\n  * `domain_name`\n\nOptional Attributes\n  * `detach_template`\n  * `ignore_reservations`\n  * `resource_pool`\n  * `tags`\n  * `ucs_server_profile_template`\n\n\n#===========================================================\n# FIAttached and Unified Edge Server - Pools/Policies\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`\n  * `firmware_policy`\n  * `memory_policy`\n  * `pcie_connectivity_policy` - FIAttached\n  * `power_policy`\n  * `scrub_policy\n  * `thermal_policy` - FIAttached\n  * `uuid_pool`\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `imc_access_policy`\n  * `ipmi_over_lan_policy`\n  * `local_user_policy`\n  * `serial_over_lan_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration\n#===========================================\n  * `drive_security_policy` - FIAttached\n  * `sd_card_policy` - FIAttached\n  * `storage_policy`\n\n#===========================================\n# Network Configuration\n#===========================================\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy` - FIAttached\n\n\n#===========================================================\n# Standalone - Policies -  C845A/C885A and UCSC2XX/4XX\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`  - UCSC2XX/4XX Only\n  * `firmware_policy`\n  * `memory_policy` - UCSC2XX/4XX Only\n  * `persistent_memory_policy` - UCSC2XX/4XX Only\n  * `power_policy`\n  * `thermal_policy` - UCSC2XX/4XX Only\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `device_connector_policy` - UCSC2XX/4XX Only\n  * `ipmi_over_lan_policy`\n  * `ldap_policy` - UCSC2XX/4XX Only\n  * `local_user_policy`\n  * `network_connectivity_policy` - UCSC2XX/4XX Only\n  * `ntp_policy`\n  * `serial_over_lan_policy`\n  * `smtp_policy`\n  * `snmp_policy` - UCSC2XX/4XX Only\n  * `ssh_policy`\n  * `syslog_policy` - UCSC2XX/4XX Only\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `drive_security_policy`\n  * `sd_card_policy`\n  * `storage_policy`\n\n#===========================================\n# Network Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `adapter_configuration_policy`\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy`",
@@ -31640,71 +31640,145 @@
             "x-intersight-type": "profiles",
             "x-intersight-uri": "fabric/SwitchProfiles"
         },
-        "intersight.profiles.name.prefix_suffix": {
+        "intersight.profiles.name_prefix": {
             "additionalProperties": false,
-            "description": "A list of prefixes/suffixes to add to the Profile/Template Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific prefix/suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
+            "description": "A list of prefixes to add to the Profile Names.  If `default` is defined that will be assigned to any profiles that don't have a more specific prefix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
             "properties": {
                 "chassis": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Chassis Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Chassis Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "chassis",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "default": {
                     "default": "",
-                    "description": "The default value is ``.  A default prefix/suffix value to add to the all the profile/template names.  An individual profile/template prefix/suffix will override this.",
+                    "description": "The default value is ``.  A default prefix value to add to the all the profile names.  An individual profile prefix will override this.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "default",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "domain": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Domain Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Domain Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "domain",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "server": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Server Profile/Template Names.",
+                    "description": "The default value is ``.  A value to add to the Server Profile Names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "server",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "unified_edge": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Unified Edge Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
+                    "title": "unified_edge",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                }
+            },
+            "title": "Profile Name Prefix/Suffix",
+            "type": "object",
+            "x-intersight-object-type": "not_applicable"
+        },
+        "intersight.profiles.name_suffix": {
+            "additionalProperties": false,
+            "description": "A list of prefixes/suffixes to add to the Profile Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
+            "properties": {
+                "chassis": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Chassis Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "chassis",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default suffix value to add to the all the profile names.  An individual profile's suffix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "domain": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Domain Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "domain",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "server": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Server Profile Names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "server",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "unified_edge": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
                     "title": "unified_edge",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -33949,10 +34023,10 @@
                     "x-intersight-uri": "fabric/SwitchClusterProfiles"
                 },
                 "name_prefix": {
-                    "$ref": "#/definitions/intersight.templates.name.prefix_suffix"
+                    "$ref": "#/definitions/intersight.templates.name_prefix"
                 },
                 "name_suffix": {
-                    "$ref": "#/definitions/intersight.templates.name.prefix_suffix"
+                    "$ref": "#/definitions/intersight.templates.name_suffix"
                 },
                 "server": {
                     "description": "In Cisco Intersight, a Server Profile Template enables resource management by streamlining policy alignment, and server configuration. You can create Server Profile Templates using the UCS Server Profile Template wizard to provision servers, create policies to ensure smooth deployment of servers, and eliminate failures that are caused by inconsistent configuration. The Server Profile Templates wizard groups the server policies into the following four categories to provide a quick Summary View of the policies that are attached to a profile:\n  * Compute Policies — BIOS, Boot Order, Firmware, Power, Thermal, UUID Pool, and Virtual Media.\n  * Management Policies — Certificate Management, Device Connector, IMC Access, IPMI Over LAN, LDAP, Local User, Network Connectivity, SMTP, SNMP, SSH, Serial over LAN, Syslog, NTP, and Virtual KVM policies\n  * Network Policies — Adapter Configuration, LAN Connectivity, and SAN Connectivity policies.\n     - The LAN Connectivity policy requires you to create an Ethernet Adapter Policy, Ethernet Network Policy (Standalone only), and Ethernet QoS Policy. When you attach a LAN Connectivity policy to a server profile, the addresses of the MAC address Pool, or the static MAC address, are automatically assigned.\n     - Note: A LAN Connectivity policy that has a static MAC address can be attached to only one server profile.\n     - The SAN Connectivity policy requires you to create an Fibre Channel Adapter Policy, Fibre Channel Network Policy, and Fiber Channel QoS Policy. When you attach a SAN Connectivity policy to a server profile, the addresses of the WWPN and WWNN Pools, or the static WWPN and WWNN addresses, are automatically assigned.\n     - Note:  A SAN Connectivity policy that has a static WWPN, or a static WWNN can be attached to only one server profile.\n  * Storage Policies — Drive Security, SD Card, and Storage policies.\n\nRequired Attributes:\n  * `create_template`\n  * `name`\n  * `server_family` - Set to All unless Standalone\n  * `target_platform`\n\nOptional Attributes:\n  * `description`\n  * `tags`\n\n\n#===========================================================\n# FIAttached and Unified Edge Server - Pools/Policies\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`\n  * `firmware_policy`\n  * `memory_policy`\n  * `pcie_connectivity_policy` - FIAttached\n  * `power_policy`\n  * `scrub_policy\n  * `thermal_policy` - FIAttached\n  * `uuid_pool`\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `imc_access_policy`\n  * `ipmi_over_lan_policy`\n  * `local_user_policy`\n  * `serial_over_lan_policy`\n  * `snmp_policy`\n  * `syslog_policy`\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration\n#===========================================\n  * `drive_security_policy` - FIAttached\n  * `sd_card_policy` - FIAttached\n  * `storage_policy`\n\n#===========================================\n# Network Configuration\n#===========================================\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy` - FIAttached\n\n\n#===========================================================\n# Standalone - Policies -  C845A and UCSC2XX/4XX\n#===========================================================\n\n#===========================================\n# Compute Configuration\n#===========================================\n  * `bios_policy`\n  * `boot_order_policy`  - UCSC2XX/4XX Only\n  * `firmware_policy`\n  * `memory_policy` - UCSC2XX/4XX Only\n  * `persistent_memory_policy` - UCSC2XX/4XX Only\n  * `power_policy`\n  * `thermal_policy` - UCSC2XX/4XX Only\n  * `virtual_media_policy`\n\n#===========================================\n# Management Configuration\n#===========================================\n  * `certificate_management_policy`\n  * `device_connector_policy` - UCSC2XX/4XX Only\n  * `ipmi_over_lan_policy`\n  * `ldap_policy` - UCSC2XX/4XX Only\n  * `local_user_policy`\n  * `network_connectivity_policy` - UCSC2XX/4XX Only\n  * `ntp_policy`\n  * `serial_over_lan_policy`\n  * `smtp_policy`\n  * `snmp_policy` - UCSC2XX/4XX Only\n  * `ssh_policy`\n  * `syslog_policy` - UCSC2XX/4XX Only\n  * `virtual_kvm_policy`\n\n#===========================================\n# Storage Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `drive_security_policy`\n  * `sd_card_policy`\n  * `storage_policy`\n\n#===========================================\n# Network Configuration - UCSC2XX/4XX Only\n#===========================================\n  * `adapter_configuration_policy`\n  * `lan_connectivity_policy`\n  * `san_connectivity_policy`",
@@ -34399,71 +34473,71 @@
             "x-intersight-type": "templates",
             "x-intersight-uri": "fabric/SwitchProfileTemplates"
         },
-        "intersight.templates.name.prefix_suffix": {
+        "intersight.templates.name_prefix": {
             "additionalProperties": false,
-            "description": "A list of prefixes/suffixes to add to the Profile/Template Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific prefix/suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`\n  * `vhba_template`\n  * `vnic_template`",
+            "description": "A list of prefixes to add to the Template Names.  If `default` is defined that will be assigned to any templates that don't have a more specific prefix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`\n  * `vhba_template`\n  * `vnic_template`",
             "properties": {
                 "chassis": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Chassis Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Chassis Template names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "chassis",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "default": {
                     "default": "",
-                    "description": "The default value is ``.  A default prefix/suffix value to add to the all the profile/template names.  An individual profile/template prefix/suffix will override this.",
+                    "description": "The default value is ``.  A default prefix value to add to the all the template names.  An individual template prefix will override this.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "default",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "domain": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Domain Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Domain Template names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "domain",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "server": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Server Profile/Template Names.",
+                    "description": "The default value is ``.  A value to add to the Server Template Names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "server",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "unified_edge": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Unified Edge Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Template names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "unified_edge",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -34476,7 +34550,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "vhba_template",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -34489,7 +34563,107 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
+                    "title": "vnic_template",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                }
+            },
+            "title": "Profile Name Prefix/Suffix",
+            "type": "object",
+            "x-intersight-object-type": "not_applicable"
+        },
+        "intersight.templates.name_suffix": {
+            "additionalProperties": false,
+            "description": "A list of suffixes to add to the Template Names.  If `default` is defined that will be assigned to any templates that don't have a more specific prefix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`\n  * `vhba_template`\n  * `vnic_template`",
+            "properties": {
+                "chassis": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Chassis Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "chassis",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default suffix value to add to the all the template names.  An individual template suffix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "domain": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Domain Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "domain",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "server": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Server Template Names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "server",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "unified_edge": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Template names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "unified_edge",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "vhba_template": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the vHBA Template name.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "vhba_template",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "vnic_template": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the vNIC Template name.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
                     "title": "vnic_template",
                     "type": "string",
                     "x-intersight-api": "not_applicable"

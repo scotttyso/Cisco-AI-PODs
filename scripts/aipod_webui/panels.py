@@ -352,10 +352,11 @@ class CredentialsPanel:
     async def save(self) -> None:
         fields = {item.key: item for item in self.current()}
         changes = {}
-        short = [fields[key].label for key, box in self.inputs.items()
+        short = [f"{fields[key].label}: at least {fields[key].min_length} characters"
+                 for key, box in self.inputs.items()
                  if box.value and len(box.value) < fields[key].min_length]
         if short:
-            ui.notify("Too short (minimum length not met): " + ", ".join(short), type="negative", multi_line=True)
+            ui.notify("Password too short:\n" + "\n".join(short), type="negative", multi_line=True)
             return
         for key, box in self.inputs.items():
             value = (box.value or "").strip() if fields[key].multiline else (box.value or "")

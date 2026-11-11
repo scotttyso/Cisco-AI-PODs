@@ -116,6 +116,7 @@ CIMC_PASSWORD_REF = "UCS_CIMC_PASSWORD"
 HGX_PASSWORD_REF = "HGX_BMC_PASSWORD"
 DEFAULT_ORGANIZATION = {"organization": "default", "resource_group": "default"}
 FACTORY_PASSWORD_MIN = 12
+UCS_PASSWORD_MIN = 8
 
 
 def organizations(state: dict | None = None) -> list[dict]:

@@ -515,71 +515,145 @@
             "x-intersight-type": "profiles",
             "x-intersight-uri": "fabric/SwitchProfiles"
         },
-        "name.prefix_suffix": {
+        "name_prefix": {
             "additionalProperties": false,
-            "description": "A list of prefixes/suffixes to add to the Profile/Template Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific prefix/suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
+            "description": "A list of prefixes to add to the Profile Names.  If `default` is defined that will be assigned to any profiles that don't have a more specific prefix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
             "properties": {
                 "chassis": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Chassis Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Chassis Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "chassis",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "default": {
                     "default": "",
-                    "description": "The default value is ``.  A default prefix/suffix value to add to the all the profile/template names.  An individual profile/template prefix/suffix will override this.",
+                    "description": "The default value is ``.  A default prefix value to add to the all the profile names.  An individual profile prefix will override this.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "default",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "domain": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Domain Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Domain Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "domain",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "server": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Server Profile/Template Names.",
+                    "description": "The default value is ``.  A value to add to the Server Profile Names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "server",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
                 },
                 "unified_edge": {
                     "default": "",
-                    "description": "The default value is ``.  A value to add to the Unified Edge Profile/Template names.",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Profile names.",
                     "examples": [
                         ""
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
+                    "title": "unified_edge",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                }
+            },
+            "title": "Profile Name Prefix/Suffix",
+            "type": "object",
+            "x-intersight-object-type": "not_applicable"
+        },
+        "name_suffix": {
+            "additionalProperties": false,
+            "description": "A list of prefixes/suffixes to add to the Profile Names.  If `default` is defined that will be assigned to any profiles/templates that don't have a more specific suffix defined.\n Options are:\n\n  * `chassis`\n  * `default`\n  * `domain`\n  * `server`",
+            "properties": {
+                "chassis": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Chassis Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "chassis",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "default": {
+                    "default": "",
+                    "description": "The default value is ``.  A default suffix value to add to the all the profile names.  An individual profile's suffix will override this.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "default",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "domain": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Domain Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "domain",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "server": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Server Profile Names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
+                    "title": "server",
+                    "type": "string",
+                    "x-intersight-api": "not_applicable"
+                },
+                "unified_edge": {
+                    "default": "",
+                    "description": "The default value is ``.  A value to add to the Unified Edge Profile names.",
+                    "examples": [
+                        ""
+                    ],
+                    "maxLength": 12,
+                    "minLength": 0,
+                    "pattern": "^$|^[a-zA-Z0-9_\\.:-]{0,12}$",
                     "title": "unified_edge",
                     "type": "string",
                     "x-intersight-api": "not_applicable"

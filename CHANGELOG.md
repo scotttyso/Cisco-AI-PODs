@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.4] - 2026-11-11
+
+### Added
+- Initial Inventory: duplicate selected rows with fresh row IDs while preserving field values.
+- Appliance builds: load build credentials from Ansible Vault and hash the temporary OS password via stdin.
+- Appliance image: include tmux and configure sudo to find appliance tools in `/usr/local/sbin`.
+
+### Fixed
+- Claim Targets: accept FI and CIMC passwords of at least 8 characters, including target overrides, and display Cisco password guidelines.
+- Credential validation errors report the actual minimum length.
+- Normalize nested VLAN multicast policy references using the referenced organization's name prefix and suffix.
+- Correct Intersight profile/template prefix and suffix schema references and name patterns; refresh the bundled schema.
+- Remove the unused Ethernet Network Control policy from the domain example.
+
 ## [0.1.3] - 2026-10-24
 
 ### Added

@@ -1054,6 +1054,7 @@ class configure:
                 'port_role_appliances',
                 'port_role_ethernet_uplinks',
                 'port_role_fcoe_uplinks',
+                'vlans',
             ]
             if is_ip_type:
                 for ip_block_type in IP_BLOCK_TYPES:
@@ -1317,6 +1318,15 @@ class configure:
                     elif 'usnic_adapter_policy' in vkeys and len(v.get('usnic_adapter_policy', '')) > 0:
                         item, kwargs = resource_list(
                             'ethernet_adapter_policy', v['usnic_adapter_policy'], 'ethernet_adapter', item, kwargs)
+        if self.type == 'vlan':
+            multicast_policies = list(dict.fromkeys(
+                vlan.get('multicast_policy')
+                for vlan in item.get('vlans') or []
+                if vlan.get('multicast_policy')
+            ))
+            for multicast_policy in multicast_policies:
+                item, kwargs = resource_list(
+                    'multicast_policy', multicast_policy, 'multicast', item, kwargs)
         return item, kwargs
 
     # =========================================================================

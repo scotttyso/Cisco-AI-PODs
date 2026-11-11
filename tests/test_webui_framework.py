@@ -23,6 +23,27 @@ from aipod_webui.vault import VAULT_HEADER, VaultStore, stage_env_name  # noqa: 
 import iserver_setup  # noqa: E402
 
 
+class CredentialsPanelTest(unittest.TestCase):
+    def test_password_minimum_is_reported_and_boundary_is_accepted(self):
+        panel = object.__new__(panels.CredentialsPanel)
+        field = panels.secret("fi_password", "Fabric Interconnect password",
+                              min_length=stage_inventory.UCS_PASSWORD_MIN)
+        panel.fields = lambda: [field]
+        panel.inputs = {"fi_password": Mock(value="Ab1!xyz")}
+        panel.context = Mock()
+        panel.render = Mock()
+        panel.on_change = None
+        with patch.object(panels, "ui") as ui_mock, patch.object(
+                panels.run, "io_bound", new_callable=AsyncMock) as io_bound:
+            asyncio.run(panel.save())
+            self.assertEqual(ui_mock.notify.call_args.args[0],
+                             "Password too short:\nFabric Interconnect password: at least 8 characters")
+            io_bound.assert_not_called()
+            panel.inputs["fi_password"].value = "Ab1!xyzz"
+            asyncio.run(panel.save())
+            io_bound.assert_awaited_once_with(panel.context.vault.update, {("", "fi_password"): "Ab1!xyzz"})
+
+
 @unittest.skipUnless(shutil.which("ansible-vault"), "ansible-vault is not installed")
 class VaultStoreTest(unittest.TestCase):
     def setUp(self):

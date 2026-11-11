@@ -15224,7 +15224,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "adapter_configuration",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15237,7 +15237,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "auditd",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15250,7 +15250,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "bios",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15263,7 +15263,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "boot_order",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15276,7 +15276,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "certificate_management",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15289,7 +15289,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "default",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15302,7 +15302,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "device_connector",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15315,7 +15315,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "drive_security",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15328,7 +15328,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15341,7 +15341,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15354,7 +15354,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15367,7 +15367,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_network_group",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15380,7 +15380,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ethernet_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15393,7 +15393,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fc_zone",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15406,7 +15406,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15419,7 +15419,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_network",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15432,7 +15432,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "fibre_channel_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15445,7 +15445,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "firmware",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15458,7 +15458,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "flow_control",
                     "type": "string",
                     "x-intersight-api": "FlowControl"
@@ -15471,7 +15471,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "id_mapping",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15484,7 +15484,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "imc_access",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15497,7 +15497,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ipmi_over_lan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15510,7 +15510,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_adapter",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15523,7 +15523,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_boot",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15536,7 +15536,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "iscsi_static_target",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15549,7 +15549,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "lan_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15562,7 +15562,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ldap",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15575,7 +15575,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "link_aggregation",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15588,7 +15588,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "link_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15601,7 +15601,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "local_user",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15614,7 +15614,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "mac_sec",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15627,7 +15627,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "memory",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15640,7 +15640,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "multicast",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15653,7 +15653,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "netflow_configuration",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15666,7 +15666,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "network_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15679,7 +15679,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ntp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15692,7 +15692,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "pcie_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15705,7 +15705,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "persistent_memory",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15718,7 +15718,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "port",
                     "type": "string",
                     "x-intersight-api": "Port"
@@ -15731,7 +15731,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "power",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15744,7 +15744,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "san_connectivity",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15757,7 +15757,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "schedule_policy",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15770,7 +15770,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "scrub",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15783,7 +15783,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "sd_card",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15796,7 +15796,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "serial_over_lan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15809,7 +15809,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "server_pool_qualification",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15822,7 +15822,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "smtp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15835,7 +15835,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "snmp",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15848,7 +15848,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "ssh",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15861,7 +15861,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "storage",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15874,7 +15874,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "switch_control",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15887,7 +15887,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "syslog",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15900,7 +15900,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "system_qos",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15913,7 +15913,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "thermal",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15926,7 +15926,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "virtual_kvm",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15939,7 +15939,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "virtual_media",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15952,7 +15952,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "vlan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"
@@ -15965,7 +15965,7 @@
                     ],
                     "maxLength": 12,
                     "minLength": 0,
-                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,12}$",
+                    "pattern": "^$|^[a-zA-Z0-9][a-zA-Z0-9_\\.:-]{0,11}$",
                     "title": "vsan",
                     "type": "string",
                     "x-intersight-api": "not_applicable"

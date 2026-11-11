@@ -23,11 +23,6 @@ intersight:
         # =========================================================
         #   Policies for Port Settings
         # =========================================================
-        ethernet_network_control:
-          - cdp_enable: true
-            lldp_enable_receive: true
-            lldp_enable_transmit: true
-            name: Both
         # Only needed if doing Disjoint Layer 2 for the Domain
         # ethernet_network_group:
         #   - allowed_vlans: '100'

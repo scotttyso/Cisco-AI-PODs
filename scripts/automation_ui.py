@@ -380,6 +380,24 @@ def new_inventory_row(rows: list[dict]) -> dict:
     return dict(id=uuid4().hex, hostname="unknown", ip=address, mac="", pid="", serial_number="", pool_ip=False)
 
 
+def duplicate_inventory_rows(rows: list[dict], selected_ids: list[str]) -> list[dict]:
+    """Copy checked inventory rows immediately after their originals."""
+    by_id = {row["id"] for row in rows}
+    if not selected_ids:
+        raise ValueError("Check at least one inventory row")
+    if len(set(selected_ids)) != len(selected_ids) or any(key not in by_id for key in selected_ids):
+        raise ValueError("Inventory selection changed; select the rows again")
+    selected = set(selected_ids)
+    duplicated = []
+    for row in rows:
+        duplicated.append(row)
+        if row["id"] in selected:
+            copy = dict(row)
+            copy["id"] = uuid4().hex
+            duplicated.append(copy)
+    return duplicated
+
+
 def bulk_inventory_rows(rows: list[dict], selected_ids: list[str], hostname: str = "",
                         ip: str = "", role: str = "", pool_ip: bool | None = None) -> list[dict]:
     """Build an atomic update for checked rows, in the supplied display order."""
@@ -720,6 +738,21 @@ def workspace_page():
         errors.clear()
         await grid.run_grid_method("ensureIndexVisible", len(state["rows"]) - 1)
 
+    async def duplicate_rows():
+        await current_rows()
+        selected = await grid.get_selected_rows()
+        try:
+            state["rows"] = duplicate_inventory_rows(
+                state["rows"], [row["id"] for row in selected]
+            )
+        except ValueError as error:
+            ui.notify(str(error), type="negative")
+            return
+        update_grid()
+        errors.clear()
+        ui.notify(f"Duplicated {len(selected)} inventory row(s). Edit as needed, then Validate and Save.",
+                  type="positive")
+
     async def import_workbooks(event):
         try:
             await current_rows()
@@ -1013,6 +1046,8 @@ def workspace_page():
                             with ui.row().classes("items-center"):
                                 search = ui.input(placeholder="Search inventory").props("dense outlined clearable").style("width:210px;max-width:100%")
                                 ui.button("Add node", icon="add", on_click=add_row).props("outline")
+                                ui.button("Duplicate selected", icon="content_copy",
+                                          on_click=duplicate_rows).props("outline")
                                 ui.button(icon="delete", color="negative", on_click=remove_rows).props("outline round dense").tooltip("Delete selected rows")
                         grid = ui.aggrid({
                             "defaultColDef": {"editable": True, "resizable": True, "sortable": True, "filter": True, "minWidth": 145},
