@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.6] - 2026-11-11
+
+### Changed
+- Intersight automatic tags use `managed-by: cisco-ai-pods` and `release: <VERSION>` instead of script-name/version keys.
+- Runtime tags and bundled schema release metadata read VERSION rather than a duplicated schema version.
+- Release validation rejects bundled `x-schema-version` values that do not match VERSION.
+
 ## [0.1.5] - 2026-11-11
 
 ### Fixed

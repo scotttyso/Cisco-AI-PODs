@@ -5,17 +5,23 @@
 Releases are created from version tags, not from every push to `main`. The
 `Publish release` GitHub Actions workflow verifies that the tag uses
 `vMAJOR.MINOR.PATCH` (optionally with a pre-release suffix such as `-rc.1`),
-that `VERSION` matches the tag, and that the tagged commit is on `main`. It then
+that `VERSION` and the bundled schema's `x-schema-version` match the tag, and that
+the tagged commit is on `main`. It then
 runs the appliance updater and WebUI tests and publishes a GitHub release with
 generated notes. Tags with a suffix are published as pre-releases and are not
 offered by the WebUI update check.
+
+After changing VERSION, regenerate the bundled schema with
+`python scripts/merge_schemas.py` and commit it with the release changes.
+The bundler reads VERSION for `x-schema-version`; runtime Intersight release tags read VERSION directly.
 
 Before tagging, merge reviewed changes to `main`, run the tests, and set
 `VERSION` to the exact tag you plan to publish:
 
 ```bash
 printf '%s\n' v0.1.0 > VERSION
-git add VERSION
+python scripts/merge_schemas.py
+git add VERSION schema/cisco-ai-pods.json
 git commit -m "Prepare v0.1.0 release"
 git push origin main
 git tag -a v0.1.0 -m "Cisco AI PODs v0.1.0"

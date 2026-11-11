@@ -1,4 +1,6 @@
+import argparse
 import importlib
+import json
 from pathlib import Path
 import sys
 from unittest.mock import Mock
@@ -554,6 +556,47 @@ def test_empty_configuration_is_rejected_before_api_calls(monkeypatch):
     with pytest.raises(ValueError, match="No organizations"):
         initialize.begin(type="deployment").functions_to_run(DotMap(imm_dict={"orgs": {}}))
     discover.assert_not_called()
+
+
+@pytest.mark.parametrize("release", ["v0.1.5", "v9.8.7"])
+def test_automatic_tags_use_running_release_not_schema_version(monkeypatch, tmp_path, release):
+    (tmp_path / "VERSION").write_text(release + "\n")
+    schema_dir = tmp_path / "schema"
+    schema_dir.mkdir()
+    (schema_dir / "cisco-ai-pods.json").write_text(json.dumps({
+        "$ref": "#/definitions/intersight",
+        "definitions": {"intersight": {"type": "object"}},
+        "x-schema-version": "0.1.0",
+    }))
+    monkeypatch.setattr(shared_functions, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(shared_functions.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(shared_functions.pcolor, "init_log", lambda _path: None)
+    monkeypatch.setattr(shared_functions.logging, "basicConfig", lambda **_kwargs: None)
+    monkeypatch.setattr(sys, "argv", ["/test/deploy_intersight_ucs.py"])
+    args = argparse.Namespace(dir=str(tmp_path), intersight_secret_key=None, intersight_fqdn=None)
+    result = shared_functions.base_script_settings(DotMap(args=args))
+    assert result.ez_tags == [
+        {"key": "managed-by", "value": "cisco-ai-pods"},
+        {"key": "release", "value": release},
+    ]
+    for enabled in [True, False]:
+        result.intersight.global_settings.include_script_tags = enabled
+        item = module.configure(type="ntp").merge_tags(
+            DotMap(tags=[{"key": "site", "value": "RTP"}]), result)
+        assert item.tags == [{"key": "site", "value": "RTP"}] + (result.ez_tags if enabled else [])
+
+
+@pytest.mark.parametrize("release", ["v0.1.5", "v9.8.7"])
+def test_bundled_schema_version_follows_version_file(monkeypatch, tmp_path, release):
+    monkeypatch.syspath_prepend(str(Path(module.__file__).resolve().parents[5] / "scripts"))
+    bundler = importlib.import_module("merge_schemas")
+    version = tmp_path / "VERSION"
+    version.write_text(release + "\n")
+    monkeypatch.setattr(bundler, "VERSION_FILE", version)
+    documents = bundler.load_sources(Path(module.__file__).resolve().parents[5] / "schemas" / "source")
+    documents[bundler.ROOT_FILE]["x-schema-version"] = "stale"
+    bundle = bundler.build_bundle(documents)
+    assert bundle["x-schema-version"] == release
 
 
 @pytest.mark.parametrize("reference", ["XDirect", "Shared/XDirect"])

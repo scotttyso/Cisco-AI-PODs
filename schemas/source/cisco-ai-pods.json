@@ -512,6 +512,5 @@
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT"
     },
-    "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "0.1.0"
+    "title": "Cisco AI PODs - JSON Schema"
 }

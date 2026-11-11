@@ -8,6 +8,7 @@ from urllib.parse import unquote
 
 
 ROOT_FILE = "cisco-ai-pods.json"
+VERSION_FILE = Path(__file__).resolve().parents[1] / "VERSION"
 INTERSIGHT_ROOT = "intersight.json"
 NAMESPACE_BY_FILE = {
     "shared.json": "abstract",
@@ -216,8 +217,12 @@ def rewrite_schema(node, source_file, documents):
 
 
 def build_bundle(documents):
+    release = VERSION_FILE.read_text(encoding="utf-8").strip()
+    if not release:
+        raise ValueError("VERSION must contain the software release")
     root = rewrite_schema(documents[ROOT_FILE], ROOT_FILE, documents)
     root["definitions"] = build_definition_map(documents)
+    root["x-schema-version"] = release
     return root
 
 

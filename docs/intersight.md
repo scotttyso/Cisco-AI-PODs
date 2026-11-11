@@ -52,6 +52,13 @@ System (Orgs) accepts a standalone `intersight.system` configuration; it does no
 `intersight.configure` or any domain/server pools, policies, templates, or profiles.
 Resource groups are processed before organizations so organization references can resolve.
 
+Automatic tags identify the managing automation with `managed-by: cisco-ai-pods` and
+`release: <VERSION>`, for example `v0.1.5`. The release is read from the repository's VERSION
+file at runtime and describes the last-applied software release, not the resource's creation version.
+These replace the legacy script-name/version tags when resources are reconciled.
+Explicit YAML and global tags remain supported; `intersight.global_settings.include_script_tags: false`
+disables automatic tags. The bundled schema's `x-schema-version` is also generated from VERSION.
+
 Claim Targets requires at least 8 characters for Fabric Interconnect and CIMC passwords, including target overrides.
 The GUI shows the [Cisco UCS password guidelines](https://www.cisco.com/c/en/us/td/docs/unified_computing/ucs/ucs-manager/GUI-User-Guides/Admin-Management/4-1/b_Cisco_UCS_Admin_Mgmt_Guide_4-1/m_password_management.html):
 8-80 characters, at least three character classes (lowercase, uppercase, digits, special characters), no character

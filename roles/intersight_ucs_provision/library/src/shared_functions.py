@@ -64,6 +64,9 @@ class yaml_dumper(yaml.Dumper):
 
 
 def base_script_settings(kwargs):
+    release = (REPO_ROOT / 'VERSION').read_text(encoding='utf-8').strip()
+    if not release:
+        raise ValueError('VERSION must contain the running software release')
     # =========================================================================
     # Configure logger and Build kwargs
     # =========================================================================
@@ -117,9 +120,8 @@ def base_script_settings(kwargs):
             encoding='utf8'))
     if os.path.exists(os.path.join(kwargs.schema_path, 'temp.json')):
         os.remove(os.path.join(kwargs.schema_path, 'temp.json'))
-    script_tag = script_name.replace('ez', 'easy-')
-    kwargs.ez_tags = [{'key': 'Provisioned via -', 'value': script_tag},
-                      {'key': f'{script_tag} version -', 'value': ezdata['x-schema-version']}]
+    kwargs.ez_tags = [{'key': 'managed-by', 'value': 'cisco-ai-pods'},
+                      {'key': 'release', 'value': release}]
     kwargs.ezdata = DotMap(ezdata['definitions'])
     kwargs.intersight_object_map = DotMap()
     for k, v in kwargs.ezdata.items():
