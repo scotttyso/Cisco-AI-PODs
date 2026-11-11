@@ -69,6 +69,27 @@ If any step fails after the outage starts, the service is left stopped and the
 updater prints manual recovery commands. No automatic rollback is attempted.
 Untracked files such as `.venv`, `LOGS`, and `assisted-installer` are preserved.
 
+### Troubleshoot a UI Update
+
+The UI asks for the service account's local sudo password only when sudo needs
+one; the password is used for that launch and is not saved.
+
+If the update log is empty, inspect the unit named in the dialog:
+
+```bash
+sudo journalctl -u <update-unit>.service --no-pager -n 60
+```
+
+Older UI versions can report `209/STDOUT` before the updater starts because
+`/var/log/aipod-update` does not exist. Create it, then retry the UI update:
+
+```bash
+sudo install -d -m 0755 /var/log/aipod-update
+```
+
+The launcher now creates the directory before starting systemd and waits for
+successful process execution before reporting that the update has started.
+
 ### Bootstrap Older Installations
 
 Appliances built before the updater existed do not have

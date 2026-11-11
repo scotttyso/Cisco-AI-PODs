@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.5] - 2026-11-11
+
+### Fixed
+- System (Orgs): deploy standalone organizations and resource groups without requiring organization-scoped policies or profiles.
+- UI updates: create the log directory before starting the updater and wait for successful process execution.
+- UI updates: report launcher failures with a journal command for diagnosis.
+
 ## [0.1.4] - 2026-11-11
 
 ### Added

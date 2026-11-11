@@ -48,6 +48,10 @@ Claim Targets claims every target into the `default` organization and resource g
 group always holds every target and is not changed; to separate servers, list them under another resource group in
 `system.ezai.yaml` and point an organization at it.
 
+System (Orgs) accepts a standalone `intersight.system` configuration; it does not require
+`intersight.configure` or any domain/server pools, policies, templates, or profiles.
+Resource groups are processed before organizations so organization references can resolve.
+
 Claim Targets requires at least 8 characters for Fabric Interconnect and CIMC passwords, including target overrides.
 The GUI shows the [Cisco UCS password guidelines](https://www.cisco.com/c/en/us/td/docs/unified_computing/ucs/ucs-manager/GUI-User-Guides/Admin-Management/4-1/b_Cisco_UCS_Admin_Mgmt_Guide_4-1/m_password_management.html):
 8-80 characters, at least three character classes (lowercase, uppercase, digits, special characters), no character

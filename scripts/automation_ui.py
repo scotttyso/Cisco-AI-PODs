@@ -33,7 +33,7 @@ from build_initial_inventory import (  # noqa: E402
     DEFAULT_SCHEMA, build_inventory_document, normalize_mac, read_inventory_files, validate_shared_services,
 )
 from release_updates import (  # noqa: E402
-    install_instructions, installed_version, latest_release, latest_update_log, update_command, update_unit,
+    install_instructions, installed_version, latest_release, latest_update_log, launch_update, update_unit,
     updater_available,
 )
 from aipod_webui import pages, seeds  # noqa: E402
@@ -294,14 +294,15 @@ def updates_dialog():
                 return
             unit = update_unit(tag)
             try:
-                started = await run.io_bound(subprocess.run, update_command(tag, unit), capture_output=True, text=True,
-                                            timeout=60, stdin=subprocess.DEVNULL,
-                                            env={**os.environ, **sudo_environment(password)})
+                started = await run.io_bound(launch_update, tag, unit,
+                                            {**os.environ, **sudo_environment(password)})
             except (OSError, subprocess.SubprocessError, ValueError) as error:
                 ui.notify(f"Could not start the update: {error}", type="negative", multi_line=True)
                 return
             if started.returncode != 0:
-                ui.notify("Could not start the update: " + (started.stderr or started.stdout).strip()[-800:],
+                detail = (started.stderr or started.stdout).strip()[-800:]
+                ui.notify(f"Could not start the update: {detail or f'launcher exited with status {started.returncode}'}"
+                          f"\nInspect: sudo journalctl -u {unit}.service --no-pager -n 60",
                           type="negative", multi_line=True)
                 return
             status.text = (f"Updating to {tag} (systemd unit {unit}). The UI restarts during the update and this page "

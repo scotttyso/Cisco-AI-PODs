@@ -92,6 +92,7 @@ class UiUpdateLaunchTests(unittest.TestCase):
         self.assertEqual(command[:4], ["sudo", "-A", "-p", ""])
         self.assertIn("systemd-run", command)
         self.assertIn(f"--unit={unit}", command)
+        self.assertIn("--property=Type=exec", command)
         self.assertIn(f"--property=StandardOutput=append:/var/log/aipod-update/{unit}.log", command)
         self.assertEqual(command[-4:], [str(release_updates.UPDATER), "--version", "v0.2.0", "--yes"])
         for bad_tag, bad_unit in (("v1.0; rm -rf /", unit), ("v0.2.0", "x; reboot")):
@@ -99,6 +100,30 @@ class UiUpdateLaunchTests(unittest.TestCase):
                 release_updates.update_command(bad_tag, bad_unit)
         with self.assertRaises(ValueError):
             release_updates.update_unit("latest")
+
+    def test_launch_creates_log_directory_before_starting_unit(self):
+        unit = release_updates.update_unit("v0.2.0", now=0)
+        environment = {"SUDO_ASKPASS": "/test/askpass"}
+        success = subprocess.CompletedProcess([], 0, "", "")
+        with patch.object(release_updates.subprocess, "run", return_value=success) as run:
+            self.assertIs(release_updates.launch_update("v0.2.0", unit, environment), success)
+        self.assertEqual(run.call_args_list[0].args[0],
+                         ["sudo", "-A", "-p", "", "install", "-d", "-m", "0755",
+                          str(release_updates.UPDATE_LOG_DIR)])
+        self.assertEqual(run.call_args_list[1].args[0], release_updates.update_command("v0.2.0", unit))
+        for invocation in run.call_args_list:
+            self.assertIs(invocation.kwargs["env"], environment)
+            self.assertEqual(invocation.kwargs["stdin"], subprocess.DEVNULL)
+
+    def test_launch_reports_directory_or_unit_startup_failure(self):
+        unit = release_updates.update_unit("v0.2.0", now=0)
+        success = subprocess.CompletedProcess([], 0, "", "")
+        failure = subprocess.CompletedProcess([], 1, "", "startup failed")
+        for results in ([failure], [success, failure]):
+            with self.subTest(results=results), patch.object(
+                    release_updates.subprocess, "run", side_effect=results) as run:
+                self.assertIs(release_updates.launch_update("v0.2.0", unit, {}), failure)
+                self.assertEqual(run.call_count, len(results))
 
     def test_latest_update_log(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(release_updates, "UPDATE_LOG_DIR", Path(folder)):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -75,8 +76,20 @@ def update_command(tag: str, unit: str) -> list[str]:
     if not TAG_PATTERN.fullmatch(tag) or not re.fullmatch(r"aipod-update-[A-Za-z0-9_-]+", unit):
         raise ValueError("Invalid release version")
     return ["sudo", "-A", "-p", "", "systemd-run", f"--unit={unit}", "--collect", "--quiet",
+            "--property=Type=exec",
             "--property=LogsDirectory=aipod-update", f"--property=StandardOutput=append:{UPDATE_LOG_DIR}/{unit}.log",
             "--property=StandardError=inherit", str(UPDATER), "--version", tag, "--yes"]
+
+
+def launch_update(tag: str, unit: str, environment: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    command = update_command(tag, unit)
+    options = dict(capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL, env=environment)
+    # systemd opens StandardOutput before creating LogsDirectory.
+    prepared = subprocess.run(
+        [*command[:4], "install", "-d", "-m", "0755", str(UPDATE_LOG_DIR)], **options)
+    if prepared.returncode != 0:
+        return prepared
+    return subprocess.run(command, **options)
 
 
 def latest_update_log(limit: int = 60000) -> tuple[str, str]:

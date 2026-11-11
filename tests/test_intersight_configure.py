@@ -4,6 +4,7 @@ import sys
 from unittest.mock import Mock
 
 import pytest
+import yaml
 from dotmap import DotMap
 
 
@@ -15,6 +16,9 @@ try:
     sys.path.insert(0, str(Path(module.__file__).resolve().parents[2]))
     initialize = importlib.import_module(
         "roles.intersight_ucs_provision.library.src.initialize"
+    )
+    shared_functions = importlib.import_module(
+        "roles.intersight_ucs_provision.library.src.shared_functions"
     )
 finally:
     sys.path[:] = original_path
@@ -499,6 +503,57 @@ def test_profile_deployment_dependency_order(monkeypatch, check, profile_types):
         ]
         for org in ["Org-A", "Org-B"]
     ]
+
+
+@pytest.mark.parametrize("check", [False, True])
+def test_system_only_yaml_deploys_without_org_scoped_configuration(monkeypatch, tmp_path, check):
+    payload = {"intersight": {"system": {
+        "organizations": [{"name": "AIPOD-AB_RG", "resource_groups": ["AIPOD-AB_RG"]}],
+        "resource_groups": [{"name": "AIPOD-AB_RG", "description": "AI POD in RTP B4 - Row AB",
+                             "resources": {"targets": ["AB07-UCSX-AID-1"]}}],
+    }}}
+    (tmp_path / "system.ezai.yaml").write_text(yaml.safe_dump(payload))
+    library = Path(initialize.__file__).resolve().parents[1]
+    kwargs = DotMap({
+        "args": {"dir": str(tmp_path), "check": check},
+        "script_path": str(library),
+        "schema_path": str(library.parents[2] / "schema"),
+        "imm_dict": {"orgs": {}},
+        "ezdata": {
+            "intersight.system.organizations": {"x-intersight-object-type": "organization.Organization"},
+            "intersight.system.resource_groups": {"x-intersight-object-type": "resource.Group"},
+        },
+    })
+    kwargs = shared_functions.load_configurations(kwargs)
+    calls = []
+
+    def discover(_self, state):
+        calls.append("discover")
+        return state
+
+    def system_resource(category, type):
+        def run(state):
+            calls.append((category, type))
+            return state
+        return Mock(system=run)
+
+    monkeypatch.setattr(initialize.api, "all_organizations", discover)
+    monkeypatch.setattr(initialize, "system", system_resource)
+    configure_resource = Mock()
+    monkeypatch.setattr(initialize, "configure", configure_resource)
+    result = initialize.begin(type="deployment").functions_to_run(kwargs)
+    assert result.orgs == []
+    assert result.imm_dict.system.toDict() == payload["intersight"]["system"]
+    assert calls == ["discover", ("system", "resource_groups"), ("system", "organizations")]
+    configure_resource.assert_not_called()
+
+
+def test_empty_configuration_is_rejected_before_api_calls(monkeypatch):
+    discover = Mock()
+    monkeypatch.setattr(initialize.api, "all_organizations", discover)
+    with pytest.raises(ValueError, match="No organizations"):
+        initialize.begin(type="deployment").functions_to_run(DotMap(imm_dict={"orgs": {}}))
+    discover.assert_not_called()
 
 
 @pytest.mark.parametrize("reference", ["XDirect", "Shared/XDirect"])

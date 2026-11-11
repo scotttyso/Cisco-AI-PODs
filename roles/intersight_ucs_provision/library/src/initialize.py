@@ -53,23 +53,14 @@ class begin:
     # Function: Define Initialize Functions to Run
     # =========================================================================
     def functions_to_run(self, kwargs):
-        if not kwargs.get('imm_dict') or not kwargs.imm_dict.get('orgs'):
+        if not kwargs.get('imm_dict') or not (
+                kwargs.imm_dict.get('orgs') or kwargs.imm_dict.get('system')):
             raise ValueError(
-                'No organizations were found in the loaded configuration (missing `imm_dict.orgs`)')
-        kwargs.orgs = list(kwargs.imm_dict.orgs.keys())
-        if len(kwargs.orgs) > 0:
-            kwargs = api(
-                category='system',
-                type='organizations').all_organizations(kwargs)
-        else:
-            pcolor.Yellow(f'{"-" * 108}')
-            pcolor.Yellow(
-                '   No Organizations found in the YAML configuration files.')
-            pcolor.Yellow(
-                '   Confirm that you have created the YAML configuration files correctly and that they contain at least one organization with configurations.')
-            pcolor.Yellow(f'{"-" * 108}')
-            raise ValueError(
-                'No organizations found in YAML configuration files')
+                'No organizations or System resources were found in the loaded configuration')
+        kwargs.orgs = list(kwargs.imm_dict.get('orgs', {}).keys())
+        kwargs = api(
+            category='system',
+            type='organizations').all_organizations(kwargs)
         # =====================================================================
         # Build Lists from ezdata
         # =====================================================================
