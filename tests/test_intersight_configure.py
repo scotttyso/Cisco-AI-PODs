@@ -510,6 +510,35 @@ def test_profile_deployment_dependency_order(monkeypatch, check, profile_types):
     ]
 
 
+@pytest.mark.parametrize("category,resource_type", [
+    ("templates", "server"), ("profiles", "server"),
+])
+@pytest.mark.parametrize("check", [False, True])
+def test_naming_metadata_is_not_dispatched_as_a_resource(monkeypatch, category, resource_type, check):
+    schema = Path(initialize.__file__).resolve().parents[4] / "schema/cisco-ai-pods.json"
+    kwargs = DotMap({
+        "args": {"check": check},
+        "imm_dict": {"orgs": {"Org": {category: {
+            "name_prefix": {"default": "pre-"},
+            "name_suffix": {"default": "-post"},
+            resource_type: [],
+        }}}},
+        "ezdata": json.loads(schema.read_text(encoding="utf-8"))["definitions"],
+    })
+    monkeypatch.setattr(initialize.api, "all_organizations", lambda _self, state: state)
+    calls = []
+
+    def configure_resource(category, type):
+        def run(state):
+            calls.append((category, type))
+            return state
+        return Mock(configure=run)
+
+    monkeypatch.setattr(initialize, "configure", configure_resource)
+    initialize.begin(type="deployment").functions_to_run(kwargs)
+    assert calls == [(category, resource_type)]
+
+
 @pytest.mark.parametrize("check", [False, True])
 def test_system_only_yaml_deploys_without_org_scoped_configuration(monkeypatch, tmp_path, check):
     payload = {"intersight": {"system": {

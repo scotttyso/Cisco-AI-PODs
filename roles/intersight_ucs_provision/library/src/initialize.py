@@ -76,7 +76,8 @@ class begin:
             if match:
                 rtype = match.group(1)
                 r = category_regex.sub('', k)
-                if '.' not in r and v.get('x-intersight-object-type'):
+                object_type = v.get('x-intersight-object-type')
+                if '.' not in r and object_type and object_type != 'not_applicable':
                     kwargs[f'{rtype}_list'].append(r)
         if 'switch' in kwargs.profiles_list:
             kwargs.profiles_list.remove('switch')

@@ -34,6 +34,9 @@ Pools, policies, and templates are processed before profiles. Profiles are proce
 in dependency order across all configured organizations: UCS domains (and Unified
 Edge domains), then chassis, then servers. Each profile type finishes its configured
 deployment actions before the next type starts. Check mode uses the same order.
+The `name_prefix` and `name_suffix` settings are naming metadata, not deployable
+resources. They remain available for resource naming but are excluded from
+resource deployment selection.
 For domain and Unified Edge profiles, `action: Deploy` deploys the assigned A/B
 switch profiles through `fabric/SwitchProfiles`, then waits for both to finish.
 The console logs each switch profile's deployment start, successful PATCH submission,
