@@ -37,6 +37,11 @@ deployment actions before the next type starts. Check mode uses the same order.
 The `name_prefix` and `name_suffix` settings are naming metadata, not deployable
 resources. They remain available for resource naming but are excluded from
 resource deployment selection.
+Server profiles and templates check their policy and pool dependencies in
+addition to reservation pools. References use the referenced organization's
+policy/pool prefix and suffix, without repeating decorations already present.
+In check mode, dependencies not yet created in Intersight defer the dependent
+payload validation instead of attempting to render unresolved policy Moids.
 A/B switch profiles and templates use the fully decorated cluster name followed
 by `-A` or `-B`; the prefix and suffix are applied only once. Existing children
 are matched within their parent by `SwitchId`, allowing apply mode to correct

@@ -841,6 +841,7 @@ class UploadTest(unittest.TestCase):
             files = pages.PAGES["intersight-servers"].file_groups[0][1]
             workbench.specs = {spec.target: spec for spec in files}
             workbench.hidden_targets = set()
+            workbench.body = MagicMock()
             first = next(iter(workbench.specs))
             workbench.selector = Mock(value=first)
             fc_targets = {"intersight/" + path for path in pages.SERVER_FC_FILES}
@@ -856,6 +857,7 @@ class UploadTest(unittest.TestCase):
             with patch.object(pages, "ui") as ui_mock, patch.object(panels, "ui") as panel_ui, \
                     patch.object(pages, "firmware_summary"), patch.object(pages, "server_generators"):
                 pages.server_form(handle)
+                ui_mock.column.return_value.classes.return_value.move.assert_called_once_with(workbench.body, 0)
                 self.assertFalse(fc_targets.intersection(workbench.options()))
                 self.assertFalse(ui_mock.checkbox.call_args.kwargs["value"])
                 toggle = ui_mock.checkbox.call_args.kwargs["on_change"]

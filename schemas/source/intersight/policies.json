@@ -17357,7 +17357,7 @@
                             "x-intersight-api": "Model"
                         },
                         "mappings": {
-                            "description": "One or two CPU-to-GPU mappings, optionally including one SmartNIC per mapping.",
+                            "description": "One or two CPU-to-GPU mappings.\n\nRequired Attributes (per mapping):\n  * `cpu_id` - any, 1, or 2\n\nOptional Attributes (per mapping):\n  * `gpu_quantity` - 1 or 2; defaults to 1\n  * `smart_nic` - omit to select no SmartNIC",
                             "items": {
                                 "$ref": "#/definitions/pcie_connectivity.mappings"
                             },
@@ -17390,15 +17390,16 @@
         },
         "pcie_connectivity.mappings": {
             "additionalProperties": false,
+            "description": "A CPU-to-GPU mapping.\n\nRequired Attributes:\n  * `cpu_id` - any, 1, or 2\n\nOptional Attributes:\n  * `gpu_quantity` - 1 or 2; defaults to 1\n  * `smart_nic` - omit to select no SmartNIC",
             "properties": {
-                "cpus": {
+                "cpu_id": {
                     "description": "CPU selector: any, 1, or 2. Numeric CPU IDs are written as YAML integers.",
                     "enum": [
                         "any",
                         1,
                         2
                     ],
-                    "title": "cpus - CPUs",
+                    "title": "cpu_id - CPU ID",
                     "type": [
                         "string",
                         "integer"
@@ -17429,7 +17430,7 @@
                 }
             },
             "required": [
-                "cpus"
+                "cpu_id"
             ],
             "title": "pcie_connectivity.mappings - PCIe Mapping",
             "type": "object",

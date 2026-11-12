@@ -995,7 +995,10 @@ class configure:
             rname = resource
         if add_prefix_suffix:
             np, ns = self.name_prefix_suffix(org, kwargs)
-            rname = np + rname + ns
+            if not rname.startswith(np):
+                rname = np + rname
+            if not rname.endswith(ns):
+                rname = rname + ns
         return org, rname
 
     # =========================================================================
@@ -1136,6 +1139,22 @@ class configure:
                 rtype = m.group(1) if m else domain_templates[template_key]
                 item, kwargs = resource_list(
                     template_key, item[template_key], rtype, item, kwargs)
+        # =====================================================================
+        # Process Server Reservation Pools in Addition to Normal Policy/Pool References
+        # =====================================================================
+        if self.type == 'server':
+            reservation_identity_types = {
+                'ip', 'iqn', 'mac', 'uuid', 'wwpn', 'wwnn'}
+            for reservation in item.get('reservations') or []:
+                if not isinstance(reservation, dict):
+                    continue
+                pool_name = reservation.get('pool_name')
+                identity_type = reservation.get('identity_type')
+                if pool_name and identity_type:
+                    pool_type = str(identity_type).lower()
+                    if pool_type in reservation_identity_types:
+                        item, kwargs = resource_list(
+                            'pool_name', pool_name, pool_type, item, kwargs)
         # =====================================================================
         # Process IP Type Specifically
         # =====================================================================
@@ -1287,22 +1306,6 @@ class configure:
                                 'vhba_template']:
                             item, kwargs = resource_list(
                                 'vhba_template', vhba_item['vhba_template'], 'vhba_template', item, kwargs)
-        # =====================================================================
-        # Process Server Type Specifically - Extract Reservation Pools from Targets
-        # =====================================================================
-        elif self.type == 'server':
-            reservation_identity_types = {
-                'ip', 'iqn', 'mac', 'uuid', 'wwpn', 'wwnn'}
-            for reservation in item.get('reservations') or []:
-                if not isinstance(reservation, dict):
-                    continue
-                pool_name = reservation.get('pool_name')
-                identity_type = reservation.get('identity_type')
-                if pool_name and identity_type:
-                    pool_type = str(identity_type).lower()
-                    if pool_type in reservation_identity_types:
-                        item, kwargs = resource_list(
-                            'pool_name', pool_name, pool_type, item, kwargs)
         # =====================================================================
         # Process All Other Types
         # =====================================================================

@@ -502,7 +502,7 @@
                     "x-intersight-uri": "ntp/Policies"
                 },
                 "pcie_connectivity": {
-                    "description": "Maps server CPUs to GPUs and optional SmartNICs.\n\nRequired Attributes:\n  * `name`\n  * `mappings` (one or two entries, each requiring `cpus`)\n\nOptional Attributes:\n  * `description`\n  * `gpu_model` (defaults to Any)\n  * `tags`\n\nEach mapping optionally accepts `gpu_quantity` (defaults to 1) and `smart_nic`.",
+                    "description": "Maps server CPUs to GPUs and optional SmartNICs.\n\nRequired Attributes:\n  * `name`\n  * `mappings` (one or two entries, each requiring `cpu_id`)\n\nOptional Attributes:\n  * `description`\n  * `gpu_model` (defaults to Any)\n  * `tags`\n\nEach mapping optionally accepts `gpu_quantity` (defaults to 1) and `smart_nic`.",
                     "items": {
                         "$ref": "./intersight/policies.json#/definitions/pcie_connectivity"
                     },

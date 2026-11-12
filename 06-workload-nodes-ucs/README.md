@@ -42,7 +42,7 @@ The UCS Servers page includes **Server pool and key generators**:
 Generated values are not automatically inserted into YAML or reserved in
 Intersight. Check existing pool ranges for overlaps before using them.
 
-**Use Fibre Channel policies** controls whether the X-Series
+Inside **X-Series variables**, **Use Fibre Channel policies** controls whether the
 dropdown lists `fibre_channel_pools.ezai.yaml`, `fibre_channel.ezai.yaml`, and
 `san_connectivity.ezai.yaml`. This preference is saved per environment. It
 only changes dropdown visibility: saved FC files remain available to

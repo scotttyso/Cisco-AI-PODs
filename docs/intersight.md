@@ -120,26 +120,28 @@ pcie_connectivity:
   - name: PCIe-GPU
     gpu_model: UCSC-GPU-L40S
     mappings:
-      - cpus: 1
-      - cpus: 2
+      - cpu_id: 1
+      - cpu_id: 2
   - name: PCIe-GPU-SmartNIC
     gpu_model: UCSC-GPU-L40S
     mappings:
-      - cpus: 1
+      - cpu_id: 1
         gpu_quantity: 1
         smart_nic: UCSC-P-N7S400GF
-      - cpus: 2
+      - cpu_id: 2
         gpu_quantity: 1
         smart_nic: UCSC-P-N7D200GF
   - name: PCIe-Any
     mappings:
-      - cpus: any
+      - cpu_id: any
 ```
 
-`name` and one or two `mappings` are required. Each mapping requires `cpus`:
+`name` and one or two `mappings` are required. Each mapping requires `cpu_id`:
 lowercase `any`, or the YAML integer `1` or `2`. These render as API CPU IDs
 `Any`, `"1"`, and `"2"`. `gpu_model` defaults to `Any`; each mapping's
 `gpu_quantity` defaults to `1` and accepts only `1` or `2`.
+Replace the previous `cpus` mapping key with `cpu_id` in existing variable files;
+the schema no longer accepts `cpus`.
 
 GPU models are `Any`, `UCSC-GPU-H100-NVL`, `UCSC-GPU-H200-NVL`, `UCSC-GPU-L40S`,
 `UCSC-GPU-RTXP6000`, and `UCSC-GPU-RTXP4500`. Optional `smart_nic` choices are

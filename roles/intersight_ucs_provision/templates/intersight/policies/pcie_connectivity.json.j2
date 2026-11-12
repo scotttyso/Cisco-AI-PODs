@@ -36,7 +36,7 @@
 {% endif %}
       ],
       "RootPcieEndpoint": {
-        "CpuId": {{ ('Any' if mapping.cpus == 'any' else mapping.cpus | string) | tojson }},
+        "CpuId": {{ ('Any' if mapping.cpu_id == 'any' else mapping.cpu_id | string) | tojson }},
         "ObjectType": "compute.CpuConfig",
         "RootPcieEndpointType": "CPU"
       }

@@ -211,6 +211,126 @@ def test_vlan_multicast_references_use_policy_name_decoration():
     ]
 
 
+def test_shared_vnic_references_are_decorated_once_across_vnics_and_rechecks():
+    kwargs = configuration(check=True)
+    org = kwargs.org
+    kwargs.imm_dict.orgs[org].policies.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].policies.name_suffix.default = "-Policy"
+    kwargs.imm_dict.orgs[org].pools.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].pools.name_suffix.default = "-Pool"
+    item = DotMap(name="RoCEv2Optimized", vnics=[
+        {"name": name, "ethernet_adapter_policy": adapter,
+         "ethernet_network_control_policy": "Ethernet-Network-Control",
+         "ethernet_network_group_policies": [group],
+         "ethernet_qos_policy": qos, "mac_address_pools": [pool]}
+        for name, adapter, group, qos, pool in [
+            ("Management", "Linux-v2", "IB-MGMT-ENG", "BestEffort", "FI-A"),
+            ("Storage", "Linux-NVMe-RoCE", "NFS-ENG", "Platinum", "FI-B"),
+        ]
+    ])
+    provision = module.configure(category="policies", type="lan_connectivity")
+    for _pass in range(2):
+        kwargs.cp = DotMap()
+        item, kwargs = provision.existing_check(item, kwargs)
+        assert [vnic["ethernet_network_control_policy"] for vnic in item.vnics] == [
+            f"{org}/AIPOD-AID-Ethernet-Network-Control-Policy",
+            f"{org}/AIPOD-AID-Ethernet-Network-Control-Policy",
+        ]
+        assert [vnic["ethernet_network_group_policies"] for vnic in item.vnics] == [
+            [f"{org}/AIPOD-AID-IB-MGMT-ENG-Policy"], [f"{org}/AIPOD-AID-NFS-ENG-Policy"],
+        ]
+        assert [vnic["mac_address_pools"] for vnic in item.vnics] == [
+            [f"{org}/AIPOD-AID-FI-A-Pool"], [f"{org}/AIPOD-AID-FI-B-Pool"],
+        ]
+        assert set(kwargs.cp.ethernet_network_control.names) == {
+            f"{org}/AIPOD-AID-Ethernet-Network-Control-Policy",
+        }
+
+
+@pytest.mark.parametrize("category", ["profiles", "templates"])
+@pytest.mark.parametrize("reference_org", [None, "Shared"])
+@pytest.mark.parametrize("decorated", [False, True])
+def test_server_preflight_normalizes_policies_and_pools_alongside_reservations(
+        category, reference_org, decorated):
+    kwargs = configuration(check=True)
+    org = reference_org or kwargs.org
+    kwargs.imm_dict.orgs[org].policies.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].policies.name_suffix.default = "-Policy"
+    kwargs.imm_dict.orgs[org].pools.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].pools.name_suffix.default = "-Pool"
+    kwargs.cp = DotMap()
+    prefix = f"{reference_org}/" if reference_org else ""
+    bios_name = "AIPOD-AID-HPC-M7-Intel-Tpm-Policy" if decorated else "HPC-M7-Intel-Tpm"
+    item = DotMap(name="Server", bios_policy=f"{prefix}{bios_name}",
+                  boot_order_policy=f"{prefix}Boot-Order", uuid_pool=f"{prefix}UUID")
+    if category == "profiles":
+        item.reservations = [DotMap(identity_type="mac", pool_name=f"{prefix}MAC")]
+    item, state = module.configure(category=category, type="server").existing_check(item, kwargs)
+    expected_bios = f"{org}/AIPOD-AID-HPC-M7-Intel-Tpm-Policy"
+    assert item.bios_policy == (f"{prefix}{bios_name}" if decorated else expected_bios)
+    assert item.boot_order_policy == f"{org}/AIPOD-AID-Boot-Order-Policy"
+    assert item.uuid_pool == f"{org}/AIPOD-AID-UUID-Pool"
+    assert state.cp.bios.names == [expected_bios]
+    assert state.cp.boot_order.names == [item.boot_order_policy]
+    assert state.cp.uuid.names == [item.uuid_pool]
+    if category == "profiles":
+        assert item.reservations[0].pool_name == f"{org}/AIPOD-AID-MAC-Pool"
+        assert state.cp.mac.names == [item.reservations[0].pool_name]
+
+
+@pytest.mark.parametrize("check", [False, True])
+@pytest.mark.parametrize("exists", [False, True])
+def test_server_template_bios_preflight_resolves_or_defers_decorated_policy(
+        monkeypatch, capsys, intersight_schema, check, exists):
+    kwargs = configuration(check)
+    org = kwargs.org
+    kwargs.script_path = str(Path(module.__file__).resolve().parents[2])
+    kwargs.ezdata = intersight_schema["definitions"]
+    kwargs.intersight_object_map = {"bios": "bios.Policy"}
+    kwargs.imm_dict.orgs[org].policies.name_prefix.default = "AIPOD-AID-"
+    kwargs.imm_dict.orgs[org].policies.name_suffix.default = "-Policy"
+    kwargs.imm_dict.orgs[org].templates.server = [DotMap(
+        name="Server", create_template=True, bios_policy="HPC-M7-Intel-Tpm", target_platform="FIAttached")]
+    kwargs.intersight_api[org].policies.bios["HighPerformanceComputing-M7-Intel"].moid = "builtin-moid"
+    calls = []
+
+    def api_calls(api_self, state):
+        calls.append((api_self.category, api_self.type, list(state.names)))
+        state.results = []
+        assert state.method == "get"
+        if exists and api_self.category == "policies" and "AIPOD-AID-HPC-M7-Intel-Tpm-Policy" in state.names:
+            name = "AIPOD-AID-HPC-M7-Intel-Tpm-Policy"
+            state.intersight_api[state.org].policies.bios[name].moid = "hpc-moid"
+            state.results = [{"Name": name, "Moid": "hpc-moid"}]
+        return state
+
+    monkeypatch.setattr(module.api, "calls", api_calls)
+    compare = Mock(side_effect=lambda _body, _title, state: state)
+    monkeypatch.setattr(module.configure, "compare_resources_to_api", compare)
+    provision = module.configure(category="templates", type="server")
+    if not exists and not check:
+        with pytest.raises(ValueError, match="Empty API query results for bios/Policies"):
+            provision.configure(kwargs)
+        compare.assert_not_called()
+    elif not exists:
+        render = Mock(side_effect=AssertionError("Must not render missing BIOS dependencies in check mode"))
+        monkeypatch.setattr(module.configure, "create_api_body", render)
+        provision.configure(kwargs)
+        render.assert_not_called()
+        compare.assert_not_called()
+        output = " ".join(capsys.readouterr().out.split())
+        assert "deferred payload validation" in output
+        assert f"policies/bios: {org}/AIPOD-AID-HPC-M7-Intel-Tpm-Policy" in output
+        assert "No payloads for this resource type were validated or submitted" in output
+    else:
+        provision.configure(kwargs)
+        assert compare.call_args.args[0]["PolicyBucket"] == [{"Moid": "hpc-moid", "ObjectType": "bios.Policy"}]
+    assert calls == [
+        ("templates", "server", ["Server"]),
+        ("policies", "bios", ["AIPOD-AID-HPC-M7-Intel-Tpm-Policy"]),
+    ]
+
+
 def test_empty_pool_lookup_plans_creation_in_check_mode(monkeypatch, capsys):
     kwargs = configuration(check=True)
     kwargs.imm_dict.orgs[kwargs.org].pools.ip = [
@@ -709,16 +829,16 @@ def intersight_schema():
 
 
 @pytest.mark.parametrize("policy,zones", [
-    ({"name": "GPU", "gpu_model": "UCSC-GPU-L40S", "mappings": [{"cpus": 1}, {"cpus": 2}]},
+    ({"name": "GPU", "gpu_model": "UCSC-GPU-L40S", "mappings": [{"cpu_id": 1}, {"cpu_id": 2}]},
      [("1", "UCSC-GPU-L40S", 1, None), ("2", "UCSC-GPU-L40S", 1, None)]),
     ({"name": "GPU-NIC", "gpu_model": "UCSC-GPU-L40S", "mappings": [
-        {"cpus": 1, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7S400GF"},
-        {"cpus": 2, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7D200GF"}]},
+        {"cpu_id": 1, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7S400GF"},
+        {"cpu_id": 2, "gpu_quantity": 1, "smart_nic": "UCSC-P-N7D200GF"}]},
      [("1", "UCSC-GPU-L40S", 1, "UCSC-P-N7S400GF"), ("2", "UCSC-GPU-L40S", 1, "UCSC-P-N7D200GF")]),
-    ({"name": "Any", "mappings": [{"cpus": "any"}]},
+    ({"name": "Any", "mappings": [{"cpu_id": "any"}]},
      [("Any", "Any", 1, None)]),
     ({"name": "Two", "description": 'Two "GPUs"', "gpu_model": "UCSC-GPU-H200-NVL",
-      "mappings": [{"cpus": 2, "gpu_quantity": 2, "smart_nic": "Any"}],
+      "mappings": [{"cpu_id": 2, "gpu_quantity": 2, "smart_nic": "Any"}],
       "tags": [{"key": "Location", "value": 'Lab "A"'}, {"key": "GPU/Two", "type": "PathTag"}]},
      [("2", "UCSC-GPU-H200-NVL", 2, "Any")]),
 ])
@@ -758,16 +878,18 @@ def test_pcie_connectivity_payload_matches_api_examples(intersight_schema, polic
 
 
 @pytest.mark.parametrize("policy", [
-    {"mappings": [{"cpus": 1}]},
+    {"mappings": [{"cpu_id": 1}]},
     {"name": "PCIe"},
     {"name": "PCIe", "mappings": []},
-    {"name": "PCIe", "mappings": [{"cpus": "any"}, {"cpus": 1}, {"cpus": 2}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": "any"}, {"cpu_id": 1}, {"cpu_id": 2}]},
     {"name": "PCIe", "mappings": [{}]},
-    {"name": "PCIe", "mappings": [{"cpus": 3}]},
-    {"name": "PCIe", "mappings": [{"cpus": 1, "gpu_quantity": 0}]},
-    {"name": "PCIe", "mappings": [{"cpus": 1, "gpu_quantity": 3}]},
-    {"name": "PCIe", "mappings": [{"cpus": 1, "smart_nic": "Invalid"}]},
-    {"name": "PCIe", "gpu_model": "Invalid", "mappings": [{"cpus": 1}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": 3}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": 1, "gpu_quantity": 0}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": 1, "gpu_quantity": 3}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": 1, "smart_nic": "Invalid"}]},
+    {"name": "PCIe", "gpu_model": "Invalid", "mappings": [{"cpu_id": 1}]},
+    {"name": "PCIe", "mappings": [{"cpus": 1}]},
+    {"name": "PCIe", "mappings": [{"cpu_id": 1, "cpus": 1}]},
 ])
 def test_pcie_connectivity_schema_rejects_invalid_mappings(intersight_schema, policy):
     schema = intersight_schema["definitions"]["intersight.policies.pcie_connectivity"]

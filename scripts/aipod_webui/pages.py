@@ -363,9 +363,12 @@ def server_form(handle: PageHandle) -> None:
                 return
             handle.save_state({"show_fibre_channel": bool(event.value)})
 
-        ui.checkbox("Use Fibre Channel policies", value=show_fc, on_change=toggle_fc)
-        ui.label("Controls the X-Series file dropdown only. Saved Fibre Channel files remain available to "
-                 "Validate and Deploy even when hidden; no files are deleted.").classes("muted text-sm")
+        controls = ui.column().classes("w-full gap-1")
+        controls.move(workbench.body, 0)
+        with controls:
+            ui.checkbox("Use Fibre Channel policies", value=show_fc, on_change=toggle_fc)
+            ui.label("Controls the X-Series file dropdown only. Saved Fibre Channel files remain available to "
+                     "Validate and Deploy even when hidden; no files are deleted.").classes("muted text-sm")
     server_generators()
 
 

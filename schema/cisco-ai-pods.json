@@ -4189,7 +4189,7 @@
                     "x-intersight-uri": "ntp/Policies"
                 },
                 "pcie_connectivity": {
-                    "description": "Maps server CPUs to GPUs and optional SmartNICs.\n\nRequired Attributes:\n  * `name`\n  * `mappings` (one or two entries, each requiring `cpus`)\n\nOptional Attributes:\n  * `description`\n  * `gpu_model` (defaults to Any)\n  * `tags`\n\nEach mapping optionally accepts `gpu_quantity` (defaults to 1) and `smart_nic`.",
+                    "description": "Maps server CPUs to GPUs and optional SmartNICs.\n\nRequired Attributes:\n  * `name`\n  * `mappings` (one or two entries, each requiring `cpu_id`)\n\nOptional Attributes:\n  * `description`\n  * `gpu_model` (defaults to Any)\n  * `tags`\n\nEach mapping optionally accepts `gpu_quantity` (defaults to 1) and `smart_nic`.",
                     "items": {
                         "$ref": "#/definitions/intersight.policies.pcie_connectivity"
                     },
@@ -21820,7 +21820,7 @@
                             "x-intersight-api": "Model"
                         },
                         "mappings": {
-                            "description": "One or two CPU-to-GPU mappings, optionally including one SmartNIC per mapping.",
+                            "description": "One or two CPU-to-GPU mappings.\n\nRequired Attributes (per mapping):\n  * `cpu_id` - any, 1, or 2\n\nOptional Attributes (per mapping):\n  * `gpu_quantity` - 1 or 2; defaults to 1\n  * `smart_nic` - omit to select no SmartNIC",
                             "items": {
                                 "$ref": "#/definitions/intersight.policies.pcie_connectivity.mappings"
                             },
@@ -21853,15 +21853,16 @@
         },
         "intersight.policies.pcie_connectivity.mappings": {
             "additionalProperties": false,
+            "description": "A CPU-to-GPU mapping.\n\nRequired Attributes:\n  * `cpu_id` - any, 1, or 2\n\nOptional Attributes:\n  * `gpu_quantity` - 1 or 2; defaults to 1\n  * `smart_nic` - omit to select no SmartNIC",
             "properties": {
-                "cpus": {
+                "cpu_id": {
                     "description": "CPU selector: any, 1, or 2. Numeric CPU IDs are written as YAML integers.",
                     "enum": [
                         "any",
                         1,
                         2
                     ],
-                    "title": "cpus - CPUs",
+                    "title": "cpu_id - CPU ID",
                     "type": [
                         "string",
                         "integer"
@@ -21892,7 +21893,7 @@
                 }
             },
             "required": [
-                "cpus"
+                "cpu_id"
             ],
             "title": "pcie_connectivity.mappings - PCIe Mapping",
             "type": "object",
@@ -39482,5 +39483,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.10"
+    "x-schema-version": "v0.1.11"
 }

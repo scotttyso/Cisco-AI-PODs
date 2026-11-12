@@ -408,7 +408,7 @@ class Workbench:
             return
         first = next(iter(self.specs))
         text, origin = self.load(first)
-        with collapsible(title, "data_object", value=expanded):
+        with collapsible(title, "data_object", value=expanded) as self.body:
             with ui.row().classes("toolbar"):
                 with ui.row().classes("items-center gap-3"):
                     self.selector = ui.select(self.options(), value=first,
