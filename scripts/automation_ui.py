@@ -53,6 +53,9 @@ APP_DIR = Path(os.environ.get("AI_PODS_APP_DIR", Path(__file__).resolve().parent
 MEDIA_DIR = Path(os.environ.get("AI_PODS_MEDIA_DIR", "/var/www/html/os-images"))
 SCHEMA_PATH = Path(os.environ.get("AI_PODS_SCHEMA", DEFAULT_SCHEMA))
 BUNDLED_SCHEMA = Path(os.environ.get("AI_PODS_BUNDLED_SCHEMA", REPOSITORY_ROOT / "schema/cisco-ai-pods.json"))
+SCHEMA_URI = f"{SCHEMA_ROUTE}/{BUNDLED_SCHEMA.name}"
+if BUNDLED_SCHEMA.is_file():
+    SCHEMA_URI += f"?v={BUNDLED_SCHEMA.stat().st_mtime_ns}"
 DEPLOYMENTS_DIR = Path(os.environ.get("AI_PODS_DEPLOYMENTS_DIR", APP_DIR / "deployments"))
 VAULT_PASSWORD_FILE = Path(os.environ.get("AI_PODS_VAULT_PASSWORD_FILE",
                                           Path.home() / ".config/cisco-ai-pods/vault-password"))
@@ -64,7 +67,7 @@ GIT_ASKPASS = REPOSITORY_ROOT / "scripts/git_askpass.sh"
 ENVIRONMENTS = EnvironmentManager(
     DEPLOYMENTS_DIR, APP_DIR, VAULT_PASSWORD_FILE, lambda settings: validate_shared_services(settings, SCHEMA_PATH),
     UiContext(store=None, repository=REPOSITORY_ROOT, output_dir=DEPLOYMENTS_DIR, schema_path=BUNDLED_SCHEMA,
-              schema_uri=f"{SCHEMA_ROUTE}/{BUNDLED_SCHEMA.name}", media_dir=MEDIA_DIR))
+              schema_uri=SCHEMA_URI, media_dir=MEDIA_DIR))
 RECOMMENDED_NO_PROXY = ("localhost", "127.0.0.1", ".cluster.local", ".svc.cluster.local", "198.18.0.0/16")
 LDAP_INPUTS = (("url", "LDAP URL", "ldaps://ad.example.com:636"), ("base_dn", "Base DN", "DC=example,DC=com"),
                ("bind_dn", "Bind DN", "CN=Service Account,OU=Service Accounts,DC=example,DC=com"),

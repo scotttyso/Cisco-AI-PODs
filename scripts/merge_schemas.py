@@ -2,7 +2,10 @@
 
 import argparse
 import json
+import os
 import posixpath
+import stat
+import tempfile
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -44,7 +47,10 @@ def load_sources(source_dir):
     for path in sorted(source_dir.rglob("*.json")):
         relative_path = path.relative_to(source_dir).as_posix()
         with path.open(encoding="utf-8") as stream:
-            documents[relative_path] = json.load(stream)
+            try:
+                documents[relative_path] = json.load(stream)
+            except json.JSONDecodeError as error:
+                raise ValueError(f"Invalid JSON in schema source {path}: {error}") from error
     if ROOT_FILE not in documents:
         raise ValueError(f"Missing composition root: {source_dir / ROOT_FILE}")
     return documents
@@ -245,9 +251,19 @@ def main():
     documents = load_sources(args.source_dir)
     bundle = build_bundle(documents)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as stream:
-        json.dump(bundle, stream, indent=4, ensure_ascii=False)
-        stream.write("\n")
+    mode = stat.S_IMODE(args.output.stat().st_mode) if args.output.exists() else 0o644
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{args.output.name}.", dir=args.output.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            os.fchmod(stream.fileno(), mode)
+            json.dump(bundle, stream, indent=4, ensure_ascii=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(args.output)
+    finally:
+        temporary.unlink(missing_ok=True)
     print(f"Wrote {args.output} with {len(bundle['definitions'])} definitions")
 
 

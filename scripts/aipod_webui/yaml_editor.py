@@ -21,7 +21,7 @@ def register_static(schema_bundle: Path) -> None:
         return
     app.add_static_files(STATIC_ROUTE, STATIC_DIR)
     if schema_bundle.is_file():
-        app.add_static_file(local_file=schema_bundle, url_path=f"{SCHEMA_ROUTE}/{schema_bundle.name}")
+        app.add_static_file(local_file=schema_bundle, url_path=f"{SCHEMA_ROUTE}/{schema_bundle.name}", max_cache_age=0)
     _REGISTERED["static"] = True
 
 

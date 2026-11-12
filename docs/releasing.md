@@ -7,13 +7,32 @@ Releases are created from version tags, not from every push to `main`. The
 `vMAJOR.MINOR.PATCH` (optionally with a pre-release suffix such as `-rc.1`),
 that `VERSION` and the bundled schema's `x-schema-version` match the tag, and that
 the tagged commit is on `main`. It then
-runs the appliance updater and WebUI tests and publishes a GitHub release with
+runs schema reference checks and the appliance updater, WebUI, and schema tests,
+then publishes a GitHub release with
 generated notes. Tags with a suffix are published as pre-releases and are not
 offered by the WebUI update check.
 
 After changing VERSION, regenerate the bundled schema with
 `python scripts/merge_schemas.py` and commit it with the release changes.
 The bundler reads VERSION for `x-schema-version`; runtime Intersight release tags read VERSION directly.
+It replaces the output atomically after writing the complete bundle, preserving an
+existing output's permissions (or using `0644` for a new file). Invalid source JSON
+is reported with its path and leaves the previous bundle unchanged. Repair damaged
+source files from the installed release before regenerating; regenerating cannot
+repair empty source schemas.
+
+The WebUI serves schemas with immediate cache revalidation and uses a
+modification-time query parameter to avoid old cached responses after a restart.
+Normal editor assets retain their existing cache policy.
+
+Validate the regenerated bundle before publishing:
+
+```bash
+python scripts/check_schema_refs.py
+python -m pytest tests/test_workspace_settings.py -q
+```
+
+These checks cover reference targets and schema validity, including malformed regex patterns that can break YAML validation.
 
 Before tagging, merge reviewed changes to `main`, run the tests, and set
 `VERSION` to the exact tag you plan to publish:

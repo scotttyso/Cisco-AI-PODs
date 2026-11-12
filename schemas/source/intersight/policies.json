@@ -13801,7 +13801,7 @@
                     ],
                     "maxLength": 31,
                     "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9\\-\\._:]*${1,31}",
+                    "pattern": "^[a-zA-Z0-9\\-\\._:]{1,31}$",
                     "title": "cdn_value",
                     "type": "string",
                     "x-intersight-api": "$ref:Cdn:vnic.Cdn:Value"
