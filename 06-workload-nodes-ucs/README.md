@@ -6,6 +6,24 @@ Scope is hardware-level only: UCS domain Device Console, CIMC, or Cisco BMC 4.0 
 
 Schema: [`schemas/workload-nodes-ucs.schema.json`](../schemas/workload-nodes-ucs.schema.json).
 
+## Recommended server firmware
+
+On **Intersight > UCS Servers**, use **Automation > Tools > Get recommended
+firmware**, then **Refresh results** in **Recommended server firmware**.
+The read-only lookup uses the saved Intersight API credentials and server PIDs
+from Initial Inventory: UCS X-Series compute nodes use FI-attached recommendations;
+UCS C-Series standalone servers use standalone recommendations. HGX nodes are
+managed separately over Redfish and are not included.
+
+The Python lookup queries `firmware/Distributables` for `RecommendedBuild eq 'Y'`
+and the applicable server `ImageType`, matching `SupportedModels` to inventory
+PIDs (including hardware variant suffixes). It displays all recommended versions,
+reports missing recommendations explicitly, and stores the last successful
+result with its UTC timestamp in the environment output directory. New inventory
+models show **Not fetched** until another lookup. A failed lookup leaves the
+previous timestamped result intact; see the Automation log for the failure.
+Nothing is installed, and firmware policies are not changed automatically.
+
 ## HGX server BMC settings
 
 C880A and C885A BMCs are configured over Redfish by

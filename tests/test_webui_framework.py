@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -777,7 +778,63 @@ class UploadTest(unittest.TestCase):
         self.assertEqual(len(servers.upload_dirs), len(servers.file_groups))
         self.assertTrue(all(folder.startswith("intersight/servers/") for folder in servers.upload_dirs))
         self.assertIs(servers.secrets_header, custom_pages.policy_secrets_selector)
-        self.assertIsNone(servers.form)
+        self.assertIs(servers.form, pages.firmware_summary)
+
+    def test_recommended_firmware_action_uses_inventory_models_without_deploy_files(self):
+        from types import SimpleNamespace
+        rows = [{"hostname": "blade-1", "pid": "UCSX-210C-M7"},
+                {"hostname": "blade-2", "pid": "ucsx-210c-m7"},
+                {"hostname": "rack-1", "pid": "UCSC-C240-M7S"},
+                {"hostname": "hgx-1", "pid": "UCSC-C885A-M8"},
+                {"hostname": "chassis", "pid": "UCSX-9508"}]
+        context = SimpleNamespace(repository=REPOSITORY, output_dir=Path("/saved"), python=lambda: "python",
+                                  store=SimpleNamespace(inventory=lambda: rows))
+        action = pages.RECOMMENDED_FIRMWARE
+        command = action.build(panels.RunContext(context, "intersight-servers", {}, {}))[0]
+        self.assertEqual(command[2:], [
+            "--model", "FIAttached=UCSX-210C-M7", "--model", "Standalone=UCSC-C240-M7S",
+            "--output", "/saved/firmware/intersight.json"])
+        self.assertEqual(action.secrets, pages.INTERSIGHT_KEYS)
+        self.assertFalse(action.files)
+        self.assertIn(action, pages.PAGES["intersight-servers"].actions)
+        self.assertNotIn(action, pages.PAGES["intersight-domains"].actions)
+        rows[0]["pid"] = ""
+        rows[0]["role"] = "ucs-blade"
+        with self.assertRaisesRegex(ValueError, "Set the PID.*blade-1"):
+            action.build(panels.RunContext(context, "intersight-servers", {}, {}))
+        rows.clear()
+        with self.assertRaisesRegex(ValueError, "No UCS servers"):
+            pages.server_firmware_models(rows)
+
+    def test_firmware_panel_shows_current_models_and_timestamped_results(self):
+        from types import SimpleNamespace
+        rows = [{"hostname": "blade-1", "pid": "UCSX-210C-M7"},
+                {"hostname": "rack-1", "pid": "UCSC-C240-M7S"}]
+        with tempfile.TemporaryDirectory() as directory:
+            context = SimpleNamespace(output_dir=Path(directory),
+                                      store=SimpleNamespace(inventory=lambda: rows))
+            label, displayed = pages.firmware_summary_data(context)
+            self.assertIn("No recommendations", label)
+            self.assertTrue(all(row["firmware"] == "Not fetched" for row in displayed))
+            report = Path(directory) / "firmware/intersight.json"
+            report.parent.mkdir()
+            report.write_text(json.dumps({
+                "collected": "2026-11-12T12:00:00+00:00", "source": "https://intersight.com",
+                "models": [{"model": "UCSX-210C-M7", "platform": "FIAttached", "versions": ["6.0(1a)"]},
+                           {"model": "UCSC-C240-M7S", "platform": "Standalone", "versions": []},
+                           {"model": "UCSC-C220-M6", "platform": "Standalone", "versions": ["4.3(5a)"]}]}))
+            label, displayed = pages.firmware_summary_data(context)
+            self.assertIn("2026-11-12T12:00:00+00:00", label)
+            self.assertEqual([row["firmware"] for row in displayed], ["6.0(1a)", "No recommended build found"])
+            rows.append({"hostname": "rack-2", "pid": "UCSC-C220-M8"})
+            _label, displayed = pages.firmware_summary_data(context)
+            self.assertEqual(next(row["firmware"] for row in displayed if row["model"] == "UCSC-C220-M8"),
+                             "Not fetched")
+            for content in ("null", "{}", '{"collected":', json.dumps({
+                    "collected": "now", "source": "https://intersight.com", "models": [{"versions": "bad"}]})):
+                report.write_text(content)
+                with self.assertRaises(ValueError):
+                    pages.firmware_summary_data(context)
 
 
 class CertificateTest(unittest.TestCase):

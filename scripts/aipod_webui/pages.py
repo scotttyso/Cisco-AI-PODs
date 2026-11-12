@@ -228,6 +228,76 @@ def domain_connectivity(rc: RunContext) -> list[list[str]]:
                    "--domains-dir", str(rc.ui.host_vars_dir / "intersight/domains"))]
 
 
+def server_firmware_models(rows: list[dict]) -> list[tuple[str, str]]:
+    servers = seeds.by_role(rows, "ucs-blade", "ucs-server")
+    if not servers:
+        raise ValueError("No UCS servers in the initial inventory")
+    missing = [row["hostname"] for row in servers if not str(row.get("pid") or "").strip()]
+    if missing:
+        raise ValueError("Set the PID in Initial Inventory for: " + ", ".join(missing))
+    return sorted({("FIAttached" if seeds.row_role(row) == "ucs-blade" else "Standalone",
+                    str(row["pid"]).strip().upper()) for row in servers})
+
+
+def recommended_firmware(rc: RunContext) -> list[list[str]]:
+    arguments = []
+    for platform, model in server_firmware_models(rc.ui.store.inventory()):
+        arguments += ["--model", f"{platform}={model}"]
+    return [script(rc, "05-mgmt-nodes-ucs/automation/scripts/get_recommended_firmware.py", *arguments,
+                   "--output", str(rc.ui.output_dir / "firmware/intersight.json"))]
+
+
+def firmware_summary_data(context: UiContext) -> tuple[str, list[dict]]:
+    models = server_firmware_models(context.store.inventory())
+    path = context.output_dir / "firmware/intersight.json"
+    report = None
+    versions = {}
+    if path.is_file():
+        report = json.loads(path.read_text(encoding="utf-8"))
+        if (not isinstance(report, dict) or not isinstance(report.get("collected"), str)
+                or not isinstance(report.get("source"), str) or not isinstance(report.get("models"), list)):
+            raise ValueError("Invalid saved firmware report; run Get recommended firmware again")
+        for row in report["models"]:
+            if (not isinstance(row, dict) or not isinstance(row.get("model"), str)
+                    or row.get("platform") not in ("FIAttached", "Standalone")
+                    or not isinstance(row.get("versions"), list)
+                    or any(not isinstance(version, str) or not version for version in row["versions"])):
+                raise ValueError("Invalid saved firmware report; run Get recommended firmware again")
+            versions[(row["platform"], row["model"])] = row["versions"]
+    rows = []
+    for platform, model in models:
+        found = versions.get((platform, model))
+        rows.append({"id": f"{platform}={model}", "model": model, "platform": platform,
+                     "firmware": ("Not fetched" if found is None else ", ".join(found)
+                                  if found else "No recommended build found")})
+    label = (f"Last successful lookup: {report['collected']} - {report['source']}" if report is not None
+             else "No recommendations fetched yet.")
+    return label, rows
+
+
+def firmware_summary(handle: PageHandle) -> None:
+    with collapsible("Recommended server firmware", "system_update") as container:
+        def render() -> None:
+            container.clear()
+            with container:
+                ui.label("Use Automation > Tools > Get recommended firmware, then Refresh results. "
+                         "Uses Initial Inventory PIDs: X-Series is FI-attached; C-Series is standalone. "
+                         "Shows all Cisco-recommended versions; no firmware policies are changed.").classes(
+                             "muted text-sm")
+                try:
+                    label, rows = firmware_summary_data(handle.context)
+                except (OSError, ValueError) as error:
+                    ui.label(str(error)).classes("text-warning")
+                else:
+                    ui.label(label).classes("muted text-sm")
+                    ui.table(columns=[{"name": name, "label": title, "field": name, "align": "left"}
+                                      for name, title in (("model", "Inventory PID"), ("platform", "Management mode"),
+                                                          ("firmware", "Recommended firmware"))],
+                             rows=rows, row_key="id").props("dense flat").classes("w-full")
+                ui.button("Refresh results", icon="refresh", on_click=render).props("flat dense")
+        render()
+
+
 DOMAIN_CONNECTIVITY = Action(
     "domain-connectivity", "Validate domain uplink connectivity", "lan", domain_connectivity,
     group="Post-check", secrets=INTERSIGHT_KEYS, files=False,
@@ -238,6 +308,11 @@ DOMAIN_CONNECTIVITY = Action(
 INTERSIGHT_MACS = Action("macs-intersight", "Collect MACs from Intersight", "settings_ethernet", collect_intersight_macs,
                          group="Tools", secrets=INTERSIGHT_KEYS, files=False,
                          tooltip="Read vNIC / adapter MACs from the server profiles; OpenShift pages pre-fill from them.")
+RECOMMENDED_FIRMWARE = Action(
+    "recommended-firmware", "Get recommended firmware", "system_update", recommended_firmware,
+    group="Tools", secrets=INTERSIGHT_KEYS, files=False,
+    tooltip="Read Cisco-recommended firmware for Initial Inventory server PIDs. Does not install firmware "
+            "or change policies. Refresh the Recommended server firmware panel after the lookup.")
 REDFISH_MACS = Action("macs-redfish", "Collect MACs from BMC Redfish", "developer_board", collect_redfish_macs,
                       group="Tools", secrets=("*",), inventory=True, files=False,
                       tooltip="Read NIC MACs from the CIMC / BMC Redfish API of standalone and HGX servers.")
@@ -608,7 +683,7 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
                f"(host_vars/intersight/{scope}/), then deploys the profiles. "
                "Organizations and resource groups are not changed; deploy them from System (Orgs) first."),
         DOMAIN_CONNECTIVITY if scope == "domains" else INTERSIGHT_MACS,
-    )
+    ) + ((RECOMMENDED_FIRMWARE,) if scope == "servers" else ())
 
 
 def hgx_secrets(handle: PageHandle) -> list[SecretField]:
@@ -809,6 +884,7 @@ SECTIONS = (
                          intersight_file("servers/standalone/templates.ezai.yaml"),
                          intersight_file("servers/standalone/profiles.ezai.yaml", "server_profiles")))),
                  actions=intersight_actions("servers", "server"), secrets=intersight_secrets,
+                 form=firmware_summary,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/servers/x-series/uploads", "intersight/servers/standalone/uploads"),
                  notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "
