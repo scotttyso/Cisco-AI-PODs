@@ -69,11 +69,14 @@ deployment. Automation activates those changes and waits for the activation work
 before synchronizing templates. A rerun resumes activation without redeploying if
 there are no further configuration changes. Other inconsistencies and failure states
 still stop the run. Activation can reboot the server.
+Activation monitoring reads workflow results directly rather than caching them as
+configuration resources; workflow failures and timeouts still stop the run.
 
 ### API debug logging
 
 On **System (Orgs)**, **UCS Domains**, and **UCS Servers**, use
-**Intersight troubleshooting > API debug level** before **Validate** or **Deploy**.
+**Automation > Intersight troubleshooting > API debug level** before **Validate** or **Deploy**.
+The troubleshooting panel is collapsed by default inside Automation.
 The selection is saved per page and environment; the default is **0 - Off**.
 Select **7 - Full API debug** for the equivalent of `-dl 7`. Output appears in
 the normal run log and its downloads:

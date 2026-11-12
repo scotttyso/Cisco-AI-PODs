@@ -2867,6 +2867,7 @@ class configure:
     def profiles_server_activate(self, kwargs):
         pcolor.LightPurple(f'\n{"-" * 108}\n')
         profile_api = api(category=self.category, type=self.type)
+        workflow_api = api(category='workflows', type='workflows')
         profile_keys = list(kwargs.profile_update.keys())
         active_profiles = [
             e for e in profile_keys if kwargs.profile_update[e].pending_changes != 'Empty']
@@ -2911,9 +2912,10 @@ class configure:
             str2 = " and WorkflowCtx.WorkflowType eq 'Activate'"
             kwargs = kwargs | DotMap(
                 api_filter=str1 + str2,
+                build_skip=True,
                 method='get',
                 uri='workflow/WorkflowInfos')
-            kwargs = api('workflows').calls(kwargs)
+            kwargs = workflow_api.calls(kwargs)
             activate_results = sorted(
                 kwargs.results,
                 key=itemgetter('CreateTime'),
@@ -2954,10 +2956,9 @@ class configure:
                         continue
                     if retry_count > 0:
                         kwargs = kwargs | DotMap(
-                            method='get_by_moid', pmoid=active_result.Moid)
-                        kwargs = api(
-                            category='profiles',
-                            type='workflows').calls(kwargs)
+                            build_skip=True, method='get_by_moid', pmoid=active_result.Moid,
+                            uri='workflow/WorkflowInfos')
+                        kwargs = workflow_api.calls(kwargs)
                         active_result = kwargs.results
                     status = active_result.get('WorkflowStatus')
                     if status == 'Completed':

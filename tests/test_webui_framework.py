@@ -772,6 +772,31 @@ class UploadTest(unittest.TestCase):
         options.kwargs["on_change"](SimpleNamespace(value=0))
         handle.save_state.assert_called_once_with({"debug_level": 0})
 
+    def test_intersight_troubleshooting_is_collapsed_inside_automation(self):
+        from types import SimpleNamespace
+        specs = {spec.key: spec for section in pages.SECTIONS for spec in section.pages}
+        for key in ("intersight-system", "intersight-domains", "intersight-servers"):
+            with self.subTest(page=key):
+                spec = specs[key]
+                self.assertIsNot(spec.form, pages.intersight_debug_form)
+                handle = Mock()
+                handle.state.return_value = {"debug_level": 7}
+                jobs = Mock(limit=25)
+                jobs.history.return_value = []
+                with panels.ui.column() as container, patch.object(panels.ui, "timer"):
+                    panels.JobConsole(SimpleNamespace(jobs=jobs), key, spec.actions, handle.state,
+                                      header=lambda: spec.automation_form(handle))
+                try:
+                    automation = container.default_slot.children[0]
+                    self.assertEqual(automation._props["label"], "Automation")
+                    troubleshooting = automation.default_slot.children[0].default_slot.children[0]
+                    self.assertEqual(troubleshooting._props["label"], "Intersight troubleshooting")
+                    self.assertFalse(troubleshooting.value)
+                    selector = troubleshooting.default_slot.children[0].default_slot.children[0]
+                    self.assertEqual(selector.value, 7)
+                finally:
+                    container.delete()
+
     def test_domain_actions_use_connectivity_and_keep_macs_on_servers(self):
         domains = pages.intersight_actions("domains", "domain")
         servers = pages.intersight_actions("servers", "server")

@@ -70,6 +70,7 @@ class PageSpec:
     actions: tuple[Action, ...] = ()
     secrets: Callable[["PageHandle"], list[SecretField]] | None = None
     form: Callable[["PageHandle"], None] | None = None
+    automation_form: Callable[["PageHandle"], None] | None = None
     on_save: Callable[["PageHandle", str, str], None] | None = None
     notes: tuple[str, ...] = ()
     group: str = ""
@@ -350,7 +351,6 @@ def server_generators() -> None:
 
 
 def server_form(handle: PageHandle) -> None:
-    intersight_debug_form(handle)
     firmware_summary(handle)
     if isinstance(handle.workbench, Workbenches):
         fc_targets = {"intersight/" + path for path in SERVER_FC_FILES}
@@ -724,8 +724,7 @@ def everpure_secrets(handle: PageHandle) -> list[SecretField]:
 
 
 def intersight_debug_form(handle: PageHandle) -> None:
-    with ui.card().classes("w-full"):
-        ui.label("Intersight troubleshooting").classes("section-title")
+    with collapsible("Intersight troubleshooting", "bug_report", value=False):
         ui.select(
             {0: "0 - Off", 1: "1 - Response status", 5: "5 - Status and URLs",
              6: "6 - URLs, response headers and request payloads", 7: "7 - Full API debug (includes response bodies)"},
@@ -930,7 +929,7 @@ SECTIONS = (
                                  "system.ezai.yaml (organizations and resource groups)"),),
                  actions=intersight_actions("system", "system"), secrets=lambda handle: [INTERSIGHT_KEY_ID,
                                                                                          INTERSIGHT_SECRET_KEY],
-                 form=intersight_debug_form,
+                 automation_form=intersight_debug_form,
                  upload_dirs=("intersight/system/uploads",),
                  notes=("The default resource group is built in and always holds every target; it is not changed. A "
                         "target listed under another resource group is left out of the regenerated default list.",
@@ -948,7 +947,7 @@ SECTIONS = (
                         intersight_file("domains/templates.ezai.yaml"),
                         intersight_file("domains/profiles.ezai.yaml", "domain_profiles", False)),
                  actions=intersight_actions("domains", "domain"), secrets=intersight_secrets,
-                 form=intersight_debug_form,
+                 automation_form=intersight_debug_form,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/domains/uploads",),
                  notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "
@@ -979,6 +978,7 @@ SECTIONS = (
                          intersight_file("servers/standalone/profiles.ezai.yaml", "server_profiles")))),
                  actions=intersight_actions("servers", "server"), secrets=intersight_secrets,
                  form=server_form,
+                 automation_form=intersight_debug_form,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/servers/x-series/uploads", "intersight/servers/standalone/uploads"),
                  notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "
@@ -1167,7 +1167,8 @@ def stage_page(context: UiContext, spec: PageSpec) -> PageHandle:
     JobConsole(context, spec.key, spec.actions, handle.state, workbench.ready if workbench else None,
                handle.credentials,
                (lambda: {key: path for key, path in workbench.saved_paths().items() if path.is_file()})
-               if workbench else None)
+               if workbench else None,
+               header=(lambda: spec.automation_form(handle)) if spec.automation_form else None)
     return handle
 
 

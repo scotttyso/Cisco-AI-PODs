@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [Unreleased]
+
+### Fixed
+- Read activation workflow lookup and polling responses without configuration-object caching, avoiding an unhashable DotMap error while preserving workflow failure checks.
+
+### Changed
+- Move Intersight troubleshooting controls into a collapsed panel inside Automation on System (Orgs), UCS Domains, and UCS Servers; preserve per-page debug settings.
+
 ## [0.1.12] - 2026-11-12
 
 ### Added

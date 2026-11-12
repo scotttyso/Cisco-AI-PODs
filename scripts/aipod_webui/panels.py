@@ -824,7 +824,7 @@ class JobConsole:
 
     def __init__(self, context: UiContext, page: str, actions: tuple[Action, ...], state: Callable[[], dict],
                  ready: Callable | None = None, credentials: CredentialsPanel | None = None,
-                 files: Callable[[], dict[str, Path]] | None = None):
+                 files: Callable[[], dict[str, Path]] | None = None, header: Callable[[], None] | None = None):
         self.context, self.page, self.actions = context, page, {action.key: action for action in actions}
         self.state, self.ready, self.credentials, self.files = state, ready, credentials, files
         self.viewing: Job | None = None
@@ -834,6 +834,8 @@ class JobConsole:
         if not actions:
             return
         with collapsible("Automation", "play_circle", classes="job-console"):
+            if header:
+                header()
             with ui.element("div").classes("action-groups"):
                 for group in GROUPS:
                     members = [action for action in actions if action.group == group]

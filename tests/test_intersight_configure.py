@@ -1698,6 +1698,63 @@ def test_server_not_activated_runs_activation_before_sync(
     assert payloads == expected
 
 
+@pytest.mark.parametrize("terminal_status", ["Completed", "Failed"])
+def test_activation_workflow_lookup_and_polling_use_raw_api_results(monkeypatch, terminal_status):
+    from urllib.parse import parse_qs, urlparse
+
+    api_module = importlib.import_module(module.api.__module__)
+    kwargs = configuration(check=False)
+    kwargs.args.debug_level = 0
+    kwargs.args.url = "https://intersight.example.test"
+    kwargs.api_auth = Mock()
+    kwargs.type_dotmap = DotMap
+    kwargs.names = ["Profile"]
+    kwargs.uri = "server/Profiles"
+    kwargs.profile_update.Profile.pending_changes = "Activate"
+    kwargs.intersight_api[kwargs.org].profiles.server.Profile = DotMap(moid="profile")
+    cache_before = kwargs.intersight_api.toDict()
+    workflow = {
+        "ObjectType": "workflow.WorkflowInfo", "Name": "Activate Profile", "Moid": "workflow",
+        "CreateTime": "2026-11-12T00:00:00Z", "AssociatedObject": {"Moid": "profile"},
+        "WorkflowStatus": "Running", "Progress": 10,
+    }
+    requests = []
+
+    def lookup(_self, _empty, _names, _kind, state):
+        state.results = [DotMap(Name="Profile", ConfigChanges={"PolicyDisruptions": ["reboot"]})]
+        return state
+
+    def get(url, **_options):
+        parsed = urlparse(url)
+        requests.append(parsed.path)
+        params = parse_qs(parsed.query)
+        if "$count" in params:
+            assert "WorkflowCtx.WorkflowType eq 'Activate'" in params["$filter"][0]
+            return Mock(status_code=200, json=lambda: {"Count": 1})
+        if parsed.path.endswith("/workflow"):
+            return Mock(status_code=200, json=lambda: {**workflow, "WorkflowStatus": terminal_status})
+        return Mock(status_code=200, json=lambda: {"Count": 1, "Results": [workflow]})
+
+    patch = Mock(return_value=Mock(status_code=200, json=lambda: {
+        "ObjectType": "server.Profile", "Name": "Profile", "Moid": "profile",
+    }))
+    monkeypatch.setattr(module.configure, "api_get", lookup)
+    monkeypatch.setattr(api_module.requests, "get", get)
+    monkeypatch.setattr(api_module.requests, "patch", patch)
+    monkeypatch.setattr(api_module.notifications, "completed_item", Mock())
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    provision = module.configure(category="profiles", type="server")
+    if terminal_status == "Failed":
+        with pytest.raises(RuntimeError, match="activation failed"):
+            provision.profiles_server_activate(kwargs)
+    else:
+        provision.profiles_server_activate(kwargs)
+    assert requests == ["/api/v1/workflow/WorkflowInfos"] * 2 + ["/api/v1/workflow/WorkflowInfos/workflow"]
+    assert patch.call_count == 1
+    assert kwargs.intersight_api.toDict() == cache_before
+    assert not kwargs.get("build_skip")
+
+
 @pytest.mark.parametrize("overrides", [
     {"InconsistencyReason": ["Not-activated", "Policy-error"]},
     {"InconsistencyReason": []},
