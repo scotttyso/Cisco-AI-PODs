@@ -115,6 +115,73 @@ def test_dependency_api_errors_propagate_in_check_mode(monkeypatch):
         module.configure(category="policies", type="imc_access").configure(kwargs)
 
 
+@pytest.mark.parametrize("resource_type,template_key", [
+    ("domain", "ucs_domain_profile_template"),
+    ("unified_edge", "unified_edge_profile_template"),
+])
+@pytest.mark.parametrize("check", [False, True])
+@pytest.mark.parametrize("exists", [False, True])
+def test_domain_template_dependency_preflight(
+        monkeypatch, capsys, resource_type, template_key, check, exists):
+    kwargs = configuration(check)
+    kwargs.imm_dict.orgs[kwargs.org].profiles[resource_type] = [
+        DotMap({"name": "Domain", template_key: "XDirect", "attach_template": True}),
+    ]
+    kwargs.ezdata[f"intersight.profiles.{resource_type}"] = {
+        "x-intersight-uri": "fabric/SwitchClusterProfiles",
+    }
+    kwargs.ezdata["intersight.templates.domain"] = {
+        "x-intersight-uri": "fabric/SwitchClusterProfileTemplates",
+    }
+    calls = []
+
+    def api_calls(api_self, state):
+        calls.append((api_self.category, list(state.names), state.method))
+        state.results = []
+        if api_self.category == "templates" and exists:
+            state.intersight_api[state.org].templates.domain.XDirect.moid = "template-moid"
+            state.results = [{"Name": "XDirect", "Moid": "template-moid"}]
+        return state
+
+    monkeypatch.setattr(module.api, "calls", api_calls)
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    downstream = Mock(side_effect=lambda state: state)
+    monkeypatch.setattr(module.configure, f"profiles_{resource_type}", downstream)
+    provision = module.configure(category="profiles", type=resource_type)
+    if not exists and not check:
+        with pytest.raises(ValueError, match="Empty API query results"):
+            provision.configure(kwargs)
+        downstream.assert_not_called()
+    else:
+        provision.configure(kwargs)
+        output = " ".join(capsys.readouterr().out.split())
+        if exists:
+            downstream.assert_called_once()
+            assert "deferred payload validation" not in output
+        else:
+            downstream.assert_not_called()
+            assert "deferred payload validation" in output
+            assert "templates/domain: AIPOD-AB_ORG/XDirect" in output
+            assert "No payloads for this resource type were validated or submitted" in output
+    assert calls == [
+        ("profiles", ["Domain"], "get"),
+        ("templates", ["XDirect"], "get"),
+    ]
+
+
+@pytest.mark.parametrize("resource_type,template_key", [
+    ("domain", "ucs_domain_profile_template"),
+    ("unified_edge", "unified_edge_profile_template"),
+])
+def test_domain_template_copy_without_attachment_does_not_require_api_template(resource_type, template_key):
+    kwargs = configuration(check=True)
+    kwargs.cp = DotMap()
+    item = DotMap(name="Domain", attach_template=False, **{template_key: "Local"})
+    item, kwargs = module.configure(category="profiles", type=resource_type).existing_check(item, kwargs)
+    assert item[template_key] == "Local"
+    assert not kwargs.cp
+
+
 def test_vlan_multicast_references_use_policy_name_decoration():
     kwargs = configuration(check=True)
     org = kwargs.org

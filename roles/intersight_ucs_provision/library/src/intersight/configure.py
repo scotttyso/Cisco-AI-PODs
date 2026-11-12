@@ -1120,14 +1120,18 @@ class configure:
         # Handle template reference for chassis/domain/server/unified_edge profiles
         # =====================================================================
         if re.search(r'^(chassis|domain|server|unified_edge)', self.type):
+            domain_templates = {
+                'ucs_domain_profile_template': 'domain',
+                'unified_edge_profile_template': 'domain',
+            }
             template_key = next(
-                (k for k in item if template_regex.match(k)), None)
+                (k for k in item if template_regex.match(k) or (
+                    k in domain_templates and item.get('attach_template', True))), None)
             if template_key and item.get(template_key):
                 m = re.search(r'ucs_(server|chassis)', template_key)
-                if m:
-                    rtype = f'{m.group(1)}'
-                    item, kwargs = resource_list(
-                        template_key, item[template_key], rtype, item, kwargs)
+                rtype = m.group(1) if m else domain_templates[template_key]
+                item, kwargs = resource_list(
+                    template_key, item[template_key], rtype, item, kwargs)
         # =====================================================================
         # Process IP Type Specifically
         # =====================================================================

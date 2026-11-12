@@ -74,3 +74,6 @@ changes are skipped; check mode reports the deployment without submitting it.
   resources in the deployment configuration or create them separately before
   applying, then rerun check mode once they exist. Apply mode still requires
   referenced resources to exist when their dependent payloads are built.
+  This includes attached domain and Unified Edge profile templates: a missing
+  cluster template defers profile payload validation in check mode. Local template
+  copying with `attach_template: false` does not require an API template.
