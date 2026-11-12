@@ -778,7 +778,102 @@ class UploadTest(unittest.TestCase):
         self.assertEqual(len(servers.upload_dirs), len(servers.file_groups))
         self.assertTrue(all(folder.startswith("intersight/servers/") for folder in servers.upload_dirs))
         self.assertIs(servers.secrets_header, custom_pages.policy_secrets_selector)
-        self.assertIs(servers.form, pages.firmware_summary)
+        self.assertIs(servers.form, pages.server_form)
+        targets = {spec.target for _title, files in servers.file_groups for spec in files}
+        self.assertNotIn("intersight/servers/x-series/policies/environment.ezai.yaml", targets)
+        self.assertIn("intersight/servers/standalone/policies/environment.ezai.yaml", targets)
+
+    def test_server_generators_formats_and_transient_ipmi_key(self):
+        from uuid import UUID, RFC_4122
+        fields = {}
+        fake_ui = MagicMock()
+
+        def field(label, **_kwargs):
+            item = MagicMock()
+            item.props.return_value = item
+            item.classes.return_value = item
+            fields[label] = item
+            return item
+
+        fake_ui.input.side_effect = field
+        with patch.object(pages, "ui", fake_ui), \
+                patch.object(pages, "collapsible", return_value=MagicMock()), \
+                patch.object(pages.secrets, "token_hex", return_value="a1" * 20) as token_hex, \
+                patch("logging.Logger._log") as log, \
+                patch("sys.stdout", new_callable=io.StringIO) as stdout, \
+                patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            pages.server_generators()
+            callbacks = {call.args[0]: call.kwargs["on_click"] for call in fake_ui.button.call_args_list}
+            callbacks["Generate MAC address"]()
+            callbacks["Generate WWN"]()
+            self.assertRegex(fields["MAC address"].set_value.call_args.args[0],
+                             r"^00:25:B5(?::[0-9A-F]{2}){3}$")
+            self.assertRegex(fields["WWN"].set_value.call_args.args[0],
+                             r"^20:00:00:25:B5(?::[0-9A-F]{2}){3}$")
+            callbacks["Generate UUID prefix and block"]()
+            prefix = fields["UUID prefix"].set_value.call_args.args[0]
+            block = fields["UUID block From"].set_value.call_args.args[0]
+            self.assertRegex(prefix, r"^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}$")
+            self.assertRegex(block, r"^[0-9A-F]{4}-[0-9A-F]{12}$")
+            generated_uuid = UUID(prefix + "-" + block)
+            self.assertEqual(generated_uuid.version, 4)
+            self.assertEqual(generated_uuid.variant, RFC_4122)
+            callbacks["Generate IPMI key"]()
+            token_hex.assert_called_once_with(20)
+            key = fields["Generated IPMI encryption key"].set_value.call_args.args[0]
+            self.assertRegex(key, r"^[0-9A-F]{40}$")
+            self.assertEqual(len(key) % 2, 0)
+            callbacks["Clear key"]()
+            fields["Generated IPMI encryption key"].set_value.assert_called_with("")
+            key_input = next(call for call in fake_ui.input.call_args_list
+                             if call.args[0] == "Generated IPMI encryption key")
+            self.assertTrue(key_input.kwargs["password"])
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            log.assert_not_called()
+            fake_ui.notify.assert_not_called()
+
+    def test_fibre_channel_checkbox_filters_dropdown_without_changing_saved_files(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            workbench = object.__new__(panels.Workbench)
+            workbench.context = SimpleNamespace(host_vars_dir=Path(directory))
+            files = pages.PAGES["intersight-servers"].file_groups[0][1]
+            workbench.specs = {spec.target: spec for spec in files}
+            workbench.hidden_targets = set()
+            first = next(iter(workbench.specs))
+            workbench.selector = Mock(value=first)
+            fc_targets = {"intersight/" + path for path in pages.SERVER_FC_FILES}
+            saved_target = sorted(fc_targets)[0]
+            saved = workbench.path(saved_target)
+            saved.parent.mkdir(parents=True)
+            saved.write_text("intersight: {}\n")
+            saved_paths = workbench.saved_paths()
+            group = object.__new__(panels.Workbenches)
+            group.items = [workbench]
+            handle = Mock(workbench=group)
+            handle.state.return_value = {}
+            with patch.object(pages, "ui") as ui_mock, patch.object(panels, "ui") as panel_ui, \
+                    patch.object(pages, "firmware_summary"), patch.object(pages, "server_generators"):
+                pages.server_form(handle)
+                self.assertFalse(fc_targets.intersection(workbench.options()))
+                self.assertFalse(ui_mock.checkbox.call_args.kwargs["value"])
+                toggle = ui_mock.checkbox.call_args.kwargs["on_change"]
+                toggle(SimpleNamespace(value=True, sender=Mock()))
+                self.assertTrue(fc_targets.issubset(workbench.options()))
+                handle.save_state.assert_called_with({"show_fibre_channel": True})
+                toggle(SimpleNamespace(value=False, sender=Mock()))
+                self.assertFalse(fc_targets.intersection(workbench.options()))
+                handle.save_state.assert_called_with({"show_fibre_channel": False})
+                self.assertEqual(workbench.saved_paths(), saved_paths)
+                self.assertEqual(saved.read_text(), "intersight: {}\n")
+                toggle(SimpleNamespace(value=True, sender=Mock()))
+                workbench.selector.value = saved_target
+                sender = Mock()
+                toggle(SimpleNamespace(value=False, sender=sender))
+                sender.set_value.assert_called_once_with(True)
+                self.assertIn(saved_target, workbench.options())
+                panel_ui.notify.assert_called_once()
 
     def test_recommended_firmware_action_uses_inventory_models_without_deploy_files(self):
         from types import SimpleNamespace

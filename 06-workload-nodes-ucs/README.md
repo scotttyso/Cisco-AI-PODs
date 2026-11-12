@@ -24,6 +24,35 @@ models show **Not fetched** until another lookup. A failed lookup leaves the
 previous timestamped result intact; see the Automation log for the failure.
 Nothing is installed, and firmware policies are not changed automatically.
 
+## Server pool and key tools
+
+The UCS Servers page includes **Server pool and key generators**:
+
+- MAC starting addresses use `00:25:B5` followed by three random bytes.
+- WWNs use `20:00:00:25:B5` followed by three random bytes.
+- A random UUID is split into the hexadecimal **UUID prefix** (`8-4-4`) and
+  **UUID block From** (`4-12`) fields.
+- IPMI encryption keys use 40 hexadecimal characters from a cryptographically
+  secure generator. The key is transient, masked until revealed, and never
+  written to page state, the vault, or automation logs by this tool. Copy it
+  to secure storage before leaving the page, or use **Clear key** to remove it.
+  `00` disables encryption; shorter, even-length hexadecimal keys require
+  right-padding with zeroes to 40 characters when used by IPMI clients.
+
+Generated values are not automatically inserted into YAML or reserved in
+Intersight. Check existing pool ranges for overlaps before using them.
+
+**Use Fibre Channel policies** controls whether the X-Series
+dropdown lists `fibre_channel_pools.ezai.yaml`, `fibre_channel.ezai.yaml`, and
+`san_connectivity.ezai.yaml`. This preference is saved per environment. It
+only changes dropdown visibility: saved FC files remain available to
+Validate and Deploy, and are not deleted. Select a non-FC file before
+unchecking the option if an FC file is open, so unsaved edits are preserved.
+
+X-Series power and thermal policies now live in `policies/compute.ezai.yaml`;
+the removed X-Series `policies/environment.ezai.yaml` is no longer listed.
+The separate standalone environment file is unchanged.
+
 ## HGX server BMC settings
 
 C880A and C885A BMCs are configured over Redfish by

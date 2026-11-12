@@ -9,9 +9,11 @@ import hashlib
 import ipaddress
 import json
 import re
+import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
+from uuid import uuid4
 
 import yaml
 from nicegui import run, ui
@@ -296,6 +298,75 @@ def firmware_summary(handle: PageHandle) -> None:
                              rows=rows, row_key="id").props("dense flat").classes("w-full")
                 ui.button("Refresh results", icon="refresh", on_click=render).props("flat dense")
         render()
+
+
+SERVER_FC_FILES = (
+    "servers/x-series/pools/fibre_channel_pools.ezai.yaml",
+    "servers/x-series/policies/fibre_channel.ezai.yaml",
+    "servers/x-series/policies/san_connectivity.ezai.yaml",
+)
+
+
+def random_cisco_address(prefix: str) -> str:
+    return prefix + ":" + ":".join(f"{octet:02X}" for octet in secrets.token_bytes(3))
+
+
+def server_generators() -> None:
+    with collapsible("Server pool and key generators", "build", value=False):
+        ui.label("Generate starting values to copy into pools. Check for overlaps with existing pools before use; "
+                 "these tools do not reserve addresses or change configuration.").classes("muted text-sm")
+        for label, prefix in (("MAC address", "00:25:B5"), ("WWN", "20:00:00:25:B5")):
+            with ui.row().classes("w-full items-center gap-3"):
+                field = ui.input(label).props("readonly outlined dense").classes("grow font-mono")
+                ui.button(f"Generate {label}", icon="casino",
+                          on_click=lambda field=field, prefix=prefix: field.set_value(random_cisco_address(prefix)))
+        with ui.row().classes("w-full items-center gap-3"):
+            uuid_prefix = ui.input("UUID prefix").props("readonly outlined dense").classes("grow font-mono")
+            uuid_block = ui.input("UUID block From").props("readonly outlined dense").classes("grow font-mono")
+
+            def generate_uuid() -> None:
+                parts = str(uuid4()).upper().split("-")
+                uuid_prefix.set_value("-".join(parts[:3]))
+                uuid_block.set_value("-".join(parts[3:]))
+
+            ui.button("Generate UUID prefix and block", icon="casino", on_click=generate_uuid)
+        ui.separator()
+        ui.label("IPMI keys are sensitive. Generated keys contain 40 hexadecimal characters and are shown only here, "
+                 "not saved or sent to automation logs. Store the key securely before leaving this page. "
+                 "Use 00 to disable encryption. IPMI clients must right-pad shorter keys with zeroes to 40 "
+                 "characters.").classes("muted text-sm")
+        with ui.row().classes("w-full items-center gap-3"):
+            ipmi_key = ui.input("Generated IPMI encryption key", password=True, password_toggle_button=True).props(
+                "readonly outlined dense autocomplete=off").classes("grow font-mono")
+
+            def generate_ipmi_key() -> None:
+                ipmi_key.set_value(secrets.token_hex(20).upper())
+
+            def clear_ipmi_key() -> None:
+                ipmi_key.set_value("")
+
+            ui.button("Generate IPMI key", icon="key", on_click=generate_ipmi_key)
+            ui.button("Clear key", icon="delete", on_click=clear_ipmi_key).props("flat")
+
+
+def server_form(handle: PageHandle) -> None:
+    firmware_summary(handle)
+    if isinstance(handle.workbench, Workbenches):
+        fc_targets = {"intersight/" + path for path in SERVER_FC_FILES}
+        workbench = next(item for item in handle.workbench.items if fc_targets.intersection(item.specs))
+        show_fc = bool(handle.state().get("show_fibre_channel", False))
+        workbench.set_hidden_targets(set() if show_fc else fc_targets)
+
+        def toggle_fc(event) -> None:
+            if not workbench.set_hidden_targets(set() if event.value else fc_targets):
+                event.sender.set_value(True)
+                return
+            handle.save_state({"show_fibre_channel": bool(event.value)})
+
+        ui.checkbox("Use Fibre Channel policies", value=show_fc, on_change=toggle_fc)
+        ui.label("Controls the X-Series file dropdown only. Saved Fibre Channel files remain available to "
+                 "Validate and Deploy even when hidden; no files are deleted.").classes("muted text-sm")
+    server_generators()
 
 
 DOMAIN_CONNECTIVITY = Action(
@@ -870,11 +941,8 @@ SECTIONS = (
                          intersight_file("servers/x-series/policies/ethernet.ezai.yaml"),
                          intersight_file("servers/x-series/policies/lan_connectivity.ezai.yaml"),
                          intersight_file("servers/x-series/policies/management.ezai.yaml"),
-                         intersight_file("servers/x-series/policies/environment.ezai.yaml"),
                          intersight_file("servers/x-series/policies/storage.ezai.yaml"),
-                         intersight_file("servers/x-series/pools/fibre_channel_pools.ezai.yaml", note="Fibre Channel only"),
-                         intersight_file("servers/x-series/policies/fibre_channel.ezai.yaml", note="Fibre Channel only"),
-                         intersight_file("servers/x-series/policies/san_connectivity.ezai.yaml", note="Fibre Channel only"),
+                         *(intersight_file(path, note="Fibre Channel only") for path in SERVER_FC_FILES),
                          intersight_file("servers/x-series/templates.ezai.yaml"),
                          intersight_file("servers/x-series/profiles.ezai.yaml", "xseries_profiles"))),
                      ("Standalone variables", (
@@ -884,7 +952,7 @@ SECTIONS = (
                          intersight_file("servers/standalone/templates.ezai.yaml"),
                          intersight_file("servers/standalone/profiles.ezai.yaml", "server_profiles")))),
                  actions=intersight_actions("servers", "server"), secrets=intersight_secrets,
-                 form=firmware_summary,
+                 form=server_form,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/servers/x-series/uploads", "intersight/servers/standalone/uploads"),
                  notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "

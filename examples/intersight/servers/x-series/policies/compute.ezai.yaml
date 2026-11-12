@@ -33,9 +33,16 @@ intersight:
         # pcie_connectivity:
         #   - name: PCIe-Connectivity
         #     target_platform: FIAttached
+        power:
+          - name: Server
+            power_restore: LastState
+            target_platform: FIAttached
         storage:
           - name: ModelCache
             storage_template: model_cache
+        thermal:
+          - fan_control_mode: Balanced
+            name: Balanced
         virtual_media:
           - enable_low_power_usb: true
             enable_virtual_media_encryption: true

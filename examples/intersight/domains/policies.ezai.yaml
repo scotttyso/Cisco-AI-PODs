@@ -112,7 +112,7 @@ intersight:
         # snmp:
         #   - name: SNMP
         #     snmp_trap_destinations:
-        #       - destination_address: 198.18.1.161
+        #       - destination_address: 198.18.1.61
         #         user: snmpadmin
         #     snmp_users:
         #       - auth_password: 1

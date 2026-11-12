@@ -397,6 +397,7 @@ class Workbench:
                  expanded: bool = True):
         self.context = context
         self.specs = {spec.target: spec for spec in files if (context.repository / spec.example).is_file()}
+        self.hidden_targets: set[str] = set()
         self.on_saved = on_saved
         self.upload_dir = upload_dir.strip("/")
         if self.upload_dir and self.specs:
@@ -493,6 +494,8 @@ class Workbench:
         """Selector labels with the save state; unsaved optional files are not deployed."""
         labels = {}
         for target, spec in self.specs.items():
+            if target in self.hidden_targets:
+                continue
             if self.path(target).is_file():
                 state = "saved"
             elif spec.optional:
@@ -504,6 +507,16 @@ class Workbench:
 
     def refresh_options(self) -> None:
         self.selector.set_options(self.options(), value=self.selector.value)
+
+    def set_hidden_targets(self, targets: set[str]) -> bool:
+        """Filter the file selector only; saved files and deployment inputs stay unchanged."""
+        if self.current in targets:
+            ui.notify("Select a different file before hiding the open file, to preserve unsaved edits.",
+                      type="warning")
+            return False
+        self.hidden_targets = set(targets)
+        self.refresh_options()
+        return True
 
     async def remove(self) -> None:
         target = self.selector.value
