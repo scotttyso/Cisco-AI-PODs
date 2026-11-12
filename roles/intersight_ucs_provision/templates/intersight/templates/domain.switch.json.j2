@@ -1,7 +1,7 @@
 {
   "Description": "{{ item.description | default('') }}",
   "EnableOverride": false,
-  "Name": "{{ name_prefix ~ item.name ~ name_suffix ~ '-' ~ item.switch_id }}",
+  "Name": "{{ item.name ~ '-' ~ item.switch_id }}",
   "ObjectType": "fabric.SwitchProfileTemplate",
   "Parent": {
     "Moid": "{{ item.parent }}",

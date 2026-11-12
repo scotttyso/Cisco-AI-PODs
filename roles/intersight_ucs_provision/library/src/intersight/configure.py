@@ -281,15 +281,19 @@ class configure:
                     f"     * Running Check Mode: Organization: `{org}`; Non-Check mode would create new {ptitle}: (new) - {child_title}: `{api_body[pkey]}`.")
             return kwargs
         child_dict = kwargs.intersight_api[org][self.category][parent_type][parent_name][child_type]
-        ikeys = list(child_dict.keys())
         pval = api_body[pkey] if re.search(
             'groups|users|vnic|vhbas|ldap_servers|ldap_groups',
             self.type) else str(
             api_body[pkey])
-        if pval in ikeys:
-            resource = child_dict[pval].result
+        if self.type == 'domain.switch':
+            child_resource = self.domain_switch_resource(
+                child_dict, pval, api_body['SwitchId'])
+        else:
+            child_resource = child_dict.get(pval)
+        if child_resource:
+            resource = child_resource['result']
             patch_policy = self.compare_body_result(api_body, resource)
-            api_body['pmoid'] = child_dict[pval].moid
+            api_body['pmoid'] = child_resource['moid']
             pmoid = api_body['pmoid']
             if patch_policy:
                 if check_flag:
@@ -3475,6 +3479,22 @@ class configure:
                     raise RuntimeError(message)
         return kwargs
 
+    @staticmethod
+    def domain_switch_resource(children, name, side):
+        matches = {}
+        for child_name, child in children.items():
+            moid = child.get('moid')
+            switch_id = (child.get('result') or {}).get('SwitchId')
+            if (switch_id == side or (not switch_id and child_name == name)) and isinstance(moid, str) and moid:
+                matches[moid] = child
+        if len(matches) > 1:
+            message = (
+                f'Ambiguous domain switch `{name}`: multiple resources have SwitchId `{side}` '
+                'under the same parent. Resolve the duplicate children before retrying.')
+            pcolor.Red(f'!!! ERROR !!! {message}')
+            raise ValueError(message)
+        return next(iter(matches.values()), {})
+
     def resolve_domain_template(self, reference, kwargs):
         template_cfg = configure(category='templates', type='domain')
         org, name = template_cfg.determine_resource_organization(
@@ -3483,6 +3503,13 @@ class configure:
         def cached_template():
             return kwargs.intersight_api.get(org, {}).get(
                 'templates', {}).get('domain', {}).get(name, {})
+
+        def cached_switches():
+            children = cached_template().get('switch', {})
+            return {
+                side: self.domain_switch_resource(children, f'{name}-{side}', side)
+                for side in ['A', 'B']
+            }
 
         template = cached_template()
         if not isinstance(template.get('moid'), str) or not template.get('moid'):
@@ -3496,9 +3523,8 @@ class configure:
                 'Create the template first and check the reference and API-key access.')
             pcolor.Red(f'!!! ERROR !!! {message}')
             raise ValueError(message)
-        children = template.get('switch', {})
-        if any(not isinstance(children.get(f'{name}-{side}', {}).get('moid'), str)
-               or not children.get(f'{name}-{side}', {}).get('moid') for side in ['A', 'B']):
+        switches = cached_switches()
+        if any(not child for child in switches.values()):
             original_org = kwargs.org
             kwargs.org = org
             try:
@@ -3507,11 +3533,11 @@ class configure:
             finally:
                 kwargs.org = original_org
             template = cached_template()
-            children = template.get('switch', {})
+            switches = cached_switches()
         switch_moids = {}
         for side in ['A', 'B']:
             child_name = f'{name}-{side}'
-            moid = children.get(child_name, {}).get('moid')
+            moid = switches[side].get('moid')
             if not isinstance(moid, str) or not moid:
                 message = (
                     f'Unable to resolve domain profile template `{org}/{name}`: '

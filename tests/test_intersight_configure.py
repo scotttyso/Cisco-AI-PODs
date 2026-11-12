@@ -364,11 +364,13 @@ def test_invalid_user_vlan_ids_remain_rejected(expression):
 @pytest.mark.parametrize("resource_type,platform", [
     ("domain", "UCS Domain"), ("unified_edge", "Unified Edge"),
 ])
+@pytest.mark.parametrize("decoration", [("", ""), ("AIPOD-AID-", "-Template")])
 def test_domain_orchestration_renders_valid_target_platform(
-        monkeypatch, category, attached, resource_type, platform):
+        monkeypatch, category, attached, resource_type, platform, decoration):
     kwargs = configuration(check=False)
     kwargs.script_path = str(Path(module.__file__).resolve().parents[2])
     kwargs.resources = [DotMap({"name": "XDirect", "target_platform": "Domain"})]
+    parent_name = f"{decoration[0]}XDirect{decoration[1]}"
     if attached and category == "profiles":
         template_key = platform.lower().replace(" ", "_") + "_profile_template"
         kwargs.resources[0][template_key] = "Shared/Source"
@@ -394,7 +396,7 @@ def test_domain_orchestration_renders_valid_target_platform(
     ):
         kwargs.ezdata[f"intersight.{category}.{kind}"] = {"x-intersight-uri": uri}
     monkeypatch.setattr(
-        module.configure, "name_prefix_suffix", lambda *_args: ("", "")
+        module.configure, "name_prefix_suffix", lambda *_args: decoration
     )
     monkeypatch.setattr(
         module.configure, "api_get",
@@ -411,7 +413,7 @@ def test_domain_orchestration_renders_valid_target_platform(
 
     def submit(_self, state):
         requests.extend(state.bulk_list)
-        state.intersight_api[state.org][category].domain.XDirect.moid = "parent-moid"
+        state.intersight_api[state.org][category].domain[parent_name].moid = "parent-moid"
         return state
 
     def compare_child(_self, body, state):
@@ -441,12 +443,14 @@ def test_domain_orchestration_renders_valid_target_platform(
     result = getattr(provision, f"{category}_{resource_type}")(kwargs)
 
     assert len(parents) == 1
+    assert parents[0]["Name"] == parent_name
     assert parents[0]["TargetPlatform"] == platform
     assert parents[0]["ObjectType"] == (
         "fabric.SwitchClusterProfileTemplate" if category == "templates" else "fabric.SwitchClusterProfile"
     )
     assert len(children) == 2
     assert [body["SwitchId"] for body in children] == ["A", "B"]
+    assert [body["Name"] for body in children] == [f"{parent_name}-{side}" for side in ["A", "B"]]
     assert all(body["Parent"]["Moid"] == "parent-moid" for body in children)
     assert len(requests) == 3
     assert result.resources[0].target_platform == platform
@@ -794,8 +798,9 @@ def test_server_pcie_policy_reference_renders_policy_bucket(intersight_schema, c
 
 @pytest.mark.parametrize("reference", ["XDirect", "Shared/XDirect"])
 @pytest.mark.parametrize("missing", [None, "cluster", "A", "B"])
+@pytest.mark.parametrize("legacy_names", [False, True])
 def test_domain_template_resolution_queries_real_cache_shape(
-        monkeypatch, reference, missing):
+        monkeypatch, reference, missing, legacy_names):
     kwargs = configuration(check=False)
     org = "Shared" if "/" in reference else kwargs.org
     kwargs.org_moids[org].moid = "template-org-moid"
@@ -823,7 +828,8 @@ def test_domain_template_resolution_queries_real_cache_shape(
         else:
             assert list(state.names) == ["cluster-id"]
             results = [
-                {"Name": f"XDirect-{side}", "Moid": f"switch-{side}",
+                {"Name": f"pre-XDirect-post-{side}" if legacy_names else f"XDirect-{side}",
+                 "Moid": f"switch-{side}", "SwitchId": side,
                  "ObjectType": "fabric.SwitchProfileTemplate",
                  "SwitchClusterProfileTemplate": {"Moid": "cluster-id"}}
                 for side in ["A", "B"] if side != missing
@@ -849,6 +855,67 @@ def test_domain_template_resolution_queries_real_cache_shape(
         assert calls == [("domain", org, ["XDirect"]), ("domain.switch", org, ["cluster-id"])]
         provision.resolve_domain_template(reference, state)
         assert len(calls) == 2
+
+
+@pytest.mark.parametrize("category", ["templates", "profiles"])
+@pytest.mark.parametrize("check", [False, True])
+def test_misnamed_domain_switch_is_renamed_without_recreation(monkeypatch, capsys, category, check):
+    kwargs = configuration(check)
+    parent_name = "AIPOD-AID-Domain-Profile-Template"
+    expected_name = f"{parent_name}-A"
+    parent_moid = "parent-moid"
+    object_type = "fabric.SwitchProfileTemplate" if category == "templates" else "fabric.SwitchProfile"
+    parent_type = ("fabric.SwitchClusterProfileTemplate" if category == "templates"
+                   else "fabric.SwitchClusterProfile")
+    body = {
+        "Name": expected_name, "SwitchId": "A", "ObjectType": object_type,
+        "Parent": {"Moid": parent_moid, "ObjectType": parent_type},
+    }
+    children = {}
+    for side in ["A", "B"]:
+        old_name = f"AIPOD-AID-{parent_name}-Template-{side}"
+        children[old_name] = {
+            "moid": f"switch-{side}",
+            "result": dict(body, Name=old_name, SwitchId=side),
+        }
+    kwargs.intersight_api[kwargs.org][category].domain[parent_name] = DotMap(
+        moid=parent_moid, switch=children)
+    kwargs.intersight_api[kwargs.org][category].domain[parent_moid] = parent_name
+    kwargs.ezdata[f"intersight.{category}.domain.switch"] = {
+        "x-intersight-uri": "fabric/SwitchProfileTemplates" if category == "templates"
+        else "fabric/SwitchProfiles",
+    }
+    kwargs.bulk_list = []
+    api_calls = Mock(side_effect=AssertionError("comparison must not submit API requests"))
+    monkeypatch.setattr(module.api, "calls", api_calls)
+    result = module.configure(category=category, type="domain.switch").children_compare_api_body(body, kwargs)
+    if check:
+        assert result.bulk_list == []
+        output = " ".join(capsys.readouterr().out.split())
+        assert "would update" in output
+        assert "would create" not in output
+    else:
+        assert len(result.bulk_list) == 1
+        assert result.bulk_list[0]["pmoid"] == "switch-A"
+        assert result.bulk_list[0]["Name"] == expected_name
+    api_calls.assert_not_called()
+
+
+def test_ambiguous_domain_switch_identity_is_rejected(monkeypatch):
+    kwargs = configuration(check=False)
+    kwargs.intersight_api[kwargs.org].templates.domain.XDirect = DotMap({
+        "moid": "cluster-id",
+        "switch": {
+            "XDirect-A": {"moid": "switch-A", "result": {"SwitchId": "A"}},
+            "Other-A": {"moid": "other-A", "result": {"SwitchId": "A"}},
+            "XDirect-B": {"moid": "switch-B", "result": {"SwitchId": "B"}},
+        },
+    })
+    api_calls = Mock()
+    monkeypatch.setattr(module.api, "calls", api_calls)
+    with pytest.raises(ValueError, match="Ambiguous.*switch"):
+        module.configure(category="profiles", type="domain").resolve_domain_template("XDirect", kwargs)
+    api_calls.assert_not_called()
 
 
 def test_template_query_errors_restore_organization(monkeypatch):

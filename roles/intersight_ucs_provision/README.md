@@ -37,6 +37,12 @@ deployment actions before the next type starts. Check mode uses the same order.
 The `name_prefix` and `name_suffix` settings are naming metadata, not deployable
 resources. They remain available for resource naming but are excluded from
 resource deployment selection.
+A/B switch profiles and templates use the fully decorated cluster name followed
+by `-A` or `-B`; the prefix and suffix are applied only once. Existing children
+are matched within their parent by `SwitchId`, allowing apply mode to correct
+names from older deployments in place without recreating the children. Check
+mode reports the rename without submitting it. Template attachment also resolves
+existing A/B children by identity even when their names need correction.
 For domain and Unified Edge profiles, `action: Deploy` deploys the assigned A/B
 switch profiles through `fabric/SwitchProfiles`, then waits for both to finish.
 The console logs each switch profile's deployment start, successful PATCH submission,
