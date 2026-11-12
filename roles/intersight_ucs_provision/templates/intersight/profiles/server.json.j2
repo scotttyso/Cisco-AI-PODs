@@ -97,6 +97,8 @@
   "TargetPlatform": "{{ item.target_platform | default('FIAttached') }}",
   "UserLabel": "{{ item.user_label | default('') }}"{% if _template == true %}{% else %},{% endif %}
 {% if item.uuid_pool is defined and item.uuid_pool is not none and _template == false %}
+{% set _name = item.uuid_pool.split('/')[-1] %}
+{% set _org = item.uuid_pool.split('/')[0] if '/' in item.uuid_pool else organization %}
   "UuidAddressType": "POOL",
   "UuidPool": {
     "Moid": "{{ isight[_org].pools.uuid[_name].moid }}",

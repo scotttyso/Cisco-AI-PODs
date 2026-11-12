@@ -2320,7 +2320,14 @@ class configure:
                 if template_data and template_data.get('UuidAddressType'):
                     api_body['UuidAddressType'] = template_data['UuidAddressType']
                     if template_data['UuidAddressType'] == 'POOL':
-                        api_body['UuidPool'] = template_data['UuidPool'][0].get('Moid')
+                        pool_reference = template_data.get('UuidPool')
+                        pool_moid = pool_reference.get('Moid') if isinstance(pool_reference, dict) else None
+                        if not isinstance(pool_moid, str) or not pool_moid:
+                            raise ValueError(
+                                f"Unable to resolve UUID pool for server profile '{api_body['Name']}' "
+                                f"from template '{org}/{tname}': UuidPool has no Moid.")
+                        api_body['UuidPool'] = {
+                            'Moid': pool_moid, 'ObjectType': 'uuidpool.Pool'}
                     elif template_data['UuidAddressType'] == 'STATIC' and len(item.get('static_uuid_address', '')) > 0:
                         api_body['StaticUuidAddress'] = item.get('static_uuid_address', '')
             elif item.get('static_uuid_address') and len(item.static_uuid_address) > 0:
@@ -2330,10 +2337,15 @@ class configure:
                 pool_name = item.uuid_pool
                 org, pname = self.determine_resource_organization(
                     add_prefix_suffix=False, resource=pool_name, kwargs=kwargs)
-                pool_data = kwargs.intersight_api[org].policies.server.uuid_pool[pname].result
-                if pool_data:
-                    api_body['UuidAddressType'] = 'POOL'
-                    api_body['UuidPool'] = pool_data.get('Moid')
+                pool_data = kwargs.intersight_api[org].pools.uuid.get(pname)
+                pool_moid = pool_data.get('moid') if isinstance(pool_data, dict) else None
+                if not isinstance(pool_moid, str) or not pool_moid:
+                    raise ValueError(
+                        f"Unable to resolve UUID pool '{org}/{pname}' "
+                        f"for server profile '{api_body['Name']}': cached pool has no Moid.")
+                api_body['UuidAddressType'] = 'POOL'
+                api_body['UuidPool'] = {
+                    'Moid': pool_moid, 'ObjectType': 'uuidpool.Pool'}
             else:
                 api_body['UuidAddressType'] = 'NONE'
             return api_body

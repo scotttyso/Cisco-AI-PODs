@@ -42,6 +42,10 @@ addition to reservation pools. References use the referenced organization's
 policy/pool prefix and suffix, without repeating decorations already present.
 In check mode, dependencies not yet created in Intersight defer the dependent
 payload validation instead of attempting to render unresolved policy Moids.
+Server profile creation preserves a template's UUID pool as a singular
+`UuidPool` Moid/ObjectType relationship. Direct UUID pool references use the
+referenced organization's pool cache. Missing pool Moids fail before profile
+creation rather than submitting `UuidAddressType: POOL` with a null pool.
 Child API responses are associated with their cached parent using a valid Moid
 relationship, ignoring null or unrelated policy references. An unresolved parent
 raises an explicit error instead of caching the child under an unrelated policy.

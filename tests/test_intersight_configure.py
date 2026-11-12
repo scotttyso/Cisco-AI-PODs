@@ -331,6 +331,71 @@ def test_server_template_bios_preflight_resolves_or_defers_decorated_policy(
     ]
 
 
+@pytest.mark.parametrize("source", ["template", "pool"])
+@pytest.mark.parametrize("shared", [False, True])
+@pytest.mark.parametrize("missing", [False, True])
+def test_server_profile_uuid_pool_is_a_valid_reference_before_creation(
+        monkeypatch, intersight_schema, source, shared, missing):
+    kwargs = configuration(check=False)
+    kwargs.script_path = str(Path(module.__file__).resolve().parents[2])
+    kwargs.ezdata = intersight_schema["definitions"]
+    org = "Shared" if shared else kwargs.org
+    prefix = f"{org}/" if shared else ""
+    pool_reference = {"Moid": "uuid-moid", "ObjectType": "uuidpool.Pool"}
+    item = DotMap({"name": "Server", "attach_template": source == "template",
+                   "target_platform": "FIAttached", "resource_pool": "Server-Pool"})
+    kwargs.intersight_api[kwargs.org].pools.resource["Server-Pool"].moid = "resource-moid"
+    if source == "template":
+        item.ucs_server_profile_template = f"{prefix}Server-Template"
+        kwargs.intersight_api[org].templates.server["Server-Template"] = DotMap({
+            "moid": "template-moid",
+            "result": {"UuidAddressType": "POOL", "UuidPool": None if missing else pool_reference},
+        })
+    else:
+        item.uuid_pool = f"{prefix}UUID"
+        if not missing:
+            kwargs.intersight_api[org].pools.uuid["UUID"] = DotMap({
+                "moid": "uuid-moid", "result": {"Moid": "uuid-moid"},
+            })
+    kwargs.resources = [item]
+    requests = []
+    rendered = []
+
+    def api_calls(_self, state):
+        assert state.method == "post"
+        assert state.uri == "bulk/Requests"
+        requests.extend(state.api_body["Requests"])
+        return state
+
+    def compare(_self, body, _title, state):
+        rendered.append(body)
+        return state
+
+    monkeypatch.setattr(module.api, "calls", api_calls)
+    monkeypatch.setattr(module.configure, "compare_resources_to_api", compare)
+    monkeypatch.setattr(module.configure, "profiles_bulk_merge_template", lambda _self, state: state)
+    provision = module.configure(category="profiles", type="server")
+
+    if missing:
+        with pytest.raises(ValueError, match="Unable to resolve UUID pool"):
+            provision.profiles_chassis_server(kwargs)
+        assert requests == []
+        assert rendered == []
+    else:
+        provision.profiles_chassis_server(kwargs)
+        assert len(requests) == 1
+        assert requests[0]["Body"]["UuidAddressType"] == "POOL"
+        assert requests[0]["Body"]["UuidPool"] == pool_reference
+        assert len(rendered) == 1
+        if source == "pool":
+            assert rendered[0]["UuidAddressType"] == "POOL"
+            assert rendered[0]["UuidPool"] == pool_reference
+            assert rendered[0]["ServerPool"]["Moid"] == "resource-moid"
+        else:
+            assert rendered[0]["SrcTemplate"]["Moid"] == "template-moid"
+            assert "UuidPool" not in rendered[0]
+
+
 def test_empty_pool_lookup_plans_creation_in_check_mode(monkeypatch, capsys):
     kwargs = configuration(check=True)
     kwargs.imm_dict.orgs[kwargs.org].pools.ip = [
