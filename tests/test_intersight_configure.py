@@ -918,6 +918,47 @@ def test_server_pcie_policy_reference_renders_policy_bucket(intersight_schema, c
     assert payload["PolicyBucket"] == [{"Moid": "pcie-moid", "ObjectType": "compute.PcieConnectivityPolicy"}]
 
 
+@pytest.mark.parametrize("bulk", [False, True])
+@pytest.mark.parametrize("network_policy", [None, {}, {"Moid": "network-moid"}])
+def test_vnic_api_results_use_connectivity_parent_not_optional_relationships(bulk, network_policy):
+    kwargs = configuration(check=False)
+    kwargs.build_skip = False
+    kwargs.intersight_object_map = {"vnic.EthIf": "lan_connectivity.vnics"}
+    parents = kwargs.intersight_api[kwargs.org].policies.lan_connectivity
+    parents["RoCE"].moid = "lan-moid"
+    parents["lan-moid"] = "RoCE"
+    children = [
+        {"ObjectType": "vnic.EthIf", "Name": name, "Moid": f"{name}-moid",
+         "EthNetworkPolicy": network_policy, "Parent": None,
+         "LanConnectivityPolicy": {"Moid": "lan-moid"}}
+        for name in ["Management-A", "Management-B"]
+    ]
+    results = [{"Body": child, "StatusCode": 201} for child in children] if bulk else children
+
+    client = module.api(
+        category="policies", type="bulk_request" if bulk else "lan_connectivity.vnics")
+    client.build_intersight_api_dict(DotMap({"Results": results}), kwargs)
+
+    for child in children:
+        cached = parents["RoCE"].vnics[child["Name"]]
+        assert cached.moid == child["Moid"]
+        assert cached.result.toDict() == child
+    assert set(parents) == {"RoCE", "lan-moid"}
+
+
+@pytest.mark.parametrize("parent", [None, {}, {"Moid": "unknown-moid"}])
+def test_vnic_api_results_report_unresolved_parent_explicitly(parent):
+    kwargs = configuration(check=False)
+    kwargs.build_skip = False
+    kwargs.intersight_object_map = {"vnic.EthIf": "lan_connectivity.vnics"}
+    child = {"ObjectType": "vnic.EthIf", "Name": "Management-A", "Moid": "vnic-moid",
+             "EthNetworkPolicy": None, "Parent": None, "LanConnectivityPolicy": parent}
+
+    with pytest.raises(ValueError, match="Unable to resolve lan_connectivity parent for vnic.EthIf"):
+        module.api(category="policies", type="bulk_request").build_intersight_api_dict(
+            DotMap({"Results": [{"Body": child, "StatusCode": 201}]}), kwargs)
+
+
 @pytest.mark.parametrize("reference", ["XDirect", "Shared/XDirect"])
 @pytest.mark.parametrize("missing", [None, "cluster", "A", "B"])
 @pytest.mark.parametrize("legacy_names", [False, True])

@@ -42,6 +42,9 @@ addition to reservation pools. References use the referenced organization's
 policy/pool prefix and suffix, without repeating decorations already present.
 In check mode, dependencies not yet created in Intersight defer the dependent
 payload validation instead of attempting to render unresolved policy Moids.
+Child API responses are associated with their cached parent using a valid Moid
+relationship, ignoring null or unrelated policy references. An unresolved parent
+raises an explicit error instead of caching the child under an unrelated policy.
 A/B switch profiles and templates use the fully decorated cluster name followed
 by `-A` or `-B`; the prefix and suffix are applied only once. Existing children
 are matched within their parent by `SwitchId`, allowing apply mode to correct

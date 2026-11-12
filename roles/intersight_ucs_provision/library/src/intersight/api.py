@@ -155,11 +155,15 @@ class api:
                     else:
                         split_name = kwargs.intersight_object_map[i.ObjectType].split(
                             '.')
-                        parent_match = next(
-                            (e for e in ikeys if re.search(
-                                parent_regex, e)), None)
                         parent_type = split_name[0]
                         child_type = split_name[1]
+                        parent_cache = kwargs.intersight_api[kwargs.org][
+                            self.category][parent_type]
+                        parent_match = next(
+                            (e for e in ikeys if re.search(parent_regex, e)
+                             and isinstance(i[e], dict)
+                             and isinstance(i[e].get('Moid'), str)
+                             and i[e]['Moid'] in parent_cache), None)
                         if 'PcId' in ikeys:
                             iname = str(i.PcId)
                         elif 'PortId' in ikeys:
@@ -178,9 +182,12 @@ class api:
                             iname = i.Name
                         else:
                             iname = i.Moid
-                        parent_name = kwargs.intersight_api[kwargs.org][
-                            self.category][parent_type][i[parent_match].Moid]
-                        kwargs.intersight_api[kwargs.org][self.category][parent_type][parent_name][child_type][iname] = DotMap(
+                        if parent_match is None:
+                            raise ValueError(
+                                f"Unable to resolve {parent_type} parent for "
+                                f"{i.ObjectType} '{iname}' (organization={kwargs.org})")
+                        parent_name = parent_cache[i[parent_match].Moid]
+                        parent_cache[parent_name][child_type][iname] = DotMap(
                             moid=i.Moid, result=i)
                         continue
                 elif 'Name' in ikeys and isinstance(self.category, str):
