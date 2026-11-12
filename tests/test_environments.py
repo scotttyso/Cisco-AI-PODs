@@ -279,6 +279,19 @@ class GitopsPushTest(unittest.TestCase):
 
 
 class IntersightScopeTest(unittest.TestCase):
+    def test_debug_level_is_validated_and_forwarded_only_to_intersight(self):
+        for option in ("-dl", "--debug-level"):
+            args = deploy_ai_pod.parse_args([option, "7"])
+            command = deploy_ai_pod.command_for_role(
+                "intersight", Path("/host_vars"), True, debug_level=args.debug_level)
+            self.assertEqual(command[-2:], ["--debug-level", "7"])
+            self.assertIn("--check", command)
+        for value in ("-1", "8", "debug"):
+            with self.subTest(value=value), self.assertRaises(SystemExit), patch("sys.stderr"):
+                deploy_ai_pod.parse_args(["--debug-level", value])
+        self.assertNotIn("--debug-level", deploy_ai_pod.command_for_role(
+            "everpure", Path("/host_vars"), False, debug_level=7))
+
     def test_scoped_copy_isolates_page_files(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -325,6 +338,7 @@ class VaultPrecedenceTest(unittest.TestCase):
                 scoped = Path(command[command.index("--dir") + 1])
                 observed.extend(path.relative_to(scoped).as_posix() for path in scoped.rglob("*.ezai.yaml"))
                 self.assertIn("--check", command)
+                self.assertEqual(command[-2:], ["--debug-level", "7"])
 
             with patch.object(deploy_ai_pod, "load_vault_sections", return_value={}), \
                     patch.object(deploy_ai_pod, "validate_models") as validate, \
@@ -332,7 +346,7 @@ class VaultPrecedenceTest(unittest.TestCase):
                 result = deploy_ai_pod.main([
                     "--role", "intersight", "--host-vars-dir", str(root),
                     "--intersight-scope", "domains", "--intersight-file", "domains/profiles.ezai.yaml",
-                    "--check",
+                    "--check", "-dl", "7",
                 ])
             self.assertEqual(result, 0)
             self.assertEqual(observed, ["domains/profiles.ezai.yaml"])

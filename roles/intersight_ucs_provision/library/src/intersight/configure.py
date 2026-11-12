@@ -2501,7 +2501,11 @@ class configure:
                     'ConfigContext', {}).get('ConfigState') or ''
                 csummary = pdata.get('ConfigContext', {}).get(
                     'ConfigStateSummary') or ''
-                if force or changes or re.search(
+                if (not force and not changes and self.type == 'server'
+                        and self.profiles_pending_activation(pdata.get('ConfigContext') or {})):
+                    pending_changes = True
+                    kwargs.profile_update[e].pending_changes = 'Activate'
+                elif force or changes or re.search(
                         cregex, cstate) or re.search(
                         cregex, csummary):
                     pending_changes = True
@@ -2563,12 +2567,19 @@ class configure:
                                 method='get_by_moid', pmoid=profile_map[e].moid)
                             kwargs = profile_api.calls(kwargs)
                             context = kwargs.results.get('ConfigContext') or {}
-                            if self.profiles_deployment_failed(context):
+                            needs_activation = (self.type == 'server'
+                                                and self.profiles_pending_activation(context))
+                            if self.profiles_deployment_failed(context) and not needs_activation:
                                 raise RuntimeError(f'Profile deployment failed for `{e}`: {context}')
                             control_action = kwargs.results.get(
                                 'ConfigContext', {}).get('ControlAction')
                             if control_action in ['No-op', 'No_op']:
                                 deploy_complete = True
+                                if needs_activation:
+                                    kwargs.profile_update[e].pending_changes = 'Activate'
+                                    activate_pending = True
+                                    pcolor.Cyan(
+                                        f'    * Profile `{e}` deployed with changes pending activation (Not-activated).')
                                 if 'chassis' in self.type:
                                     pcolor.Green(
                                         f'{" " * 4}- Completed Profile Deployment for `{e}`.')
@@ -2582,7 +2593,7 @@ class configure:
                                         f'{" " * 6}* Deploy Still Occuring on `{e}`.  Waiting 60 seconds.')
                                     time.sleep(60)
                             retry_count += 1
-                if 'server' == self.type and (activate_pending or force):
+                if 'server' == self.type and (deploy_pending or activate_pending or force):
                     kwargs = self.profiles_server_activate(kwargs)
                 pcolor.LightPurple(f'\n{"-" * 108}\n')
         return self.profiles_finish_template_sync(profiles, kwargs) if sync_templates else kwargs
@@ -2681,6 +2692,14 @@ class configure:
     def profiles_deployment_failed(context):
         return any(re.search('Failed|Inconsistent|Error', str(context.get(field) or ''), re.IGNORECASE)
                    for field in ['ConfigState', 'ConfigStateSummary', 'ErrorState', 'OperState'])
+
+    @staticmethod
+    def profiles_pending_activation(context):
+        return (context.get('ConfigState') == 'Associated'
+                and context.get('ConfigStateSummary') == 'Inconsistent'
+                and context.get('InconsistencyReason') == ['Not-activated']
+                and not configure.profiles_deployment_failed(
+                    {key: value for key, value in context.items() if key != 'ConfigStateSummary'}))
 
     def profiles_finish_template_sync(self, profiles, kwargs):
         kwargs, synced = self.profiles_sync_templates(profiles, kwargs)
@@ -2862,7 +2881,7 @@ class configure:
             profile_result = profile_results_by_name.get(e)
             if not profile_result:
                 raise ValueError(f'Cannot verify profile activation for `{e}`: profile not found')
-            if profile_result.get(
+            if self.profiles_pending_activation(profile_result.get('ConfigContext') or {}) or profile_result.get(
                     'ConfigChanges', {}).get(
                     'PolicyDisruptions', []):
                 pcolor.Green(

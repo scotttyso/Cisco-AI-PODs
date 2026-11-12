@@ -1637,6 +1637,84 @@ def test_server_activation_failure_stops_template_sync(monkeypatch, case):
     finish_sync.assert_not_called()
 
 
+@pytest.mark.parametrize("initially_pending", [False, True])
+@pytest.mark.parametrize("activation_status", ["Completed", "Failed"])
+@pytest.mark.parametrize("pending_source", ["context", "disruptions"])
+def test_server_not_activated_runs_activation_before_sync(
+        monkeypatch, initially_pending, activation_status, pending_source):
+    kwargs = configuration(check=False)
+    kwargs.ezdata["intersight.profiles.server"] = {"x-intersight-uri": "server/Profiles"}
+    context = {
+        "ConfigState": "Associated", "ConfigStateSummary": "Inconsistent",
+        "InconsistencyReason": ["Not-activated"], "ControlAction": "No-op",
+        "ErrorState": "", "OperState": "Ok",
+    }
+    if pending_source == "disruptions":
+        context.update(ConfigStateSummary="OK", InconsistencyReason=[])
+    pending = {"ConfigContext": context}
+    if pending_source == "disruptions":
+        pending["ConfigChanges"] = {"PolicyDisruptions": ["reboot"]}
+    kwargs.intersight_api[kwargs.org].profiles.server["Profile"] = DotMap(
+        moid="profile", result=pending if initially_pending else {"ConfigContext": {"ConfigState": "Assigned"}})
+    profile = DotMap(name="Profile", action="Deploy", serial_number="FOX2651P1WQ")
+    payloads = []
+    events = []
+
+    def lookup(_self, _empty, _names, _kind, state):
+        state.results = [DotMap(Name="Profile", **pending)]
+        return state
+
+    def calls(_self, state):
+        if state.method == "patch":
+            payloads.append(state.api_body)
+        if state.method == "get":
+            state.results = [DotMap(
+                Moid="workflow", CreateTime="2026-11-12T00:00:00Z",
+                AssociatedObject={"Moid": "profile"}, WorkflowStatus=activation_status)]
+        else:
+            state.results = DotMap(ConfigContext=context)
+        return state
+
+    def sync(_self, _profiles, state):
+        events.append("sync")
+        return state
+
+    monkeypatch.setattr(module.configure, "name_prefix_suffix", lambda *_args: ("", ""))
+    monkeypatch.setattr(module.configure, "api_get", lookup)
+    monkeypatch.setattr(module.configure, "profiles_finish_template_sync", sync)
+    monkeypatch.setattr(module.api, "calls", calls)
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    provision = module.configure(category="profiles", type="server")
+    if activation_status == "Failed":
+        with pytest.raises(RuntimeError, match="activation failed"):
+            provision.profiles_chassis_server_deploy([profile], kwargs)
+        assert events == []
+    else:
+        provision.profiles_chassis_server_deploy([profile], kwargs)
+        assert events == ["sync"]
+    expected = [{"ScheduledActions": [{"Action": "Activate", "ProceedOnReboot": True}]}]
+    if not initially_pending:
+        expected.insert(0, {"Action": "Deploy", "Name": "Profile"})
+    assert payloads == expected
+
+
+@pytest.mark.parametrize("overrides", [
+    {"InconsistencyReason": ["Not-activated", "Policy-error"]},
+    {"InconsistencyReason": []},
+    {"ConfigState": "Failed"},
+    {"ErrorState": "Error"},
+    {"OperState": "Failed"},
+])
+def test_pending_activation_does_not_hide_real_failure(overrides):
+    context = {
+        "ConfigState": "Associated", "ConfigStateSummary": "Inconsistent",
+        "InconsistencyReason": ["Not-activated"], "ErrorState": "", "OperState": "Ok",
+        **overrides,
+    }
+    assert not module.configure.profiles_pending_activation(context)
+    assert module.configure.profiles_deployment_failed(context)
+
+
 @pytest.mark.parametrize("resource_type,uri,object_type", [
     ("chassis", "equipment/Chasses", "equipment.Chassis"),
     ("server", "compute/PhysicalSummaries", "compute.PhysicalSummary"),

@@ -350,6 +350,7 @@ def server_generators() -> None:
 
 
 def server_form(handle: PageHandle) -> None:
+    intersight_debug_form(handle)
     firmware_summary(handle)
     if isinstance(handle.workbench, Workbenches):
         fc_targets = {"intersight/" + path for path in SERVER_FC_FILES}
@@ -722,10 +723,29 @@ def everpure_secrets(handle: PageHandle) -> list[SecretField]:
     return referenced + intersight_policies.fields(handle.state(), "everpure") + ([LDAP_BIND] if uses_ldap else [])
 
 
+def intersight_debug_form(handle: PageHandle) -> None:
+    with ui.card().classes("w-full"):
+        ui.label("Intersight troubleshooting").classes("section-title")
+        ui.select(
+            {0: "0 - Off", 1: "1 - Response status", 5: "5 - Status and URLs",
+             6: "6 - URLs, response headers and request payloads", 7: "7 - Full API debug (includes response bodies)"},
+            value=handle.state().get("debug_level", 0), label="API debug level",
+            on_change=lambda event: handle.save_state({"debug_level": event.value}),
+        ).classes("w-full")
+        ui.label("Applies to Validate and Deploy on this page. Output appears in the run log. "
+                 "Levels 6 and 7 can include sensitive configuration; review logs before sharing. "
+                 "Set back to 0 after troubleshooting.").classes("muted text-sm")
+
+
 def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
     def selected_deploy(check: bool = False):
         def build(rc: RunContext) -> list[list[str]]:
             command = rc.ui.deploy_args() + ["--role", "intersight", "--intersight-scope", scope]
+            debug_level = rc.state.get("debug_level", 0)
+            if type(debug_level) is not int or debug_level not in range(8):
+                raise ValueError("Intersight API debug level must be an integer from 0 to 7")
+            if debug_level:
+                command += ["--debug-level", str(debug_level)]
             if check:
                 command.append("--check")
             if rc.selected_files is not None:
@@ -746,7 +766,7 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
                    secrets=INTERSIGHT_KEYS if scope != "system" else ("*",), select_files=scope != "system")
     if scope == "system":
         return (check, Action("deploy", "Deploy to Intersight", "cloud_upload",
-                              deploy("intersight", "--intersight-scope", scope), secrets=("*",),
+                              selected_deploy(), secrets=("*",),
                               confirm="Creates or updates the organizations and resource groups in "
                                       "host_vars/intersight/system.ezai.yaml."))
     return (
@@ -755,6 +775,7 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
                secrets=INTERSIGHT_KEYS, select_files=True,
                confirm=f"Creates or updates pools, policies, templates, and profiles from this page's {label} files "
                f"(host_vars/intersight/{scope}/), then deploys the profiles. "
+               "Pending server changes may be activated and require a reboot. "
                "Organizations and resource groups are not changed; deploy them from System (Orgs) first."),
         DOMAIN_CONNECTIVITY if scope == "domains" else INTERSIGHT_MACS,
     ) + ((RECOMMENDED_FIRMWARE,) if scope == "servers" else ())
@@ -909,6 +930,7 @@ SECTIONS = (
                                  "system.ezai.yaml (organizations and resource groups)"),),
                  actions=intersight_actions("system", "system"), secrets=lambda handle: [INTERSIGHT_KEY_ID,
                                                                                          INTERSIGHT_SECRET_KEY],
+                 form=intersight_debug_form,
                  upload_dirs=("intersight/system/uploads",),
                  notes=("The default resource group is built in and always holds every target; it is not changed. A "
                         "target listed under another resource group is left out of the regenerated default list.",
@@ -926,6 +948,7 @@ SECTIONS = (
                         intersight_file("domains/templates.ezai.yaml"),
                         intersight_file("domains/profiles.ezai.yaml", "domain_profiles", False)),
                  actions=intersight_actions("domains", "domain"), secrets=intersight_secrets,
+                 form=intersight_debug_form,
                  secrets_header=custom_pages.policy_secrets_selector, hidden_secrets=INTERSIGHT_HIDDEN,
                  upload_dirs=("intersight/domains/uploads",),
                  notes=("Deploy and Validate use only this page's files. Deploy organizations separately from System "

@@ -261,7 +261,8 @@ def scoped_intersight_dir(host_vars_dir: Path, scope: str, target: Path,
     return target
 
 
-def command_for_role(role: str, host_vars_dir: Path, check: bool, intersight_dir: Path | None = None) -> list[str]:
+def command_for_role(role: str, host_vars_dir: Path, check: bool, intersight_dir: Path | None = None,
+                     debug_level: int = 0) -> list[str]:
     if role == "intersight":
         if intersight_dir is None:
             intersight_dir = host_vars_dir / "intersight"
@@ -275,6 +276,8 @@ def command_for_role(role: str, host_vars_dir: Path, check: bool, intersight_dir
         ]
         if check:
             command.append("--check")
+        if debug_level:
+            command += ["--debug-level", str(debug_level)]
         return command
 
     playbooks = {
@@ -313,6 +316,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"file containing the Ansible Vault password (default: {DEFAULT_VAULT_PASSWORD_FILE})",
     )
     parser.add_argument("--check", action="store_true", help="pass check mode where supported")
+    parser.add_argument(
+        "-dl", "--debug-level", type=int, choices=range(8), default=0,
+        help="Intersight API debug level (0-7; 7 includes response bodies; default: 0)",
+    )
     parser.add_argument(
         "--intersight-scope", choices=("all", "system", "domains", "servers"), default="all",
         help="intersight files to deploy: everything under host_vars/intersight (all), top-level files and system/ "
@@ -375,9 +382,9 @@ def main(argv: list[str] | None = None) -> int:
                                 if args.intersight_scope == "system" else f"intersight/{args.intersight_scope}/")
                     print("Deploying " + (", ".join(args.intersight_files) if args.intersight_files else location)
                           + " only", flush=True)
-                    run_command(command_for_role(role, host_vars_dir, args.check, scoped), env)
+                    run_command(command_for_role(role, host_vars_dir, args.check, scoped, args.debug_level), env)
             else:
-                run_command(command_for_role(role, host_vars_dir, args.check), env)
+                run_command(command_for_role(role, host_vars_dir, args.check, debug_level=args.debug_level), env)
         return 0
     except (DeploymentError, OSError, yaml.YAMLError) as error:
         print(f"deployment failed: {error}", file=sys.stderr)

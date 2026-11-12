@@ -63,6 +63,40 @@ is reported instead of starting an unbounded sync/deploy loop. Check mode submit
 Redeployment applies template changes to hardware and can require server activation or reboot;
 run it during a suitable maintenance window.
 
+An associated server profile with `ConfigStateSummary: Inconsistent` whose only
+`InconsistencyReason` is `Not-activated` has changes awaiting activation, not a failed
+deployment. Automation activates those changes and waits for the activation workflow
+before synchronizing templates. A rerun resumes activation without redeploying if
+there are no further configuration changes. Other inconsistencies and failure states
+still stop the run. Activation can reboot the server.
+
+### API debug logging
+
+On **System (Orgs)**, **UCS Domains**, and **UCS Servers**, use
+**Intersight troubleshooting > API debug level** before **Validate** or **Deploy**.
+The selection is saved per page and environment; the default is **0 - Off**.
+Select **7 - Full API debug** for the equivalent of `-dl 7`. Output appears in
+the normal run log and its downloads:
+
+| Level | Output |
+|-------|--------|
+| 0 | Normal progress only |
+| 1 | API response status |
+| 5 | Status and request URLs |
+| 6 | Above, plus response headers and request payloads |
+| 7 | Above, plus JSON response bodies |
+
+Known vault secrets are redacted from GUI job logs, but API payloads and responses
+can contain other sensitive configuration. Review logs before sharing and return
+the level to **0** after troubleshooting. Debug logging does not change deployment
+actions or enable check mode.
+
+The deployment wrapper accepts the same setting, including with scoped/selected files:
+
+```bash
+python3 scripts/deploy_ai_pod.py --role intersight --intersight-scope servers -dl 7
+```
+
 Automatic tags identify the managing automation with `managed-by: cisco-ai-pods` and
 `release: <VERSION>`, for example `v0.1.5`. The release is read from the repository's VERSION
 file at runtime and describes the last-applied software release, not the resource's creation version.

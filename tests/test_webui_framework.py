@@ -743,6 +743,35 @@ class UploadTest(unittest.TestCase):
                 pages.intersight_actions(scope, scope)[0].build(rc)
         self.assertTrue(all(not action.select_files for action in pages.intersight_actions("system", "system")))
 
+    def test_intersight_debug_level_controls_validate_and_deploy(self):
+        from types import SimpleNamespace
+        ui_context = SimpleNamespace(deploy_args=lambda: ["python", "deploy_ai_pod.py"])
+        for scope in ("system", "domains", "servers"):
+            rc = panels.RunContext(ui_context, f"intersight-{scope}", {}, {})
+            for action in pages.intersight_actions(scope, scope):
+                if action.key not in ("check", "deploy"):
+                    continue
+                with self.subTest(scope=scope, action=action.key):
+                    self.assertNotIn("--debug-level", action.build(rc)[0])
+                    rc.state["debug_level"] = 7
+                    command = action.build(rc)[0]
+                    self.assertEqual(command[command.index("--debug-level") + 1], "7")
+                    rc.state["debug_level"] = 8
+                    with self.assertRaises(ValueError):
+                        action.build(rc)
+                    rc.state.clear()
+
+    def test_intersight_debug_selector_restores_and_saves_page_level(self):
+        from types import SimpleNamespace
+        handle = Mock()
+        handle.state.return_value = {"debug_level": 7}
+        with patch.object(pages, "ui") as fake_ui:
+            pages.intersight_debug_form(handle)
+        options = fake_ui.select.call_args
+        self.assertEqual(options.kwargs["value"], 7)
+        options.kwargs["on_change"](SimpleNamespace(value=0))
+        handle.save_state.assert_called_once_with({"debug_level": 0})
+
     def test_domain_actions_use_connectivity_and_keep_macs_on_servers(self):
         domains = pages.intersight_actions("domains", "domain")
         servers = pages.intersight_actions("servers", "server")

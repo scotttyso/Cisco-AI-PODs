@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog.
 
+## [0.1.12] - 2026-11-12
+
+### Added
+- Per-page Intersight API debug level controls for GUI validation and deployment, including full level 7 output in job logs.
+- Deployment wrapper `-dl` / `--debug-level` forwarding for scoped and complete Intersight runs.
+
+### Fixed
+- Associated server profiles inconsistent only because of `Not-activated` proceed to activation instead of failing deployment.
+- Check for pending server activation after deployment, including changes introduced by deployment; activation failures still stop template synchronization.
+
 ## [0.1.7] - 2026-11-11
 
 ### Added
