@@ -1023,9 +1023,11 @@ def test_domain_template_binding_and_policy_inheritance(monkeypatch, resource_ty
         if case == "check":
             assert "verify A/B policy inheritance" in " ".join(capsys.readouterr().out.split())
     elif case == "attached":
-        assert merged == set()
+        assert merged == {"target-parent"}
+        assert len([uri for method, uri, _body in requests
+                    if method == "post" and uri == "bulk/MoMergers"]) == 1
     elif case == "reference-only":
-        assert merged == {"target-A", "target-B"}
+        assert merged == {"target-parent", "target-A", "target-B"}
     elif case in ("new", "delayed"):
         assert merged == {"target-parent", "target-A", "target-B"}
     if case == "delayed":

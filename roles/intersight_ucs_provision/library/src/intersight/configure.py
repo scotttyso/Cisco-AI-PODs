@@ -3410,7 +3410,7 @@ class configure:
                 continue
             if getattr(kwargs.args, 'check', False):
                 pcolor.Cyan(
-                    f'     * Check mode: would merge domain template into `{item.name}` '
+                    f'     * Check mode: would merge the domain cluster template into `{item.name}` '
                     'and verify A/B policy inheritance before deployment.')
                 continue
             cluster = kwargs.intersight_api[kwargs.org].profiles.domain.get(item.name, {})
@@ -3449,9 +3449,10 @@ class configure:
                     method='get_by_moid', pmoid=target,
                     uri=profile_schema['x-intersight-uri'])
                 kwargs = api(category='profiles', type=kind).calls(kwargs)
-                if inherited(kwargs.results):
+                # A pre-set SrcTemplate does not prove that the parent template merge ran.
+                if kind != 'domain' and inherited(kwargs.results):
                     continue
-                pcolor.Cyan(f'     * Attaching template and inheriting policies for `{name}`.')
+                pcolor.Cyan(f'     * Merging template and inheriting policies for `{name}` via bulk/MoMergers.')
                 kwargs = kwargs | DotMap(
                     method='post', uri='bulk/MoMergers', api_body={
                         'MergeAction': 'Merge', 'ObjectType': 'bulk.MoMerger',

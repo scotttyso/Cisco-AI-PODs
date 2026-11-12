@@ -65,10 +65,14 @@ changes are skipped; check mode reports the deployment without submitting it.
   and name before creating profiles; missing template IDs fail explicitly instead
   of submitting placeholder IDs. Each switch profile uses its matching switch
   template, not the cluster template's ID.
-  After creating/updating the cluster and both switch profiles, provisioning uses
-  `bulk/MoMergers` to attach their templates when the relationship or inherited
-  policies are missing. It reads back each profile and waits for its template
+  After creating/updating the cluster and both switch profiles, every apply run
+  with template attachment enabled submits a `bulk/MoMergers` request for the
+  cluster, even when `SrcTemplate` is already set. A/B switch profiles are merged
+  only when their template relationship or inherited policies are missing.
+  Provisioning reads back each profile and waits for its template
   relationship and template policy references before submitting deployment.
+  `UsageCount` remains managed by Intersight and is never written by automation;
+  submitting the cluster merge does not guarantee that its counter changes.
   A template reference alone is not treated as proof of policy inheritance.
   Rerunning profiles repairs reference-only attachments; `attach_template: false`
   still copies configuration without binding the template. Check mode never
