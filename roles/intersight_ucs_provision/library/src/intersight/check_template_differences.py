@@ -124,25 +124,80 @@ class TemplateAnalyzer:
             return set()
 
     def extract_json_attributes(self, template_content: str) -> Set[str]:
-        """Extract JSON attribute names from template.
+        """Extract TOP-LEVEL JSON attribute names from template.
         
-        This method looks for patterns like "AttributeName": in templates
-        which typically indicate JSON keys being set.
+        This method extracts only the top-level JSON keys (those at depth 1),
+        ignoring nested object attributes like Moid, ObjectType, Key, etc.
         
         Args:
             template_content: Raw Jinja2 template content
             
         Returns:
-            Set of JSON attribute names
+            Set of top-level JSON attribute names
         """
         attributes = set()
-        # Match "AttributeName": patterns (JSON key assignments)
-        pattern = r'"([A-Za-z_][A-Za-z0-9_]*)"\s*:'
-        for match in re.finditer(pattern, template_content):
-            attr = match.group(1)
-            # Skip common Jinja2 control constructs
-            if attr not in {'if', 'for', 'else', 'elif'}:
-                attributes.add(attr)
+        
+        # Find the main JSON object opening brace
+        match = re.search(r'\{', template_content)
+        if not match:
+            return attributes
+        
+        start = match.start()
+        depth = 0
+        in_string = False
+        escape = False
+        i = start
+        
+        # Iterate through template to find top-level keys
+        while i < len(template_content):
+            char = template_content[i]
+            
+            # Handle escape sequences
+            if escape:
+                escape = False
+                i += 1
+                continue
+            
+            if char == '\\':
+                escape = True
+                i += 1
+                continue
+            
+            # Track string boundaries
+            if char == '"' and not escape:
+                in_string = not in_string
+                i += 1
+                continue
+            
+            # Only process braces outside of strings
+            if not in_string:
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                elif char == ':' and depth == 1:
+                    # Found a colon at top level - this is a key
+                    # Back up to find the quoted key
+                    j = i - 1
+                    while j >= 0 and template_content[j] in ' \t\n\r':
+                        j -= 1
+                    
+                    if j >= 0 and template_content[j] == '"':
+                        # Found closing quote, now find opening quote
+                        k = j - 1
+                        while k >= 0 and template_content[k] != '"':
+                            k -= 1
+                        
+                        if k >= 0:
+                            key = template_content[k + 1:j]
+                            # Only add valid attribute names (skip Jinja2 keywords)
+                            if key and key not in {'if', 'for', 'else', 'elif', 'endif', 'endfor'}:
+                                attributes.add(key)
+            
+            i += 1
+        
         return attributes
 
     def analyze_template_file(self, file_path: Path) -> Tuple[Set[str], Set[str]]:
