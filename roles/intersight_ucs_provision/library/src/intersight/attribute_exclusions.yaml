@@ -1,0 +1,61 @@
+# Attribute Exclusion Configuration for check_template_differences.py
+# 
+# This file allows you to configure which attributes should be excluded from
+# difference reports. This is useful for filtering out read-only, system-managed,
+# or policy-specific attributes that don't need to be tracked as part of
+# template maintenance.
+#
+# Usage: check_template_differences.py --config attribute_exclusions.yaml
+
+# Global exclusions apply to all policies
+# These are attributes that are system-managed or read-only in Intersight
+global_exclusions:
+  # Identifiers and type information
+  - Moid
+  - ObjectType
+  - ClassId
+  - AccountMoid
+  - AccountMoidList
+  
+  # Timestamps (read-only)
+  - CreateTime
+  - ModTime
+  - UpdateTime
+  - LastModifiedTime
+  
+  # Hierarchy and relationships (typically managed by Intersight)
+  - Ancestors
+  - DomainGroupMoid
+  - Owners
+  - PermissionResources
+  - Parent
+  
+  # Sharing and versioning (system-managed)
+  - Shared
+  - SharedScope
+  - VersionContext
+  - Tags
+  
+  # Description and Name (optional/informational)
+  - Description
+  - Name
+  - Organization
+
+# Per-policy-type exclusions
+# These apply to specific policy types and supplement the global exclusions
+policy_exclusions:
+  # VLAN-specific exclusions
+  vlan:
+    # Template uses these as part of nested tag structure, not direct attributes
+    - Key
+    - Type
+    - Value
+  
+  # Storage-specific exclusions
+  storage:
+    # Add storage-specific exclusions here if needed
+  
+  # Example: if you want to exclude additional attributes for a specific policy type
+  # policy_name:
+  #   - CustomAttribute1
+  #   - CustomAttribute2
