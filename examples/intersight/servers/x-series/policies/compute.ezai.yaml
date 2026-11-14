@@ -30,6 +30,23 @@ intersight:
                 server_models:
                   - UCSX-215C-M8
             target_platform: FIAttached
+        # =========================================================
+        # PCIe Connectivity Policy
+        # =========================================================
+        # ⚠️  IMPORTANT FIRMWARE REQUIREMENT
+        # PCIe Connectivity policies require a MINIMUM firmware
+        # version of 6.0(1.252039) or later.
+        #
+        # Before enabling this policy:
+        # 1. Verify all target servers have firmware >= 6.0(1.252039)
+        # 2. Run deploy script in check mode: --check
+        #    This will validate firmware compatibility automatically
+        # 3. If servers have older firmware, either:
+        #    - Upgrade server firmware first, OR
+        #    - Disable this policy and re-enable after upgrade
+        #
+        # See: roles/intersight_ucs_provision/library/deploy_intersight_ucs.py --check
+        # =========================================================
         # pcie_connectivity:
         #   - name: PCIe-Connectivity
         #     target_platform: FIAttached

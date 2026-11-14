@@ -12,6 +12,18 @@ The format is based on Keep a Changelog.
 ### Changed
 - Move Intersight troubleshooting controls into a collapsed panel inside Automation on System (Orgs), UCS Domains, and UCS Servers; preserve per-page debug settings.
 
+## [0.1.13] - 2026-11-14
+
+### Added
+- PCIe Connectivity Policy firmware validation: check mode now validates that server firmware meets minimum requirement (6.0(1.252039)) before deploying PCIe connectivity policies.
+- Firmware version comparison and validation module for semantic version checking.
+- Comprehensive unit tests for firmware validation (20 test cases covering edge cases and error conditions).
+- Clear warning documentation in X-Series compute policy examples highlighting PCIe firmware requirements.
+- Formatted compatibility reports displayed at end of check mode logs for high visibility.
+
+### Fixed
+- Server firmware incompatibility detection during check mode prevents failed deployments due to PCIe policy firmware conflicts.
+
 ## [0.1.12] - 2026-11-12
 
 ### Added

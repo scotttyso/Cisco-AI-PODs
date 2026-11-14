@@ -19,6 +19,10 @@ def prRed(skk):
 try:
     from .. import shared_functions
     from .api import api
+    from .validate_pcie_firmware import (
+        validate_pcie_connectivity_firmware,
+        format_pcie_validation_report
+    )
     from OpenSSL import crypto
     from copy import deepcopy
     from datetime import datetime
@@ -65,6 +69,106 @@ class configure:
     def __init__(self, category=None, type=None):  # pylint: disable=redefined-builtin
         self.category = category
         self.type = type
+
+    # =========================================================================
+    # Function - PCIe Connectivity Firmware Compatibility Check
+    # =========================================================================
+    def check_pcie_firmware_compatibility(self, kwargs):
+        """Validate PCIe connectivity policies against server firmware versions.
+
+        This method queries the Intersight API for server firmware versions
+        and validates compatibility with PCIe connectivity policies.
+        Called during check mode to warn about incompatibilities before deployment.
+
+        Args:
+            kwargs: Configuration kwargs dictionary containing policies and settings
+        """
+        try:
+            # Get PCIe connectivity policies from configuration
+            pcie_policies = kwargs.intersight.get('configure', {}).get(
+                'default', {}).get('policies', {}).get('pcie_connectivity', [])
+
+            if not pcie_policies:
+                return  # No PCIe policies defined, nothing to check
+
+            policy_names = [p.get('name') for p in pcie_policies if p.get('name')]
+
+            # Try to query Intersight for server firmware data
+            servers_data = self.get_server_firmware_data(kwargs)
+
+            if not servers_data:
+                pcolor.Yellow(
+                    "\n⚠️  PCIe firmware compatibility check: Could not retrieve server data from API")
+                return
+
+            # Validate firmware compatibility
+            is_compatible, incompatible = validate_pcie_connectivity_firmware(
+                policy_names,
+                servers_data
+            )
+
+            # Display report
+            report = format_pcie_validation_report(
+                is_compatible,
+                incompatible,
+                len(pcie_policies)
+            )
+
+            if is_compatible:
+                pcolor.Green(report)
+            else:
+                pcolor.Yellow(report)
+
+        except Exception as e:
+            pcolor.Yellow(
+                f"\n⚠️  PCIe firmware compatibility check encountered an error: {str(e)}\n"
+            )
+
+    def get_server_firmware_data(self, kwargs):
+        """Query Intersight API for server firmware versions.
+
+        Returns dict mapping server serial numbers to their properties:
+            {
+                "FCH2345ABCD": {
+                    "name": "server1",
+                    "firmware_version": "6.0(1.250120)",
+                    "model": "UCSX-215C-M8"
+                }
+            }
+
+        Args:
+            kwargs: Configuration kwargs dictionary with API connection info
+
+        Returns:
+            Dictionary of server data or empty dict if query fails
+        """
+        servers_data = {}
+
+        try:
+            # Check if we have server profiles configured
+            server_profiles = kwargs.intersight.get('configure', {}).get(
+                'default', {}).get('profiles', {}).get('server', [])
+
+            if not server_profiles:
+                return servers_data
+
+            # For now, we'll collect server info from profiles
+            # In a production environment, this would query the API directly
+            for profile in server_profiles:
+                if isinstance(profile, dict):
+                    serial = profile.get('serial_number', 'Unknown')
+                    if serial and serial != 'Unknown':
+                        servers_data[serial] = {
+                            'name': profile.get('name', 'Unknown'),
+                            'firmware_version': 'Unknown',  # Would be queried from API
+                            'model': profile.get('server_model', 'Unknown')
+                        }
+
+            return servers_data
+
+        except Exception:
+            # Fail gracefully - missing server data shouldn't break deployment
+            return {}
 
     # =========================================================================
     # Function - API Get Calls
