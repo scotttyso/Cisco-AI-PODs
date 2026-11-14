@@ -12,6 +12,26 @@ The format is based on Keep a Changelog.
 ### Changed
 - Move Intersight troubleshooting controls into a collapsed panel inside Automation on System (Orgs), UCS Domains, and UCS Servers; preserve per-page debug settings.
 
+## [0.1.14] - 2026-11-14
+
+### Added
+- **Template Difference Checker**: Standalone maintenance tool to analyze and report differences between local Jinja2 templates and Intersight API schemas.
+  - Automatic template discovery across policies, pools, profiles, templates, and system configurations.
+  - Multi-format report generation: JSON (machine-parseable), CSV (spreadsheet), Markdown (human-readable).
+  - Bidirectional analysis identifying attributes missing in API or templates.
+  - Console summary with sorted issue priority.
+  - Verbose logging for detailed execution tracking.
+- Framework for future Feature 2 (Dynamic Payload Adapter) integration with live API schema queries.
+- 37 comprehensive unit tests covering template analysis, API schema handling, comparisons, and all report formats.
+- Complete documentation for template difference checker tool (TEMPLATE_DIFFERENCE_CHECKER.md).
+
+### Features
+- **Template Analysis**: Extracts Jinja2 variables and JSON attributes from 100+ templates using AST and regex.
+- **Category-Based Scanning**: Analyzes policies (78), pools (9), profiles (4), templates (8), and system (5) configurations.
+- **Match Ratio Calculation**: Computes alignment percentage between template and API attributes.
+- **Batch Processing**: Analyzes all 104 templates in <1 second with <50 MB memory.
+- **Extensible Design**: Ready for live API integration and dynamic filtering in future releases.
+
 ## [0.1.13] - 2026-11-14
 
 ### Added
