@@ -1545,6 +1545,116 @@ def dns_manager_form(handle) -> None:
         },
     }
     
+    def extract_dns_records_from_files():
+        """Extract DNS A records from selected inventory files."""
+        records = []
+        base_domain = "example.com"
+        
+        try:
+            # Extract from OpenShift if selected
+            if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
+                openshift_path = context.output_dir.parent / "host_vars" / "openshift" / "install.ezai.yaml"
+                if openshift_path.is_file():
+                    with open(openshift_path) as f:
+                        ocp_data = yaml.safe_load(f)
+                    
+                    if ocp_data and 'openshift' in ocp_data:
+                        ocp_install = ocp_data['openshift']['install']['bare_metal']
+                        base_domain = ocp_install.get('base_dns_domain', 'example.com')
+                        cluster_name = ocp_install.get('cluster_name', 'cluster')
+                        
+                        # Extract server hostnames and IPs
+                        for server in ocp_install.get('servers', []):
+                            hostname = server.get('hostname', '')
+                            if not hostname:
+                                continue
+                            
+                            # Get first IP from interfaces
+                            ip_addr = None
+                            interfaces = server.get('interfaces', {})
+                            
+                            # Try bond interfaces first
+                            if 'bond' in interfaces and interfaces['bond']:
+                                for bond in interfaces['bond']:
+                                    ipv4 = bond.get('ipv4', '').split('/')[0]
+                                    if ipv4:
+                                        ip_addr = ipv4
+                                        break
+                            
+                            # Fall back to ethernet
+                            if not ip_addr and 'ethernet' in interfaces:
+                                for eth in interfaces['ethernet']:
+                                    ipv4 = eth.get('ipv4', '').split('/')[0]
+                                    if ipv4:
+                                        ip_addr = ipv4
+                                        break
+                            
+                            if ip_addr:
+                                fqdn = f"{hostname}.{base_domain}"
+                                records.append({
+                                    "hostname": fqdn,
+                                    "ipv4": ip_addr,
+                                })
+                        
+                        # Add API and ingress VIPs
+                        cluster_net = ocp_install.get('cluster_networking', {})
+                        api_ip = cluster_net.get('api', {}).get('v4')
+                        ingress_ip = cluster_net.get('ingress', {}).get('v4')
+                        
+                        if api_ip:
+                            records.append({
+                                "hostname": f"api.{cluster_name}.{base_domain}",
+                                "ipv4": api_ip,
+                            })
+                        
+                        if ingress_ip:
+                            records.append({
+                                "hostname": f"*.apps.{cluster_name}.{base_domain}",
+                                "ipv4": ingress_ip,
+                            })
+            
+            # Extract from initial inventory
+            if import_initial_inventory.value and initial_inventory_exists():
+                inv_path = context.output_dir / "initial_inventory.json"
+                if inv_path.is_file():
+                    with open(inv_path) as f:
+                        inv_data = json.load(f)
+                    
+                    if isinstance(inv_data, list):
+                        for device in inv_data:
+                            hostname = device.get('hostname', '')
+                            ip = device.get('ip', '')
+                            if hostname and ip:
+                                fqdn = f"{hostname}.{base_domain}"
+                                records.append({
+                                    "hostname": fqdn,
+                                    "ipv4": ip,
+                                })
+            
+            # Extract from Everpure if selected
+            if import_everpure.value and file_exists("everpure/everpure.ezai.yaml"):
+                everpure_path = context.output_dir.parent / "host_vars" / "everpure" / "everpure.ezai.yaml"
+                if everpure_path.is_file():
+                    with open(everpure_path) as f:
+                        everpure_data = yaml.safe_load(f)
+                    
+                    if everpure_data and 'everpure' in everpure_data:
+                        # Extract storage system hostnames and IPs
+                        for system in everpure_data.get('everpure', {}).get('systems', []):
+                            hostname = system.get('hostname', '')
+                            mgmt_ip = system.get('management_ip', '')
+                            if hostname and mgmt_ip:
+                                fqdn = f"{hostname}.{base_domain}"
+                                records.append({
+                                    "hostname": fqdn,
+                                    "ipv4": mgmt_ip,
+                                })
+        
+        except Exception as e:
+            print(f"Error extracting DNS records: {e}")
+        
+        return records
+    
     def load_ldap_from_inventory():
         """Load LDAP settings from initial_inventory.ezai.yaml shared_services."""
         try:
@@ -1631,7 +1741,7 @@ def dns_manager_form(handle) -> None:
         if not provider_key:
             return
         
-        config = {"dns": {"providers": {}, "inventory": {}}}
+        config = {"dns": {"providers": {}}}
         provider_name = DNS_PROVIDERS[provider_key]["name"]
         
         # Add selected provider configuration
@@ -1701,36 +1811,22 @@ def dns_manager_form(handle) -> None:
                 "timeout": 10,
             }
         
-        # Add selected inventory sources
-        if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
-            config["dns"]["inventory"]["openshift"] = {
-                "file": "../openshift/install.ezai.yaml",
-                "enabled": True,
-                "format": "yaml",
-            }
+        # Add extracted DNS records from selected inventory sources
+        dns_records = extract_dns_records_from_files()
+        config["dns"]["records"] = dns_records if dns_records else []
         
-        if import_initial_inventory.value and initial_inventory_exists():
-            config["dns"]["inventory"]["initial_inventory"] = {
-                "file": "../../host_vars/initial_inventory.ezai.yaml",
-                "enabled": True,
-                "format": "yaml",
-            }
-        
-        if import_everpure.value and file_exists("everpure/everpure.ezai.yaml"):
-            config["dns"]["inventory"]["everpure"] = {
-                "file": "../everpure/everpure.ezai.yaml",
-                "enabled": True,
-                "format": "yaml",
-            }
-        
-        # If no inventory selected, show an example
-        if not config["dns"]["inventory"]:
-            config["dns"]["inventory"]["openshift"] = {
-                "file": "../openshift/install.ezai.yaml",
-                "enabled": False,
-                "format": "yaml",
-            }
-        
+        # If no records found, add an example
+        if not config["dns"]["records"]:
+            config["dns"]["records"] = [
+                {
+                    "hostname": "example-server.example.com",
+                    "ipv4": "192.168.1.1",
+                },
+                {
+                    "hostname": "api.cluster.example.com",
+                    "ipv4": "192.168.1.10",
+                },
+            ]
         
         # Generate YAML
         yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
