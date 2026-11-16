@@ -133,7 +133,9 @@ def completed_item(category, ptype, kwargs):  # pylint: disable=too-many-branche
             name = f"{ptitle} - `{iresults.Name}`"
         rsplit = kwargs.intersight_object_map[iresults.ObjectType].split('.')
         parent_policy = rsplit[0]
-        parent_name = kwargs.intersight_api[kwargs.org][category][parent_policy][iresults[parent_match].Moid]
+        parent_cache_entry = kwargs.intersight_api[kwargs.org][category][parent_policy][iresults[parent_match].Moid]
+        # Extract the name from the DotMap cache entry
+        parent_name = parent_cache_entry.name if hasattr(parent_cache_entry, 'name') else parent_cache_entry
         parent_title = mod_pol_description(
             (parent_policy.replace('_', ' ')).title())
         rtype = DESCRIPTION_WORD_MAP.get(

@@ -829,7 +829,6 @@ class configure:
                             else:
                                 # If it's a simple string (or other type), use it directly
                                 moid_key = moid_value
-                            pcolor.Cyan(f"Debug: Policy '{a}' -> moid_value type={type(moid_value)}, moid_key={moid_key}")
                             kwargs.policies[k][moid_key] = DotMap(
                                 name=a, organization=key)
                 for k, v in value.pools.items():
@@ -845,7 +844,6 @@ class configure:
                             else:
                                 # If it's a simple string (or other type), use it directly
                                 moid_key = moid_value
-                            pcolor.Cyan(f"Debug: Pool '{a}' -> moid_value type={type(moid_value)}, moid_key={moid_key}")
                             kwargs.pools[k][moid_key] = DotMap(
                                 name=a, organization=key)
             if self.category == 'templates':
