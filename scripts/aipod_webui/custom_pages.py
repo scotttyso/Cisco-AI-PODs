@@ -1599,8 +1599,22 @@ def dns_manager_form(handle) -> None:
     
     def file_exists(file_path: str) -> bool:
         """Check if a file has been saved in the environment."""
+        # Check in workspace first
         full_path = context.output_dir / file_path
-        return full_path.is_file()
+        if full_path.is_file():
+            return True
+        
+        # Also check in host_vars directory for openshift/everpure files
+        if file_path.startswith("openshift/"):
+            alt_path = context.output_dir.parent / "host_vars" / file_path
+            if alt_path.is_file():
+                return True
+        elif file_path.startswith("everpure/"):
+            alt_path = context.output_dir.parent / "host_vars" / file_path
+            if alt_path.is_file():
+                return True
+        
+        return False
     
     def initial_inventory_exists() -> bool:
         """Check if Initial Inventory has been saved."""
@@ -1612,7 +1626,7 @@ def dns_manager_form(handle) -> None:
         if not provider_key:
             return
         
-        config = {"dns": {"providers": {}, "inventory": {}}}
+        config = {"dns": {"providers": {}}}
         provider_name = DNS_PROVIDERS[provider_key]["name"]
         
         # Add selected provider
