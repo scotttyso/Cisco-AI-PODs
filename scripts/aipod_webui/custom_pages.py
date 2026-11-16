@@ -1929,29 +1929,26 @@ def dns_manager_form(handle) -> None:
                     value=file_exists("openshift/install.ezai.yaml"),
                     on_change=generate_dns_config
                 )
-                if not file_exists("openshift/install.ezai.yaml"):
-                    ui.label("Not found - save OpenShift Cluster Deployment first").classes("text-xs text-orange-600 ml-6")
+                ui.label("Check this box to include OpenShift cluster nodes, API, and ingress from openshift/install.ezai.yaml").classes("text-xs muted ml-6")
                 
                 import_initial_inventory = ui.checkbox(
                     "Initial Inventory with Shared Services",
-                    value=initial_inventory_exists(),
+                    value=False,
                     on_change=generate_dns_config
                 )
-                if not initial_inventory_exists():
-                    ui.label("Not found - save Initial Inventory first").classes("text-xs text-orange-600 ml-6")
+                ui.label("Check this box to include devices from initial_inventory.json").classes("text-xs muted ml-6")
                 
                 import_everpure = ui.checkbox(
                     "Everpure Storage Inventory (everpure/everpure.ezai.yaml)",
-                    value=file_exists("everpure/everpure.ezai.yaml"),
+                    value=False,
                     on_change=generate_dns_config
                 )
-                if not file_exists("everpure/everpure.ezai.yaml"):
-                    ui.label("Not found - save Everpure configuration first").classes("text-xs text-orange-600 ml-6")
+                ui.label("Check this box to include Everpure storage systems from everpure/everpure.ezai.yaml").classes("text-xs muted ml-6")
             
             ui.separator().classes("my-4")
             
             # Generate button
             ui.button("Generate Configuration", icon="auto_fix_high", 
                      on_click=generate_dns_config).props("unelevated")
-            ui.label("Click to generate a clean dns_config.ezai.yaml based on your selections above. "
-                    "You can then edit it in the YAML editor below.").classes("text-xs muted")
+            ui.label("Click to generate dns_config.ezai.yaml with the inventory sources checked above. "
+                    "The script will automatically find and parse your inventory files to extract A records.").classes("text-xs muted")
