@@ -1618,6 +1618,11 @@ def dns_manager_form(handle) -> None:
     
     def initial_inventory_exists() -> bool:
         """Check if Initial Inventory has been saved."""
+        # Check if initial_inventory.json exists in workspace
+        inv_path = context.output_dir / "initial_inventory.json"
+        if inv_path.is_file():
+            return True
+        # Also check if LDAP config is available in shared services
         return bool(context.store.shared_services())
     
     def generate_dns_config():
