@@ -124,6 +124,9 @@ class configure:
                 f"\n⚠️  PCIe firmware compatibility check encountered an error: {str(e)}\n"
             )
 
+    # =========================================================================
+    # Function - Get Server Firmware
+    # =========================================================================
     def get_server_firmware_data(self, kwargs):
         """Query Intersight API for server firmware versions.
 
@@ -817,13 +820,29 @@ class configure:
                     kwargs.policies.setdefault(k, DotMap())
                     for a, b in v.items():
                         if hasattr(b, 'moid'):
-                            kwargs.policies[k][b.moid] = DotMap(
+                            # Extract moid value - handle both string and nested object cases
+                            moid_value = b.moid
+                            if isinstance(moid_value, dict) or hasattr(moid_value, '__getitem__'):
+                                # If moid is a dict-like object, try to get the Moid field
+                                moid_key = moid_value.get('Moid') if isinstance(moid_value, dict) else moid_value.Moid
+                            else:
+                                # If it's a simple string, use it directly
+                                moid_key = moid_value
+                            kwargs.policies[k][moid_key] = DotMap(
                                 name=a, organization=key)
                 for k, v in value.pools.items():
                     kwargs.pools.setdefault(k, DotMap())
                     for a, b in v.items():
                         if hasattr(b, 'moid'):
-                            kwargs.pools[k][b.moid] = DotMap(
+                            # Extract moid value - handle both string and nested object cases
+                            moid_value = b.moid
+                            if isinstance(moid_value, dict) or hasattr(moid_value, '__getitem__'):
+                                # If moid is a dict-like object, try to get the Moid field
+                                moid_key = moid_value.get('Moid') if isinstance(moid_value, dict) else moid_value.Moid
+                            else:
+                                # If it's a simple string, use it directly
+                                moid_key = moid_value
+                            kwargs.pools[k][moid_key] = DotMap(
                                 name=a, organization=key)
             if self.category == 'templates':
                 for e in reconcile_resources:
