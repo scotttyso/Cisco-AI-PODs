@@ -822,12 +822,14 @@ class configure:
                         if hasattr(b, 'moid'):
                             # Extract moid value - handle both string and nested object cases
                             moid_value = b.moid
-                            if isinstance(moid_value, dict) or hasattr(moid_value, '__getitem__'):
+                            # Check if moid_value is a dict or DotMap (but not a string)
+                            if isinstance(moid_value, (dict, DotMap)):
                                 # If moid is a dict-like object, try to get the Moid field
                                 moid_key = moid_value.get('Moid') if isinstance(moid_value, dict) else moid_value.Moid
                             else:
-                                # If it's a simple string, use it directly
+                                # If it's a simple string (or other type), use it directly
                                 moid_key = moid_value
+                            pcolor.Cyan(f"Debug: Policy '{a}' -> moid_value type={type(moid_value)}, moid_key={moid_key}")
                             kwargs.policies[k][moid_key] = DotMap(
                                 name=a, organization=key)
                 for k, v in value.pools.items():
@@ -836,12 +838,14 @@ class configure:
                         if hasattr(b, 'moid'):
                             # Extract moid value - handle both string and nested object cases
                             moid_value = b.moid
-                            if isinstance(moid_value, dict) or hasattr(moid_value, '__getitem__'):
+                            # Check if moid_value is a dict or DotMap (but not a string)
+                            if isinstance(moid_value, (dict, DotMap)):
                                 # If moid is a dict-like object, try to get the Moid field
                                 moid_key = moid_value.get('Moid') if isinstance(moid_value, dict) else moid_value.Moid
                             else:
-                                # If it's a simple string, use it directly
+                                # If it's a simple string (or other type), use it directly
                                 moid_key = moid_value
+                            pcolor.Cyan(f"Debug: Pool '{a}' -> moid_value type={type(moid_value)}, moid_key={moid_key}")
                             kwargs.pools[k][moid_key] = DotMap(
                                 name=a, organization=key)
             if self.category == 'templates':
