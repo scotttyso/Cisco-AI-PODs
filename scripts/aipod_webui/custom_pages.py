@@ -1628,8 +1628,7 @@ def dns_manager_form(handle) -> None:
                     "ldap_port": ldap_data.get("ldap_port", 389),
                     "secure_ldap_port": 636,
                     "use_ssl": ldap_data.get("use_ssl", False),
-                    "username": "${AD_USERNAME}",
-                    "password": "${AD_PASSWORD}",
+                    "bind_password": "!vault |VAULT_AD_PASSWORD",
                     "timeout": 10,
                 }
             else:
@@ -1642,8 +1641,7 @@ def dns_manager_form(handle) -> None:
                     "ldap_port": 389,
                     "secure_ldap_port": 636,
                     "use_ssl": False,
-                    "username": "${AD_USERNAME}",
-                    "password": "${AD_PASSWORD}",
+                    "bind_password": "!vault |VAULT_AD_PASSWORD",
                     "timeout": 10,
                 }
         elif provider_key == "infoblox":
@@ -1652,7 +1650,7 @@ def dns_manager_form(handle) -> None:
                 "server": "infoblox.example.com",
                 "api_version": "2.11",
                 "username": "api_user",
-                "password": "${INFOBLOX_PASSWORD}",
+                "api_password": "!vault |VAULT_INFOBLOX_PASSWORD",
                 "use_ssl": True,
                 "verify_ssl": True,
                 "wapi_port": 443,
@@ -1664,7 +1662,7 @@ def dns_manager_form(handle) -> None:
                 "server": "bluecat.example.com",
                 "api_version": "v1",
                 "username": "api_user",
-                "password": "${BLUECAT_PASSWORD}",
+                "api_password": "!vault |VAULT_BLUECAT_PASSWORD",
                 "use_ssl": True,
                 "verify_ssl": True,
                 "timeout": 30,
@@ -1675,7 +1673,7 @@ def dns_manager_form(handle) -> None:
                 "server": "efficientip.example.com",
                 "api_version": "v1",
                 "username": "api_user",
-                "password": "${EFFICIENTIP_PASSWORD}",
+                "api_password": "!vault |VAULT_EFFICIENTIP_PASSWORD",
                 "use_ssl": True,
                 "verify_ssl": True,
                 "timeout": 30,
@@ -1687,42 +1685,49 @@ def dns_manager_form(handle) -> None:
                 "zone_file_path": "/var/lib/named/zones",
                 "nsupdate": True,
                 "tsig_keyfile": "/etc/named.keys/update.key",
+                "api_key": "!vault |VAULT_BINDNS_API_KEY",
                 "timeout": 10,
             }
         
-        # Add selected inventory sources
-        if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
-            config["dns"]["inventory"]["openshift"] = {
-                "file": "../openshift/install.ezai.yaml",
-                "enabled": True,
-                "format": "yaml",
-            }
+        # Add selected inventory sources as A records to generate
+        config["dns"]["records"] = []
         
-        # Initial Inventory is in workspace, accessed via shared_services()
-        # We include it if the user has saved the inventory and wants to use it
-        if import_initial_inventory.value and initial_inventory_exists():
-            config["dns"]["inventory"]["initial_inventory"] = {
+        if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
+            # OpenShift records: nodes, API, and ingress
+            config["dns"]["records"].append({
+                "source": "openshift",
                 "enabled": True,
-                "format": "json",
-                "source": "shared_services",
-            }
+                "description": "OpenShift cluster nodes, API, and ingress endpoints",
+            })
+        
+        if import_initial_inventory.value and initial_inventory_exists():
+            config["dns"]["records"].append({
+                "source": "initial_inventory",
+                "enabled": True,
+                "description": "Infrastructure devices from initial inventory",
+            })
         
         if import_everpure.value and file_exists("everpure/everpure.ezai.yaml"):
-            config["dns"]["inventory"]["everpure"] = {
-                "file": "../everpure/everpure.ezai.yaml",
+            config["dns"]["records"].append({
+                "source": "everpure",
                 "enabled": True,
-                "format": "yaml",
-            }
+                "description": "Everpure storage system hosts",
+            })
         
-        # Only add empty sections if no sources selected
-        if not config["dns"]["inventory"]:
-            config["dns"]["inventory"] = {
-                "openshift": {
-                    "file": "../openshift/install.ezai.yaml",
+        # If no records selected, add an example
+        if not config["dns"]["records"]:
+            config["dns"]["records"] = [
+                {
+                    "source": "openshift",
                     "enabled": False,
-                    "format": "yaml",
+                    "description": "OpenShift cluster nodes, API, and ingress endpoints",
+                    "example_records": [
+                        "hostname: aid-master-1\nip: 10.124.1.61\nzone: aipod.local",
+                        "hostname: api.aid\nip: 10.124.1.59\nzone: aipod.local",
+                        "hostname: *.apps.aid\nip: 10.124.1.60\nzone: aipod.local",
+                    ]
                 }
-            }
+            ]
         
         # Generate YAML
         yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
