@@ -342,7 +342,7 @@
                     "uniqueItems": true
                 },
                 "ethernet": {
-                    "description": "Ethernet interfaces for the host.",
+                    "description": "Ethernet interfaces for the host.\n\nRequired Attributes:\n\n  * ipv4\n  * lldp_enabled\n  * mac\n  * name\n\nOptional Attributes:\n\n  * mtu",
                     "items": {
                         "$ref": "#/definitions/install.bare_metal.servers.interfaces.ethernet"
                     },
