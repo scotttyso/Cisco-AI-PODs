@@ -121,7 +121,9 @@ class api:
                 elif 'organization.Organization' == i.ObjectType:
                     kwargs = function_org_moids(i, kwargs)
                     continue
-                elif (any(re.search(parent_regex, e) for e in ikeys) and isinstance(kwargs.org, str)) or pool_match:
+                elif ((any(re.search(parent_regex, e) for e in ikeys 
+                       if isinstance(i.get(e), dict) and i.get(e, {}).get('ObjectType') != 'organization.Organization') 
+                       and isinstance(kwargs.org, str)) or pool_match):
                     if pool_match:
                         child_type = pool_match.group(3).replace(
                             'Ip', '').replace('Uuid', '').lower()
