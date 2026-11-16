@@ -1552,9 +1552,21 @@ def dns_manager_form(handle) -> None:
         
         try:
             # Extract from OpenShift if selected
-            if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
-                openshift_path = context.output_dir.parent / "host_vars" / "openshift" / "install.ezai.yaml"
-                if openshift_path.is_file():
+            if import_openshift.value:
+                # Try multiple possible locations for openshift file
+                openshift_paths = [
+                    context.output_dir.parent / "host_vars" / "openshift" / "install.ezai.yaml",
+                    context.output_dir / "openshift" / "install.ezai.yaml",
+                    Path("scripts/deployments/environments/default/host_vars/openshift/install.ezai.yaml"),
+                ]
+                
+                openshift_path = None
+                for path in openshift_paths:
+                    if path.is_file():
+                        openshift_path = path
+                        break
+                
+                if openshift_path:
                     with open(openshift_path) as f:
                         ocp_data = yaml.safe_load(f)
                     
@@ -1614,9 +1626,20 @@ def dns_manager_form(handle) -> None:
                             })
             
             # Extract from initial inventory
-            if import_initial_inventory.value and initial_inventory_exists():
-                inv_path = context.output_dir / "initial_inventory.json"
-                if inv_path.is_file():
+            if import_initial_inventory.value:
+                # Try multiple possible locations
+                inv_paths = [
+                    context.output_dir / "initial_inventory.json",
+                    Path("scripts/deployments/environments/default/workspace/initial_inventory.json"),
+                ]
+                
+                inv_path = None
+                for path in inv_paths:
+                    if path.is_file():
+                        inv_path = path
+                        break
+                
+                if inv_path:
                     with open(inv_path) as f:
                         inv_data = json.load(f)
                     
@@ -1632,9 +1655,21 @@ def dns_manager_form(handle) -> None:
                                 })
             
             # Extract from Everpure if selected
-            if import_everpure.value and file_exists("everpure/everpure.ezai.yaml"):
-                everpure_path = context.output_dir.parent / "host_vars" / "everpure" / "everpure.ezai.yaml"
-                if everpure_path.is_file():
+            if import_everpure.value:
+                # Try multiple possible locations
+                everpure_paths = [
+                    context.output_dir.parent / "host_vars" / "everpure" / "everpure.ezai.yaml",
+                    context.output_dir / "everpure" / "everpure.ezai.yaml",
+                    Path("scripts/deployments/environments/default/host_vars/everpure/everpure.ezai.yaml"),
+                ]
+                
+                everpure_path = None
+                for path in everpure_paths:
+                    if path.is_file():
+                        everpure_path = path
+                        break
+                
+                if everpure_path:
                     with open(everpure_path) as f:
                         everpure_data = yaml.safe_load(f)
                     
@@ -1652,6 +1687,8 @@ def dns_manager_form(handle) -> None:
         
         except Exception as e:
             print(f"Error extracting DNS records: {e}")
+            import traceback
+            traceback.print_exc()
         
         return records
     
@@ -1723,6 +1760,8 @@ def dns_manager_form(handle) -> None:
             alt_path = context.output_dir.parent / "host_vars" / file_path
             if alt_path.is_file():
                 return True
+        
+        return False
         
         return False
     
