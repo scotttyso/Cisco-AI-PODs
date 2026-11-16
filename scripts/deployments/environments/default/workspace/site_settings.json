@@ -1,0 +1,38 @@
+{
+  "pages": {
+    "dhcp": {
+      "bootfile": "",
+      "deny_unknown_clients": true,
+      "interfaces": [],
+      "lease_time": 3600,
+      "network": "192.168.64.0/24",
+      "pool_end": "",
+      "pool_start": "",
+      "routers": [],
+      "tftp_server": ""
+    },
+    "dhcp-source": {
+      "fingerprint": "b3e3ae7275c645d77ec8cd7e0d8e0d81453c8e099ad77108ed23ee0be9523a7e"
+    },
+    "ocp-cluster": {
+      "base_dns_domain": "rich.ciscolabs.com",
+      "cluster_name": "ai-pods",
+      "cluster_network": "10.128.0.0/14",
+      "machine_network": "198.18.0.0/24",
+      "service_network": "172.30.0.0/16"
+    }
+  },
+  "shared_services_overrides": {
+    "ldap": {
+      "base_dn": "DC=rich,DC=ciscolabs,DC=com",
+      "bind_dn": "CN=Network Services,OU=Service Accounts,DC=rich,DC=ciscolabs,DC=com",
+      "secure_ldap": false,
+      "url": "ldap://ad1.rich.ciscolabs.com:389"
+    },
+    "ntp_servers": [
+      "10.101.128.15",
+      "10.101.128.16"
+    ],
+    "timezone": "America/Detroit"
+  }
+}

@@ -111,6 +111,9 @@
                         "dhcp": {
                             "$ref": "#/definitions/dhcp"
                         },
+                        "dns": {
+                            "$ref": "./dns_manager.json#/definitions/dns_manager"
+                        },
                         "everpure": {
                             "$ref": "#/definitions/everpure"
                         },
@@ -138,7 +141,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `dns`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",

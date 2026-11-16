@@ -1,0 +1,34 @@
+# OpenShift Inventory Example
+# This file represents nodes/hosts from an OpenShift cluster
+
+kind: InventoryList
+apiVersion: v1
+
+nodes:
+  - name: "ocp-master-1.prod.example.com"
+    ip: "192.168.1.10"
+    role: "master"
+    
+  - name: "ocp-master-2.prod.example.com"
+    ip: "192.168.1.11"
+    role: "master"
+    
+  - name: "ocp-master-3.prod.example.com"
+    ip: "192.168.1.12"
+    role: "master"
+    
+  - name: "ocp-worker-1.prod.example.com"
+    ip: "192.168.1.20"
+    role: "worker"
+    
+  - name: "ocp-worker-2.prod.example.com"
+    ip: "192.168.1.21"
+    role: "worker"
+    
+  - name: "ocp-worker-3.prod.example.com"
+    ip: "192.168.1.22"
+    role: "worker"
+
+# Optional: cluster API endpoint
+cluster_api: "api.prod.example.com"
+cluster_api_ip: "192.168.1.5"

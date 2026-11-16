@@ -1,0 +1,24 @@
+# EveryPure Inventory Example
+# Format: YAML
+# This file contains DNS records for EveryPure appliances and cluster
+
+appliances:
+  - name: "appliance-1"
+    hostname: "appliance-1.example.com"
+    ip: "192.168.3.10"
+    mgmt_ip: "192.168.100.200"
+    mgmt_hostname: "appliance-1-mgmt.example.com"
+    model: "EP-3000"
+  
+  - name: "appliance-2"
+    hostname: "appliance-2.example.com"
+    ip: "192.168.3.11"
+    mgmt_ip: "192.168.100.201"
+    mgmt_hostname: "appliance-2-mgmt.example.com"
+    model: "EP-3000"
+
+cluster:
+  vip: "192.168.3.20"
+  hostname: "everpure-cluster.example.com"
+  api_hostname: "everpure-api.example.com"
+  api_ip: "192.168.3.21"

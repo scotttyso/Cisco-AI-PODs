@@ -16,6 +16,7 @@ INTERSIGHT_ROOT = "intersight.json"
 NAMESPACE_BY_FILE = {
     "shared.json": "abstract",
     "dhcp.json": "dhcp",
+    "dns_manager.json": "dns_manager",
     "everpure.json": "everpure",
     "hgx.json": "hgx",
     "intersight.json": "intersight",

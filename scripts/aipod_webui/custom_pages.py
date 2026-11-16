@@ -1506,3 +1506,309 @@ def gitops_form(handle) -> None:
     ui.timer(0.5, tick)
     workbench.use_build(render)
     pending["loading"] = False
+
+
+# ------------------------------------------------------------------------------------------------------- DNS Manager
+
+def dns_manager_form(handle) -> None:
+    """DNS Manager provider selection and inventory source configuration."""
+    import json
+    import yaml
+    from pathlib import Path
+    
+    context = handle.context
+    workbench = handle.workbench
+    state = handle.state
+    
+    # DNS provider options
+    # DNS provider options (in alphabetical order)
+    DNS_PROVIDERS = {
+        "active_directory": {
+            "name": "Active Directory",
+            "description": "LDAP-based DNS management for Windows environments",
+        },
+        "bind": {
+            "name": "BIND DNS",
+            "description": "Open-source DNS server (nsupdate)",
+        },
+        "bluecat": {
+            "name": "BlueCat",
+            "description": "BlueCat Proteus DNS platform",
+        },
+        "efficient_ip": {
+            "name": "Efficient IP",
+            "description": "EfficientIP DDI solution",
+        },
+        "infoblox": {
+            "name": "Infoblox",
+            "description": "Enterprise DNS/IPAM platform",
+        },
+    }
+    
+    def load_ldap_from_inventory():
+        """Load LDAP settings from initial_inventory.ezai.yaml shared_services."""
+        try:
+            shared_services = context.store.shared_services()
+            ldap = shared_services.get("ldap", {})
+            if ldap:
+                # Extract server and port from URL if present
+                url = ldap.get("url", "")
+                server = ""
+                port = 389
+                use_ssl = False
+                
+                if url:
+                    # Parse ldap://server:port or ldaps://server:port
+                    if url.startswith("ldaps://"):
+                        use_ssl = True
+                        url = url[8:]
+                    elif url.startswith("ldap://"):
+                        url = url[7:]
+                    
+                    # Split server and port
+                    if ":" in url:
+                        server, port_str = url.rsplit(":", 1)
+                        try:
+                            port = int(port_str)
+                        except ValueError:
+                            pass
+                    else:
+                        server = url.rstrip("/")
+                
+                # Extract domain from base_dn (e.g., DC=rich,DC=ciscolabs,DC=com -> rich.ciscolabs.com)
+                base_dn = ldap.get("base_dn", "")
+                domain = ""
+                if base_dn:
+                    # Convert DC=rich,DC=ciscolabs,DC=com to rich.ciscolabs.com
+                    domain = ".".join([part[3:] for part in base_dn.split(",") if part.startswith("DC=")])
+                
+                # Note: bind_dn from LDAP config is the service account DN (e.g., CN=Network Services,...)
+                # For DNS manager, we need a username, which the user will enter in the credentials section
+                bind_dn = ldap.get("bind_dn", "")
+                
+                return {
+                    "server": server,
+                    "domain": domain,
+                    "bind_dn": bind_dn,
+                    "ldap_port": port,
+                    "use_ssl": use_ssl or ldap.get("secure_ldap", False),
+                }
+        except Exception:
+            pass
+        return None
+    
+    def file_exists(file_path: str) -> bool:
+        """Check if a file has been saved in the environment."""
+        full_path = context.output_dir / file_path
+        return full_path.is_file()
+    
+    def initial_inventory_exists() -> bool:
+        """Check if Initial Inventory has been saved."""
+        return bool(context.store.shared_services())
+    
+    def generate_dns_config():
+        """Generate dns_config.ezai.yaml based on user selections."""
+        provider_key = selected_provider.value
+        if not provider_key:
+            return
+        
+        config = {"dns": {"providers": {}, "inventory": {}}}
+        provider_name = DNS_PROVIDERS[provider_key]["name"]
+        
+        # Add selected provider
+        if provider_key == "active_directory":
+            ldap_data = load_ldap_from_inventory()
+            if ldap_data and use_shared_ldap.value:
+                config["dns"]["providers"]["ad_primary"] = {
+                    "type": "active_directory",
+                    "use_shared_ldap": True,
+                    "server": ldap_data.get("server", "dc1.example.com"),
+                    "domain": ldap_data.get("domain", "example.com"),
+                    "bind_dn": ldap_data.get("bind_dn", "CN=dns-automation,CN=Users,DC=example,DC=com"),
+                    "ldap_port": ldap_data.get("ldap_port", 389),
+                    "secure_ldap_port": 636,
+                    "use_ssl": ldap_data.get("use_ssl", False),
+                    "username": "${AD_USERNAME}",
+                    "password": "${AD_PASSWORD}",
+                    "timeout": 10,
+                }
+            else:
+                config["dns"]["providers"]["ad_primary"] = {
+                    "type": "active_directory",
+                    "use_shared_ldap": False,
+                    "server": "dc1.example.com",
+                    "domain": "example.com",
+                    "bind_dn": "CN=dns-automation,CN=Users,DC=example,DC=com",
+                    "ldap_port": 389,
+                    "secure_ldap_port": 636,
+                    "use_ssl": False,
+                    "username": "${AD_USERNAME}",
+                    "password": "${AD_PASSWORD}",
+                    "timeout": 10,
+                }
+        elif provider_key == "infoblox":
+            config["dns"]["providers"]["infoblox_primary"] = {
+                "type": "infoblox",
+                "server": "infoblox.example.com",
+                "api_version": "2.11",
+                "username": "api_user",
+                "password": "${INFOBLOX_PASSWORD}",
+                "use_ssl": True,
+                "verify_ssl": True,
+                "wapi_port": 443,
+                "timeout": 30,
+            }
+        elif provider_key == "bluecat":
+            config["dns"]["providers"]["bluecat_primary"] = {
+                "type": "bluecat",
+                "server": "bluecat.example.com",
+                "api_version": "v1",
+                "username": "api_user",
+                "password": "${BLUECAT_PASSWORD}",
+                "use_ssl": True,
+                "verify_ssl": True,
+                "timeout": 30,
+            }
+        elif provider_key == "efficient_ip":
+            config["dns"]["providers"]["efficientip_primary"] = {
+                "type": "efficientip",
+                "server": "efficientip.example.com",
+                "api_version": "v1",
+                "username": "api_user",
+                "password": "${EFFICIENTIP_PASSWORD}",
+                "use_ssl": True,
+                "verify_ssl": True,
+                "timeout": 30,
+            }
+        elif provider_key == "bind":
+            config["dns"]["providers"]["bind_primary"] = {
+                "type": "bind",
+                "server": "ns1.example.com",
+                "zone_file_path": "/var/lib/named/zones",
+                "nsupdate": True,
+                "tsig_keyfile": "/etc/named.keys/update.key",
+                "timeout": 10,
+            }
+        
+        # Add selected inventory sources
+        if import_openshift.value and file_exists("openshift/install.ezai.yaml"):
+            config["dns"]["inventory"]["openshift"] = {
+                "file": "../openshift/install.ezai.yaml",
+                "enabled": True,
+                "format": "yaml",
+            }
+        
+        # Initial Inventory is in workspace, accessed via shared_services()
+        # We include it if the user has saved the inventory and wants to use it
+        if import_initial_inventory.value and initial_inventory_exists():
+            config["dns"]["inventory"]["initial_inventory"] = {
+                "enabled": True,
+                "format": "json",
+                "source": "shared_services",
+            }
+        
+        if import_everpure.value and file_exists("everpure/everpure.ezai.yaml"):
+            config["dns"]["inventory"]["everpure"] = {
+                "file": "../everpure/everpure.ezai.yaml",
+                "enabled": True,
+                "format": "yaml",
+            }
+        
+        # Only add empty sections if no sources selected
+        if not config["dns"]["inventory"]:
+            config["dns"]["inventory"] = {
+                "openshift": {
+                    "file": "../openshift/install.ezai.yaml",
+                    "enabled": False,
+                    "format": "yaml",
+                }
+            }
+        
+        # Generate YAML
+        yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        workbench.set_content("dns/dns_config.ezai.yaml", yaml_content, 
+                             f"Generated configuration for {provider_name}")
+    
+    # Form controls
+    with card("DNS Provider Selection", 
+              "Choose your DNS provider and select which inventory sources to import", 
+              icon="dns"):
+        
+        with ui.column().classes("w-full gap-4"):
+            # Provider selection
+            ui.label("Select DNS Provider").classes("text-base font-semibold")
+            selected_provider = ui.select(
+                {k: v["name"] for k, v in DNS_PROVIDERS.items()},
+                label="DNS Provider",
+                on_change=lambda: (ui.notify(DNS_PROVIDERS[selected_provider.value]["description"]),
+                                 generate_dns_config())
+            ).props("outlined dense").classes("w-full")
+            
+            ui.label("DNS Provider details").classes("muted text-xs mt-2")
+            with ui.row().classes("w-full gap-2"):
+                for key, provider in DNS_PROVIDERS.items():
+                    ui.chip(provider["name"], on_click=lambda k=key: (
+                        selected_provider.set_value(k),
+                        generate_dns_config()
+                    )).props("outline")
+            
+            ui.separator().classes("my-4")
+            
+            # LDAP auto-import for Active Directory
+            ldap_data = load_ldap_from_inventory()
+            if ldap_data:
+                ui.label("LDAP Configuration from Initial Inventory").classes("text-base font-semibold mt-4")
+                use_shared_ldap = ui.checkbox(
+                    "Use LDAP settings from Initial Inventory's Shared Services",
+                    value=True,
+                    on_change=generate_dns_config
+                )
+                with ui.card().classes("w-full"):
+                    with ui.column().classes("w-full gap-2"):
+                        ui.label(f"Server: {ldap_data.get('server', 'N/A')}").classes("text-sm")
+                        ui.label(f"Domain: {ldap_data.get('domain', 'N/A')}").classes("text-sm")
+                        ui.label(f"Bind DN: {ldap_data.get('bind_dn', 'N/A')}").classes("text-sm muted")
+                        ui.label("You can still override these settings by editing the YAML below.").classes("text-xs muted mt-2")
+            else:
+                use_shared_ldap = ui.checkbox("Use LDAP settings from Initial Inventory", value=False)
+                use_shared_ldap.enabled = False
+                ui.label("No LDAP configuration found in Initial Inventory").classes("muted text-sm")
+            
+            ui.separator().classes("my-4")
+            
+            # Inventory source selection
+            ui.label("Import Inventory Sources").classes("text-base font-semibold mt-4")
+            ui.label("Select which inventory files to include in the DNS configuration").classes("muted text-sm mb-2")
+            
+            with ui.column().classes("w-full gap-2"):
+                import_openshift = ui.checkbox(
+                    "OpenShift Cluster Deployment (openshift/install.ezai.yaml)",
+                    value=file_exists("openshift/install.ezai.yaml"),
+                    on_change=generate_dns_config
+                )
+                if not file_exists("openshift/install.ezai.yaml"):
+                    ui.label("Not found - save OpenShift Cluster Deployment first").classes("text-xs text-orange-600 ml-6")
+                
+                import_initial_inventory = ui.checkbox(
+                    "Initial Inventory with Shared Services",
+                    value=initial_inventory_exists(),
+                    on_change=generate_dns_config
+                )
+                if not initial_inventory_exists():
+                    ui.label("Not found - save Initial Inventory first").classes("text-xs text-orange-600 ml-6")
+                
+                import_everpure = ui.checkbox(
+                    "Everpure Storage Inventory (everpure/everpure.ezai.yaml)",
+                    value=file_exists("everpure/everpure.ezai.yaml"),
+                    on_change=generate_dns_config
+                )
+                if not file_exists("everpure/everpure.ezai.yaml"):
+                    ui.label("Not found - save Everpure configuration first").classes("text-xs text-orange-600 ml-6")
+            
+            ui.separator().classes("my-4")
+            
+            # Generate button
+            ui.button("Generate Configuration", icon="auto_fix_high", 
+                     on_click=generate_dns_config).props("unelevated")
+            ui.label("Click to generate a clean dns_config.ezai.yaml based on your selections above. "
+                    "You can then edit it in the YAML editor below.").classes("text-xs muted")

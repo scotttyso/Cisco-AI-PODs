@@ -1,0 +1,39 @@
+# OpenShift Cluster Inventory Example
+# Format: YAML
+# This file contains DNS records for OpenShift cluster infrastructure
+
+cluster:
+  name: "prod-ocp"
+  domain: "example.com"
+  api_vip: "192.168.1.10"
+  ingress_vip: "192.168.1.11"
+  api_vip_dnsname: "api.prod-ocp.example.com"
+  api_vip_int_dnsname: "api-int.prod-ocp.example.com"
+  ingress_vip_dnsname: "*.apps.prod-ocp.example.com"
+
+masters:
+  - name: "master-0"
+    hostname: "master-0.prod-ocp.example.com"
+    ip: "192.168.1.20"
+  - name: "master-1"
+    hostname: "master-1.prod-ocp.example.com"
+    ip: "192.168.1.21"
+  - name: "master-2"
+    hostname: "master-2.prod-ocp.example.com"
+    ip: "192.168.1.22"
+
+workers:
+  - name: "worker-0"
+    hostname: "worker-0.prod-ocp.example.com"
+    ip: "192.168.1.30"
+  - name: "worker-1"
+    hostname: "worker-1.prod-ocp.example.com"
+    ip: "192.168.1.31"
+  - name: "worker-2"
+    hostname: "worker-2.prod-ocp.example.com"
+    ip: "192.168.1.32"
+
+bootstrap:
+  - name: "bootstrap"
+    hostname: "bootstrap.prod-ocp.example.com"
+    ip: "192.168.1.19"

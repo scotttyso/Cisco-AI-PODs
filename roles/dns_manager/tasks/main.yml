@@ -1,0 +1,168 @@
+---
+# Main tasks for DNS Manager Ansible role
+# This role orchestrates DNS updates across multiple providers
+# Usage in a playbook:
+#   - hosts: localhost
+#     roles:
+#       - dns_manager
+#     vars:
+#       dns_provider: "ad"
+#       dns_dry_run: true
+
+- name: Validate required variables
+  assert:
+    that:
+      - dns_provider is defined
+      - dns_provider in ['ad', 'infoblox', 'bluecat', 'efficientip', 'bind']
+    fail_msg: "Invalid provider. Must be one of: ad, infoblox, bluecat, efficientip, bind"
+  tags: always
+
+- name: Check if DNS updater script exists
+  stat:
+    path: "{{ dns_updater_script_path | default('scripts/dns_updater.py') }}"
+  register: script_check
+  tags: always
+
+- name: Fail if DNS updater script not found
+  fail:
+    msg: "DNS updater script not found at {{ dns_updater_script_path | default('scripts/dns_updater.py') }}"
+  when: not script_check.stat.exists
+  tags: always
+
+- name: Check if configuration file exists
+  stat:
+    path: "{{ dns_config_path | default('examples/dns_config.ezai.yaml') }}"
+  register: config_check
+  tags: always
+
+- name: Fail if configuration file not found
+  fail:
+    msg: "Configuration file not found at {{ dns_config_path | default('examples/dns_config.ezai.yaml') }}"
+  when: not config_check.stat.exists
+  tags: always
+
+- name: Verify Python and dependencies
+  block:
+    - name: Check Python 3 availability
+      command: python3 --version
+      register: python_version
+      changed_when: false
+      tags: validate
+    
+    - name: Display Python version
+      debug:
+        msg: "Using {{ python_version.stdout }}"
+      tags: validate
+    
+    - name: Check required Python modules
+      command: python3 -c "import {{ item }}"
+      loop:
+        - yaml
+        - requests
+      register: module_check
+      changed_when: false
+      failed_when: false
+      tags: validate
+    
+    - name: Warn about missing dependencies
+      debug:
+        msg: "Warning: Python module {{ item.item }} not found. Install with: pip install -r requirements.txt"
+      when: item.rc is defined and item.rc != 0
+      loop: "{{ module_check.results }}"
+      tags: validate
+  
+  rescue:
+    - name: Display dependency installation instructions
+      debug:
+        msg: |
+          Missing dependencies detected.
+          To install required packages:
+            pip install -r requirements.txt
+
+- name: Run DNS updater in dry-run mode
+  block:
+    - name: Execute DNS updater (dry-run)
+      command: >
+        python3 {{ dns_updater_script_path | default('scripts/dns_updater.py') }}
+          --config {{ dns_config_path | default('examples/dns_config.ezai.yaml') }}
+          --provider {{ dns_provider }}
+          --dry-run
+          {% if dns_verbose | default(false) %}--verbose{% endif %}
+      register: dns_update_result
+      changed_when: false
+      tags: dry-run
+    
+    - name: Display DNS update report
+      debug:
+        msg: "{{ dns_update_result.stdout }}"
+      tags: dry-run
+    
+    - name: Capture DNS update report to file (dry-run)
+      copy:
+        content: "{{ dns_update_result.stdout }}"
+        dest: "/tmp/dns_update_{{ dns_provider }}_dry_run_{{ ansible_date_time.iso8601_basic_short }}.log"
+      delegate_to: localhost
+      tags: dry-run
+  
+  when: dns_dry_run | default(true) | bool
+
+- name: Run DNS updater in apply mode
+  block:
+    - name: Confirm DNS changes
+      pause:
+        prompt: |
+          About to apply DNS changes to {{ dns_provider }}.
+          Press ENTER to continue or Ctrl+C to abort.
+      when: dns_confirm_changes | default(true) | bool
+      tags: apply
+    
+    - name: Execute DNS updater (apply)
+      command: >
+        python3 {{ dns_updater_script_path | default('scripts/dns_updater.py') }}
+          --config {{ dns_config_path | default('examples/dns_config.ezai.yaml') }}
+          --provider {{ dns_provider }}
+          --apply
+          {% if dns_verbose | default(false) %}--verbose{% endif %}
+      register: dns_apply_result
+      tags: apply
+    
+    - name: Display DNS apply result
+      debug:
+        msg: "{{ dns_apply_result.stdout }}"
+      tags: apply
+    
+    - name: Check for errors in apply output
+      fail:
+        msg: "DNS update encountered errors: {{ dns_apply_result.stderr }}"
+      when: dns_apply_result.rc != 0
+      tags: apply
+    
+    - name: Save DNS apply report
+      copy:
+        content: |
+          DNS UPDATE REPORT - APPLIED
+          Provider: {{ dns_provider }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          
+          {{ dns_apply_result.stdout }}
+        dest: "/tmp/dns_update_{{ dns_provider }}_applied_{{ ansible_date_time.iso8601_basic_short }}.log"
+      delegate_to: localhost
+      tags: apply
+    
+    - name: Notify of successful completion
+      debug:
+        msg: "DNS update successfully applied to {{ dns_provider }}"
+      tags: apply
+  
+  when: not (dns_dry_run | default(true) | bool)
+
+- name: Generate update summary
+  debug:
+    msg: |
+      DNS Update Summary
+      ==================
+      Provider: {{ dns_provider }}
+      Mode: {% if dns_dry_run | default(true) | bool %}DRY-RUN{% else %}APPLY{% endif %}
+      Config: {{ dns_config_path | default('examples/dns_config.ezai.yaml') }}
+      Timestamp: {{ ansible_date_time.iso8601 }}
+  tags: summary

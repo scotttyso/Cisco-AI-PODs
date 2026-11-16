@@ -53,6 +53,27 @@ OCP_API = (secret("openshift_api_url", "OpenShift API URL (optional when a kubec
                   ("openshift", "openshift_api_url")),
            secret("openshift_token_id", "OpenShift API token (optional when a kubeconfig is set)",
                   ("openshift", "openshift_token_id")))
+
+# DNS Manager credentials - provider-specific
+DNS_AD_USERNAME = secret("dns_ad_username", "Active Directory username", ("dns", "ad_username"),
+                         help="Service account username for DNS updates in Active Directory.")
+DNS_AD_PASSWORD = secret("dns_ad_password", "Active Directory password", ("dns", "ad_password"),
+                         help="Service account password for DNS updates in Active Directory.")
+DNS_INFOBLOX_USERNAME = secret("dns_infoblox_username", "Infoblox username", ("dns", "infoblox_username"),
+                               help="Username for Infoblox API authentication.")
+DNS_INFOBLOX_PASSWORD = secret("dns_infoblox_password", "Infoblox password", ("dns", "infoblox_password"),
+                               help="Password for Infoblox API authentication.")
+DNS_BLUECAT_USERNAME = secret("dns_bluecat_username", "BlueCat username", ("dns", "bluecat_username"),
+                              help="Username for BlueCat API authentication.")
+DNS_BLUECAT_PASSWORD = secret("dns_bluecat_password", "BlueCat password", ("dns", "bluecat_password"),
+                              help="Password for BlueCat API authentication.")
+DNS_EFFICIENTIP_USERNAME = secret("dns_efficientip_username", "Efficient IP username", ("dns", "efficientip_username"),
+                                  help="Username for Efficient IP API authentication.")
+DNS_EFFICIENTIP_PASSWORD = secret("dns_efficientip_password", "Efficient IP password", ("dns", "efficientip_password"),
+                                  help="Password for Efficient IP API authentication.")
+DNS_BINDNS_API_KEY = secret("dns_bindns_api_key", "BIND DNS API key", ("dns", "bindns_api_key"),
+                            help="API key for BIND DNS remote API (optional for local BIND instances).")
+
 KNOWN_SECRETS = {item.key: item for item in (INTERSIGHT_KEY_ID, INTERSIGHT_SECRET_KEY, ND_ADMIN)}
 INTERSIGHT_KEYS = (INTERSIGHT_KEY_ID.key, INTERSIGHT_SECRET_KEY.key)
 
@@ -865,6 +886,102 @@ def PHASE2_SECRETS(handle):
     return model_secrets(handle) + list(OCP_API)
 
 
+def dns_manager_secrets(handle: PageHandle) -> list[SecretField]:
+    """Return credential fields based on the selected DNS provider from the saved state."""
+    # Get the saved DNS config to determine which provider is selected
+    state = handle.state()
+    dns_config = state.get("dns") or {}
+    provider = dns_config.get("provider", "").lower() if isinstance(dns_config, dict) else ""
+    
+    # Map providers to their required credentials
+    if provider == "active_directory" or provider == "ad":
+        return [DNS_AD_USERNAME, DNS_AD_PASSWORD]
+    elif provider == "infoblox":
+        return [DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD]
+    elif provider == "bluecat":
+        return [DNS_BLUECAT_USERNAME, DNS_BLUECAT_PASSWORD]
+    elif provider == "efficient_ip" or provider == "efficientip":
+        return [DNS_EFFICIENTIP_USERNAME, DNS_EFFICIENTIP_PASSWORD]
+    elif provider == "bind" or provider == "bind_dns" or provider == "bindns":
+        return [DNS_BINDNS_API_KEY]
+    # Return all possible credentials so users can configure any provider
+    return [DNS_AD_USERNAME, DNS_AD_PASSWORD, DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD,
+            DNS_BLUECAT_USERNAME, DNS_BLUECAT_PASSWORD, DNS_EFFICIENTIP_USERNAME, 
+            DNS_EFFICIENTIP_PASSWORD, DNS_BINDNS_API_KEY]
+
+
+def dns_manager_actions(rc: RunContext) -> list[list[str]]:
+    """Run DNS updater with the saved dns_config.ezai.yaml"""
+    config_file = rc.output_dir / "dns/dns_config.ezai.yaml"
+    if not config_file.is_file():
+        raise ValueError("Save the DNS Manager configuration first")
+    
+    # Load config to determine provider
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
+    
+    # Get first provider key from dns.providers
+    providers = config.get("dns", {}).get("providers", {})
+    if not providers:
+        raise ValueError("No DNS providers configured in dns_config.ezai.yaml")
+    
+    provider_key = next(iter(providers.keys()))
+    provider_type = providers[provider_key].get("type", "active_directory")
+    
+    # Map provider type to provider name for the script
+    provider_map = {
+        "active_directory": "ad",
+        "infoblox": "infoblox",
+        "bluecat": "bluecat",
+        "efficient_ip": "efficient_ip",
+        "bind_dns": "bind_dns",
+    }
+    provider_arg = provider_map.get(provider_type, "ad")
+    
+    return [["python", "scripts/dns_updater.py", "--config", str(config_file), "--provider", provider_arg, "--dry-run"]]
+
+
+def dns_manager_sync(rc: RunContext) -> list[list[str]]:
+    """Synchronize DNS records using the saved configuration"""
+    config_file = rc.output_dir / "dns/dns_config.ezai.yaml"
+    if not config_file.is_file():
+        raise ValueError("Save the DNS Manager configuration first")
+    
+    # Load config to determine provider
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
+    
+    # Get first provider key from dns.providers
+    providers = config.get("dns", {}).get("providers", {})
+    if not providers:
+        raise ValueError("No DNS providers configured in dns_config.ezai.yaml")
+    
+    provider_key = next(iter(providers.keys()))
+    provider_type = providers[provider_key].get("type", "active_directory")
+    
+    # Map provider type to provider name for the script
+    provider_map = {
+        "active_directory": "ad",
+        "infoblox": "infoblox",
+        "bluecat": "bluecat",
+        "efficient_ip": "efficient_ip",
+        "bind_dns": "bind_dns",
+    }
+    provider_arg = provider_map.get(provider_type, "ad")
+    
+    return [["python", "scripts/dns_updater.py", "--config", str(config_file), "--provider", provider_arg, "--apply"]]
+
+
+DNS_MANAGER_ACTIONS = (
+    Action("validate", "Validate DNS records (dry-run)", "fact_check",
+           dns_manager_actions, group="Pre-check", files=False,
+           tooltip="Check DNS records against the provider without making changes."),
+    Action("sync", "Synchronize DNS records", "cloud_upload",
+           dns_manager_sync, files=False, 
+           confirm="Update DNS records based on the saved configuration."),
+)
+
+
 SECTIONS = (
     Section("environment", "Environment Preparation", "construction", (
         PageSpec("inventory", "Initial Inventory", "dns", "00-environment-prep",
@@ -872,6 +989,11 @@ SECTIONS = (
                  "values pre-fill the DHCP reservations, Nexus Dashboard, and Compute pages."),
         PageSpec("dhcp", "DHCP Bootstrap", "lan", "00-environment-prep",
                  "Build and run the Kea DHCPv4 server that brings CIMC, UCS, and Nexus management interfaces online."),
+        PageSpec("dns-manager", "DNS Manager", "dns_provider", "00-environment-prep",
+                 "Synchronize DNS records from cluster deployment, infrastructure inventory, and storage systems to "
+                 "Active Directory, Infoblox, BlueCat, Efficient IP, or BIND DNS.",
+                 files=(FileSpec("examples/dns/dns_config.ezai.yaml", "dns/dns_config.ezai.yaml"),),
+                 form=custom_pages.dns_manager_form, actions=DNS_MANAGER_ACTIONS, secrets=dns_manager_secrets),
         PageSpec("iso", "File Server", "folder_shared", "00-environment-prep",
                  "Installation media and other files served over HTTP by this deployment server."),
     )),

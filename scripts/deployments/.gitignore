@@ -1,0 +1,15 @@
+# Managed by the Cisco AI PODs UI. The automation vault (vault.yaml) is encrypted with this server's own
+# password and is never committed; secrets.vault.yaml (repository vault password) is committed only when
+# enabled on the Git panel. Vault passwords, private keys, kubeconfigs, and scratch files are never committed.
+vault.yaml
+*vault-password*
+*.vault-pass
+*.key
+*id_rsa*
+*id_ed25519*
+kubeconfig*
+**/auth/
+gitops-repo/
+*.part
+.*.tmp
+__pycache__/

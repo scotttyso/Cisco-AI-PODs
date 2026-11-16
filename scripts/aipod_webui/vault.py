@@ -23,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-SECTIONS = ("nexus_dashboard", "everpure", "intersight", "openshift", "splunk_observability")
+SECTIONS = ("nexus_dashboard", "everpure", "intersight", "openshift", "splunk_observability", "dns")
 TOP = ""
 VAULT_HEADER = "$ANSIBLE_VAULT;"
 PEM_ENV_KEYS = frozenset({"intersight_secret_key"})

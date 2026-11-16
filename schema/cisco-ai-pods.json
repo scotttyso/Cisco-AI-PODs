@@ -860,6 +860,9 @@
                         "dhcp": {
                             "$ref": "#/definitions/dhcp"
                         },
+                        "dns": {
+                            "$ref": "#/definitions/dns_manager.dns_manager"
+                        },
                         "everpure": {
                             "$ref": "#/definitions/everpure"
                         },
@@ -887,7 +890,7 @@
                     }
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs.\n\nOptional fields are:\n  * `dhcp`\n  * `dns`\n  * `hgx_servers`\n  * `intersight`\n  * `nexus_dashboard`\n  * `openshift`\n  * `everpure`\n  * `shared_services`\n  * `splunk_observability`",
             "required": [],
             "title": "Cisco AI PODs",
             "type": "object",
@@ -1300,6 +1303,437 @@
                 "start",
                 "end"
             ]
+        },
+        "dns_manager.active_directory_provider": {
+            "title": "Active Directory DNS Provider",
+            "description": "Configuration for Active Directory DNS provider.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "server",
+                "domain"
+            ],
+            "properties": {
+                "type": {
+                    "title": "Provider Type",
+                    "description": "Provider type identifier.",
+                    "type": "string",
+                    "const": "active_directory"
+                },
+                "use_shared_ldap": {
+                    "title": "Use Shared LDAP Configuration",
+                    "description": "The default value is `false`. When set to `true`, inherits LDAP bind_dn, server, and domain from shared_services.ldap configuration in the Initial Inventory. This avoids duplicating LDAP configuration. If true, explicit server, domain, and bind_dn values are ignored.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "server": {
+                    "title": "Active Directory Server",
+                    "description": "Active Directory server FQDN or IP address.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "domain": {
+                    "title": "DNS Domain",
+                    "description": "DNS domain name managed by this Active Directory.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "ldap_port": {
+                    "title": "LDAP Port",
+                    "description": "The default value is `389`. LDAP port for connection.",
+                    "type": "integer",
+                    "default": 389,
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "secure_ldap_port": {
+                    "title": "Secure LDAP Port",
+                    "description": "The default value is `636`. Secure LDAP (LDAPS) port.",
+                    "type": "integer",
+                    "default": 636,
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "use_ssl": {
+                    "title": "Use SSL/TLS",
+                    "description": "The default value is `false`. Use SSL/TLS for LDAP connection.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "bind_dn": {
+                    "title": "Bind DN",
+                    "description": "Distinguished Name for LDAP authentication (e.g., CN=dns-automation,CN=Users,DC=example,DC=com).",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "title": "Bind Password",
+                    "description": "Password for LDAP bind. Use Vault path in production (vault_path takes precedence).",
+                    "type": "string"
+                },
+                "vault_path": {
+                    "title": "Vault Credentials Path",
+                    "description": "Path to credentials in Vault (overrides password field). Format: path/to/credentials.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "timeout": {
+                    "title": "Connection Timeout",
+                    "description": "The default value is `10`. Connection timeout in seconds.",
+                    "type": "integer",
+                    "default": 10,
+                    "minimum": 1
+                }
+            }
+        },
+        "dns_manager.bind_provider": {
+            "title": "BIND DNS Provider",
+            "description": "Configuration for BIND DNS provider using nsupdate or zone file management.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "server",
+                "zone_file_path"
+            ],
+            "properties": {
+                "type": {
+                    "title": "Provider Type",
+                    "description": "Provider type identifier.",
+                    "type": "string",
+                    "const": "bind"
+                },
+                "server": {
+                    "title": "BIND Server",
+                    "description": "BIND DNS server FQDN or IP address.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "zone_file_path": {
+                    "title": "Zone File Path",
+                    "description": "Path to zone files on the BIND server (e.g., /var/lib/named/zones).",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "nsupdate": {
+                    "title": "Use nsupdate",
+                    "description": "The default value is `true`. Use nsupdate for dynamic updates instead of direct file management.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "tsig_key": {
+                    "title": "TSIG Key",
+                    "description": "TSIG key name for authenticated nsupdate requests.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "tsig_keyfile": {
+                    "title": "TSIG Key File",
+                    "description": "Path to TSIG keyfile for authentication (e.g., /etc/named.keys/update.key).",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "timeout": {
+                    "title": "Operation Timeout",
+                    "description": "The default value is `10`. Operation timeout in seconds.",
+                    "type": "integer",
+                    "default": 10,
+                    "minimum": 1
+                }
+            }
+        },
+        "dns_manager.bluecat_provider": {
+            "title": "BlueCat DNS Provider",
+            "description": "Configuration for BlueCat DNS provider.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "server"
+            ],
+            "properties": {
+                "type": {
+                    "title": "Provider Type",
+                    "description": "Provider type identifier.",
+                    "type": "string",
+                    "const": "bluecat"
+                },
+                "server": {
+                    "title": "BlueCat Server",
+                    "description": "BlueCat Proteus server FQDN or IP address.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "username": {
+                    "title": "API Username",
+                    "description": "Username for BlueCat API authentication.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "title": "API Password",
+                    "description": "Password for BlueCat API. Use Vault path in production.",
+                    "type": "string"
+                },
+                "vault_path": {
+                    "title": "Vault Credentials Path",
+                    "description": "Path to credentials in Vault.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "timeout": {
+                    "title": "API Request Timeout",
+                    "description": "The default value is `30`. API request timeout in seconds.",
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 1
+                }
+            }
+        },
+        "dns_manager.dns_manager": {
+            "title": "DNS Manager Configuration",
+            "description": "This dictionary provides the DNS Manager configuration for synchronizing DNS records across multiple providers (Active Directory, Infoblox, BlueCat, etc.).\n\nOptional fields are:\n  * `vault`\n  * `providers`\n  * `inventory`",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "vault": {
+                    "$ref": "#/definitions/dns_manager.vault_config"
+                },
+                "providers": {
+                    "title": "DNS Providers",
+                    "description": "Dictionary of DNS provider configurations keyed by provider name.",
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/definitions/dns_manager.active_directory_provider"
+                            },
+                            {
+                                "$ref": "#/definitions/dns_manager.infoblox_provider"
+                            },
+                            {
+                                "$ref": "#/definitions/dns_manager.bind_provider"
+                            },
+                            {
+                                "$ref": "#/definitions/dns_manager.bluecat_provider"
+                            },
+                            {
+                                "$ref": "#/definitions/dns_manager.efficientip_provider"
+                            }
+                        ]
+                    }
+                },
+                "inventory": {
+                    "title": "Inventory Sources",
+                    "description": "Dictionary of inventory source configurations keyed by inventory name.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dns_manager.inventory_source"
+                    }
+                }
+            }
+        },
+        "dns_manager.efficientip_provider": {
+            "title": "EfficientIP DNS Provider",
+            "description": "Configuration for EfficientIP (Efficient IP) DNS provider.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "server"
+            ],
+            "properties": {
+                "type": {
+                    "title": "Provider Type",
+                    "description": "Provider type identifier.",
+                    "type": "string",
+                    "const": "efficientip"
+                },
+                "server": {
+                    "title": "EfficientIP Server",
+                    "description": "EfficientIP DNS server FQDN or IP address.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "username": {
+                    "title": "API Username",
+                    "description": "Username for EfficientIP API authentication.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "title": "API Password",
+                    "description": "Password for EfficientIP API. Use Vault path in production.",
+                    "type": "string"
+                },
+                "vault_path": {
+                    "title": "Vault Credentials Path",
+                    "description": "Path to credentials in Vault.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "timeout": {
+                    "title": "API Request Timeout",
+                    "description": "The default value is `30`. API request timeout in seconds.",
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 1
+                }
+            }
+        },
+        "dns_manager.infoblox_provider": {
+            "title": "Infoblox DNS Provider",
+            "description": "Configuration for Infoblox DNS provider.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "type",
+                "server",
+                "api_version"
+            ],
+            "properties": {
+                "type": {
+                    "title": "Provider Type",
+                    "description": "Provider type identifier.",
+                    "type": "string",
+                    "const": "infoblox"
+                },
+                "server": {
+                    "title": "Infoblox Grid Master",
+                    "description": "Infoblox Grid Master FQDN or IP address.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "api_version": {
+                    "title": "API Version",
+                    "description": "Infoblox WAPI version.",
+                    "type": "string",
+                    "enum": [
+                        "2.9",
+                        "2.10",
+                        "2.11"
+                    ]
+                },
+                "username": {
+                    "title": "API Username",
+                    "description": "Username for Infoblox API authentication.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "title": "API Password",
+                    "description": "Password for Infoblox API. Use Vault path in production (vault_path takes precedence).",
+                    "type": "string"
+                },
+                "vault_path": {
+                    "title": "Vault Credentials Path",
+                    "description": "Path to credentials in Vault (overrides password field).",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "use_ssl": {
+                    "title": "Use HTTPS",
+                    "description": "The default value is `true`. Use HTTPS for API communication.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "verify_ssl": {
+                    "title": "Verify SSL Certificates",
+                    "description": "The default value is `true`. Verify SSL certificate validity.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "wapi_port": {
+                    "title": "WAPI Port",
+                    "description": "The default value is `443`. Infoblox WAPI port.",
+                    "type": "integer",
+                    "default": 443,
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "timeout": {
+                    "title": "API Request Timeout",
+                    "description": "The default value is `30`. API request timeout in seconds.",
+                    "type": "integer",
+                    "default": 30,
+                    "minimum": 1
+                }
+            }
+        },
+        "dns_manager.inventory_source": {
+            "title": "Inventory Source",
+            "description": "Configuration for an inventory data source (OpenShift, Intersight, EveryPure, etc.).",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "file": {
+                    "title": "Inventory File",
+                    "description": "Path to the inventory file.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "enabled": {
+                    "title": "Enabled",
+                    "description": "The default value is `true`. Enable this inventory source.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "format": {
+                    "title": "File Format",
+                    "description": "The default value is `yaml`. Format of the inventory file.",
+                    "type": "string",
+                    "enum": [
+                        "yaml",
+                        "json"
+                    ],
+                    "default": "yaml"
+                }
+            }
+        },
+        "dns_manager.vault_config": {
+            "title": "HashiCorp Vault Configuration",
+            "description": "HashiCorp Vault configuration for secure credential storage.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "title": "Enable Vault",
+                    "description": "Enable Vault integration for credential storage.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "url": {
+                    "title": "Vault Server URL",
+                    "description": "Vault server URL (e.g., https://vault.example.com:8200).",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "path_prefix": {
+                    "title": "Vault Path Prefix",
+                    "description": "Base path for secrets in Vault (e.g., secret/data/cisco-ai-pods).",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "auth_method": {
+                    "title": "Authentication Method",
+                    "description": "Vault authentication method (token, ldap, or approle).",
+                    "type": "string",
+                    "enum": [
+                        "token",
+                        "ldap",
+                        "approle"
+                    ],
+                    "default": "token"
+                },
+                "auth_token_env": {
+                    "title": "Vault Token Environment Variable",
+                    "description": "Environment variable containing Vault authentication token.",
+                    "type": "string",
+                    "default": "VAULT_TOKEN"
+                }
+            }
         },
         "everpure": {
             "additionalProperties": false,
@@ -4358,7 +4792,7 @@
                     "x-intersight-uri": "storage/StoragePolicies"
                 },
                 "switch_control": {
-                    "description": "The Switch Control policy supports VLAN port count optimization, configuring MAC address aging time, and configuring Link Control Global settings.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\n########################################\n# Unified Edge\n########################################\n\nOptional Attributes:\n  * `description`\n  * `enable_jumbo_frames`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n\n########################################\n# UCS Domain\n########################################\n\nOptional Attributes:\n  * `aes_primary_key`\n  * `description`\n  * `switching_mode_ethernet`\n  * `switching_mode_fc`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n  * `reserved_vlan_start_id`\n  * `udld_global_settings`\n  * `vlan_port_count_optimization`\n",
+                    "description": "The Switch Control policy supports VLAN port count optimization, configuring MAC address aging time, and configuring Link Control Global settings.\n\nRequired Attributes:\n  * `name`\n  * `target_platform`\n\n########################################\n# Unified Edge\n########################################\n\nOptional Attributes:\n  * `description`\n  * `enable_jumbo_frames`\n  * `enable_lldp`\n  * `enable_stp`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n\n########################################\n# UCS Domain\n########################################\n\nOptional Attributes:\n  * `aes_primary_key`\n  * `description`\n  * `disabled_mac_address_learning_vlans` * viable for switching_mode_ethernet `End Host` Mode\n  * `switching_mode_ethernet`\n  * `switching_mode_fc`\n  * `mac_address_table_aging`\n  * `mac_aging_time`\n  * `tags`\n  * `reserved_vlan_start_id`\n  * `udld_global_settings`\n  * `vlan_port_count_optimization`\n",
                     "items": {
                         "$ref": "#/definitions/intersight.policies.switch_control"
                     },
@@ -28269,6 +28703,16 @@
                                     "x-intersight-api": "AesPrimaryKey"
                                 },
                                 "description": {},
+                                "disabled_mac_address_learning_vlans": {
+                                    "default": "",
+                                    "description": "The default value is ``.  MAC learning will be disabled on the entered VLANs. VLAN IDs using a list of comma separated VLAN IDs and VLAN ID Ranges.",
+                                    "maxLength": 1024,
+                                    "minLength": 1,
+                                    "pattern": "^(((\\d+)|(\\d+-\\d+))(,((\\d+)|(\\d+-\\d+)))*)$",
+                                    "title": "Disable MAC Address Learning (VLANs)",
+                                    "type": "string",
+                                    "x-intersight-api": "$ref:MacLearningSettings:fabric.MacLearningSettings:DisabledVlans"
+                                },
                                 "fabric_port_channel_vhba_reset": {
                                     "default": "Disabled",
                                     "description": "The default value is `Disabled`.  When enabled, a Registered State Change Notification (RSCN) is sent to the VIC adapter when any member port within the fabric port-channel goes down and vHBA would reset to restore the connection immediately. When disabled (default), vHBA reset is done only when all the members of a fabric port-channel are down.\n  * `disabled` - Admin configured Disabled State.\n  * `Enabled` - Admin configured Enabled State.",
@@ -28366,19 +28810,34 @@
                                 "description": {},
                                 "enable_jumbo_frames": {
                                     "default": false,
-                                    "description": "To enable or disable Jumbo Frames on the switch. On Fabric Interconnects, Jumbo Frames are controlled by the System QoS policy, so this setting is ignored.",
-                                    "title": "enable_jumbo_frames",
+                                    "description": "The default value is `false`.  To enable or disable Jumbo Frames on the switch. On Fabric Interconnects, Jumbo Frames are controlled by the System QoS policy, so this setting is ignored.",
+                                    "title": "Jumbo Frame Settings > Enable Jumbo Frames",
                                     "type": "boolean",
                                     "x-intersight-api": "EnableJumboFrame"
                                 },
+                                "enable_lldp": {
+                                    "default": false,
+                                    "description": "The default value is `false`.  LLDP Global configurations for this switch. LLDP Global Configuration is supported on Unified Edge platform only, and will be ignored for other platforms.",
+                                    "title": "Link Layer Discovery Protocol (LLDP) > Enable LLDP",
+                                    "type": "boolean",
+                                    "x-intersight-api": "$ref:LldpSettings:fabric.LldpGlobalSettings:Enable"
+                                },
+                                "enable_stp": {
+                                    "default": false,
+                                    "description": "The default value is `false`.  This specifies the Spanning Tree Protocol global configurations for this switch. STP global configuration is supported on Unified Edge platform only, and will be ignored for other platforms.",
+                                    "title": "Spanning Tree Protocol (STP) > Enable STP",
+                                    "type": "boolean",
+                                    "x-intersight-api": "$ref:StpSettings:fabric.StpGlobalSettings:StpMode"
+                                },
                                 "mac_address_table_aging": {
                                     "default": "Default",
-                                    "description": "The default value is `Default`.  This specifies one of the option to configure the MAC address aging time.\n  * `Default` - This option sets the default MAC address aging time to 14500 seconds for End Host mode.\n  * `Custom` - This option allows the the user to configure the MAC address aging time on the switch. For Switch Model UCS-FI-6454 or higher, the valid range is `120 to 918000` seconds and the switch will set the lower multiple of 5 of the given time.",
+                                    "description": "The default value is `Default`.  This specifies one of the option to configure the MAC address aging time.\n  * `Default` - This option sets the default MAC address aging time to 14500 seconds for End Host mode.\n  * `Custom` - This option allows the the user to configure the MAC address aging time on the switch. For Switch Model UCS-FI-6454 or higher, the valid range is `120 to 918000` seconds and the switch will set the lower multiple of 5 of the given time.\n  * `Never` - This option disables the MAC address aging process and never allows the MAC address entries to get removed from the table.",
                                     "enum": [
+                                        "Custom",
                                         "Default",
-                                        "Custom"
+                                        "Never"
                                     ],
-                                    "title": "mac_address_table_aging",
+                                    "title": "MAC Address Table Aging",
                                     "type": "string",
                                     "x-intersight-api": "$ref:MacAgingSettings:fabric.MacAgingSettings:MacAgingOption"
                                 },
@@ -28387,7 +28846,7 @@
                                     "description": "The default value is `300`.  Define the MAC address aging time in seconds. This field is valid when the \"Custom\" MAC address aging option is selected.",
                                     "maximum": 630,
                                     "minimum": 10,
-                                    "title": "mac_aging_time",
+                                    "title": "MAC Address Aging Time",
                                     "type": "integer",
                                     "x-intersight-api": "$ref:MacAgingSettings:fabric.MacAgingSettings:MacAgingTime"
                                 },
@@ -29379,7 +29838,7 @@
                                     "x-intersight-api": "TargetPlatform"
                                 },
                                 "vlans": {
-                                    "description": "List of VLANs to add to the VLAN Policy.\n\nRequired Attributes:\n  * `name` - The name of the VLAN.\n  * `vlan_list` - List of VLAN IDs to configure\n\nOptional Attributes:\n  * `name_prefix` - Flag to decide how to treat the name value.\n  * `native_vlan` - Flag to set Native VLAN.  `vlan_list` must only include one VLAN when this is set.",
+                                    "description": "List of VLANs to add to the VLAN Policy.\n\nRequired Attributes:\n  * `name` - The name of the VLAN.\n  * `vlan_list` - List of VLAN IDs to configure\n\nOptional Attributes:\n  * `auto_allow_on_uplinks` - Flag to false allows intra_chassis VLAN definitions\n  * `auto_allow_on_secure_router_roles` - Flag to automatically apply VLANs to backplane ports connected to slots configured with secure router roles.\n  * `intra_chassis_vlan` - Flag to Restricts this VLAN(s) to intra-chassis traffic only. It does not carry traffic outside the chassis.\n  * `name_prefix` - Flag to decide how to treat the name value.\n  * `native_vlan` - Flag to set Native VLAN.  `vlan_list` must only include one VLAN when this is set.",
                                     "items": {
                                         "$ref": "#/definitions/intersight.policies.vlan.vlans.unified_edge"
                                     },
@@ -29439,14 +29898,14 @@
                 "auto_allow_on_cluster_links": {
                     "default": false,
                     "description": "The default value is `false`.  Enable this option to automatically allow the VLAN on inter-cluster links. To configure disjoint Layer 2 VLANs, 'false' must be specified together with 'AutoAllowOnUplinks.' Note that 'AutoAllowOnClusterLinks' cannot be enabled for the default VLAN 1 or the native VLAN.",
-                    "title": "auto_allow_on_cluster_links",
+                    "title": "Auto Allow On Cluster Links",
                     "type": "boolean",
                     "x-intersight-api": "AutoAllowOnClusterLinks"
                 },
                 "auto_allow_on_uplinks": {
                     "default": false,
                     "description": "The default value is `false`.  Enable to automatically allow the VLAN(s) on all uplinks. It must be set to `false` for Disjoint Layer 2 VLAN configuration. VLAN 1 cannot be configured with auto_allow_on_uplinks set to `False`.",
-                    "title": "auto_allow_on_uplinks",
+                    "title": "Auto Allow On Uplinks",
                     "type": "boolean",
                     "x-intersight-api": "AutoAllowOnUplinks"
                 },
@@ -29533,6 +29992,27 @@
             "additionalProperties": false,
             "description": "Configuration object for Virtual LAN.",
             "properties": {
+                "auto_allow_on_uplinks": {
+                    "default": true,
+                    "description": "The default value is `true`.  Automatically applies VLANs to Ethernet uplinks and port channels.",
+                    "title": "Auto Allow On Uplinks",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnUplinks"
+                },
+                "auto_allow_on_secure_router_roles": {
+                    "default": false,
+                    "description": "The default value is `false`.  Automatically applies VLANs to backplane ports connected to slots configured with secure router roles.",
+                    "title": "Auto Allow On Secure Router Roles",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnSecureRouterRoles"
+                },
+                "intra_chassis_vlan": {
+                    "default": false,
+                    "description": "The default value is `false`.  Restricts this VLAN to intra-chassis traffic only. It does not carry traffic outside the chassis.  Note: Auto Allow On Uplinks must be disabled to use this setting.",
+                    "title": "Intra Chassis Vlan",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnInterSwitchPorts"
+                },
                 "name": {
                     "$ref": "#/definitions/intersight.policies.abstract_attributes/properties/name",
                     "description": "Name or Prefix for the VLAN, or List of VLANs."
@@ -37859,7 +38339,7 @@
                     "uniqueItems": true
                 },
                 "ethernet": {
-                    "description": "Ethernet interfaces for the host.",
+                    "description": "Ethernet interfaces for the host.\n\nRequired Attributes:\n\n  * ipv4\n  * lldp_enabled\n  * mac\n  * name\n\nOptional Attributes:\n\n  * mtu",
                     "items": {
                         "$ref": "#/definitions/openshift.install.bare_metal.servers.interfaces.ethernet"
                     },
@@ -39483,5 +39963,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.12"
+    "x-schema-version": "v0.1.15"
 }

@@ -1,0 +1,10 @@
+[
+  {
+    "hostname": "r142c-a",
+    "ip": "192.168.64.68",
+    "mac": "00:3a:9c:bd:f6:20",
+    "pid": "UCS-FI-6454",
+    "role": "fabric-interconnect",
+    "serial_number": "FDO2416171W"
+  }
+]
