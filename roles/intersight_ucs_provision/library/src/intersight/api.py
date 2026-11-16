@@ -155,6 +155,11 @@ class api:
                     else:
                         split_name = kwargs.intersight_object_map[i.ObjectType].split(
                             '.')
+                        if len(split_name) < 2:
+                            pcolor.Yellow(
+                                f"Skipping {i.ObjectType}: unable to parse parent/child relationship "
+                                f"from '{kwargs.intersight_object_map[i.ObjectType]}' (expected 'parent.child' format)")
+                            continue
                         parent_type = split_name[0]
                         child_type = split_name[1]
                         parent_cache = kwargs.intersight_api[kwargs.org][
