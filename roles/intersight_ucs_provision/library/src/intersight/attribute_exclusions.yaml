@@ -40,6 +40,14 @@ global_exclusions:
   - Description
   - Name
   - Organization
+  
+  # References and relationships (ignore Profiles in all policies)
+  # Profiles is a read-only list of references managed by Intersight
+  - Profiles
+  
+  # Reference-only attributes that don't need template support
+  - Groups
+  - Providers
 
 # Per-policy-type exclusions
 # These apply to specific policy types and supplement the global exclusions
@@ -51,11 +59,23 @@ policy_exclusions:
     - Type
     - Value
   
+  # Switch Control-specific exclusions
+  switch_control:
+    # IsAesPrimaryKeySet is a read-only indicator - AesPrimaryKey must be set directly
+    # Users cannot query or set this value; it indicates whether AesPrimaryKey is defined
+    - IsAesPrimaryKeySet
+  
   # Storage-specific exclusions
   storage:
-    # Add storage-specific exclusions here if needed
+    # DriveGroup is a reference-only attribute managed by Intersight
+    - DriveGroup
   
-  # Example: if you want to exclude additional attributes for a specific policy type
-  # policy_name:
-  #   - CustomAttribute1
-  #   - CustomAttribute2
+  # Fibre Channel Network-specific exclusions
+  fibre_channel_network:
+    # VsanSettings appears to be legacy/custom and not in current API
+    - VsanSettings
+  
+  # Ethernet Network-specific exclusions
+  ethernet_network:
+    # VlanSettings appears to be legacy/custom and not in current API
+    - VlanSettings

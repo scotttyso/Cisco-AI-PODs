@@ -14,6 +14,21 @@
     "MacAgingTime": {{ item.mac_aging_time | default(_aging) | int }},
     "ObjectType": "fabric.MacAgingSettings"
   },
+{% if _platform == 'Unified Edge' %}
+  "LldpSettings": {
+    "Enabled": {{ item.enable_lldp | default(false) | tojson }},
+    "ObjectType": "fabric.LldpGlobalSettings"
+  },
+  "StpSettings": {
+    "Enabled": {% if _platform == 'Unified Edge' and item.enable_stp | default(false) | tojson %}"RPVST+"{% else %}"Disabled"{% endif %},
+    "ObjectType": "fabric.StpGlobalSettings"
+  },
+{% endif %}
+{% if _platform == 'UCS Domain' and item.switching_mode_ethernet | default('switch') == 'end-host' and item.disabled_mac_address_learning_vlans is defined %}
+  "MacLearningSettings": {
+    "DisabledVlans": "{{ item.disabled_mac_address_learning_vlans | default('') }}",
+    "ObjectType": "fabric.MacLearningSettings"
+  },
   "Name": "{{ name_prefix ~ item.name ~ name_suffix }}",
   "ObjectType": "fabric.SwitchControlPolicy",
   "Organization": {

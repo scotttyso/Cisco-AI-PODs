@@ -1,10 +1,8 @@
 {
   "AutoAllowOnClusterLinks": {{ item.auto_allow_on_cluster_links | default(false) | tojson }},
-{% if item.target_platform is defined and item.target_platform | default('UCS Domain') == 'Unified Edge' %}
-  "AutoAllowOnUplinks": true,
-{% else %}
+  "AutoAllowOnInterSwitchPorts": {{ item.intra_chassis_vlan | default(false) | tojson }},
+  "AutoAllowOnSecureRouterRoles": {{ item.auto_allow_on_secure_router_roles | default(false) | tojson }},
   "AutoAllowOnUplinks": {{ item.auto_allow_on_uplinks | default(false) | tojson }},
-{% endif %}
   "EthNetworkPolicy": {
     "Moid": "{{ item.parent }}",
     "ObjectType": "fabric.EthNetworkPolicy"

@@ -1,0 +1,838 @@
+{
+  "timestamp": "2026-11-16T09:08:46.978981",
+  "total_templates": 104,
+  "comparisons": [
+    {
+      "template": "policies/adapter_configuration",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/auditd",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/bios",
+      "template_attributes": 471,
+      "api_attributes": 471,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/boot_order",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "policies/certificate_management",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/device_connector",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/drive_security",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ethernet_adapter",
+      "template_attributes": 17,
+      "api_attributes": 17,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ethernet_network",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ethernet_network_control",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ethernet_network_group",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ethernet_qos",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/fc_zone",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/fibre_channel_adapter",
+      "template_attributes": 12,
+      "api_attributes": 12,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/fibre_channel_network",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/fibre_channel_qos",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/firmware",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/flow_control",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/id_mapping",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/imc_access",
+      "template_attributes": 7,
+      "api_attributes": 7,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ipmi_over_lan",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/iscsi_adapter",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/iscsi_boot",
+      "template_attributes": 14,
+      "api_attributes": 14,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/iscsi_static_target",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/lan_connectivity",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/lan_connectivity.vnics",
+      "template_attributes": 19,
+      "api_attributes": 19,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/lan_connectivity.vnics_from_template",
+      "template_attributes": 9,
+      "api_attributes": 9,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ldap",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ldap.ldap_groups",
+      "template_attributes": 4,
+      "api_attributes": 4,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ldap.ldap_servers",
+      "template_attributes": 4,
+      "api_attributes": 4,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/link_aggregation",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/link_control",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/local_user",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/local_user.users",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "policies/local_user.users_roles",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/mac_sec",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "policies/memory",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/multicast",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/netflow_configuration",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "policies/network_connectivity",
+      "template_attributes": 9,
+      "api_attributes": 9,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ntp",
+      "template_attributes": 4,
+      "api_attributes": 4,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/persistent_memory",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "policies/port",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_channel_appliances",
+      "template_attributes": 11,
+      "api_attributes": 11,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_channel_ethernet_uplinks",
+      "template_attributes": 11,
+      "api_attributes": 11,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_channel_fc_uplinks",
+      "template_attributes": 7,
+      "api_attributes": 7,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_channel_fcoe_uplinks",
+      "template_attributes": 8,
+      "api_attributes": 8,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_modes",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_appliances",
+      "template_attributes": 11,
+      "api_attributes": 11,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_ethernet_uplinks",
+      "template_attributes": 11,
+      "api_attributes": 11,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_fc_storage",
+      "template_attributes": 7,
+      "api_attributes": 7,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_fc_uplinks",
+      "template_attributes": 8,
+      "api_attributes": 8,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_fcoe_uplinks",
+      "template_attributes": 8,
+      "api_attributes": 8,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/port.port_role_servers",
+      "template_attributes": 9,
+      "api_attributes": 9,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/power",
+      "template_attributes": 9,
+      "api_attributes": 9,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/san_connectivity",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/san_connectivity.vhbas",
+      "template_attributes": 13,
+      "api_attributes": 13,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/san_connectivity.vhbas_from_template",
+      "template_attributes": 10,
+      "api_attributes": 10,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/scrub",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/sd_card",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/serial_over_lan",
+      "template_attributes": 4,
+      "api_attributes": 4,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/server_pool_qualification",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/smtp",
+      "template_attributes": 11,
+      "api_attributes": 11,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/snmp",
+      "template_attributes": 12,
+      "api_attributes": 12,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/ssh",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/storage.drive_groups",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/storage",
+      "template_attributes": 10,
+      "api_attributes": 10,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/switch_control",
+      "template_attributes": 13,
+      "api_attributes": 13,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/syslog",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/system_qos",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/thermal",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/virtual_kvm",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/virtual_media",
+      "template_attributes": 4,
+      "api_attributes": 4,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/vlan",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/vlan.vlans",
+      "template_attributes": 10,
+      "api_attributes": 10,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/vsan",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/vsan.vsans",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "policies/pcie_connectivity",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/id_mapping",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/ip",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/iqn",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/mac",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/notes.txt",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "pools/resource",
+      "template_attributes": 0,
+      "api_attributes": 0,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 0.0
+    },
+    {
+      "template": "pools/uuid",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/wwnn",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "pools/wwpn",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "profiles/chassis",
+      "template_attributes": 7,
+      "api_attributes": 7,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "profiles/domain",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "profiles/domain.switch",
+      "template_attributes": 8,
+      "api_attributes": 8,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "profiles/server",
+      "template_attributes": 15,
+      "api_attributes": 15,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/chassis",
+      "template_attributes": 3,
+      "api_attributes": 3,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/domain",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/domain.switch",
+      "template_attributes": 5,
+      "api_attributes": 5,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/server",
+      "template_attributes": 7,
+      "api_attributes": 7,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/unified_edge",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/unified_edge.switch",
+      "template_attributes": 6,
+      "api_attributes": 6,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/vhba_template",
+      "template_attributes": 10,
+      "api_attributes": 10,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "templates/vnic_template",
+      "template_attributes": 16,
+      "api_attributes": 16,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "system/iam_sharing_rules",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "system/locations",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "system/organizations",
+      "template_attributes": 1,
+      "api_attributes": 1,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "system/path_tags",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    },
+    {
+      "template": "system/resource_groups",
+      "template_attributes": 2,
+      "api_attributes": 2,
+      "missing_in_api": [],
+      "missing_in_template": [],
+      "match_ratio": 1.0
+    }
+  ]
+}

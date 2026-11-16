@@ -23806,6 +23806,16 @@
                                     "x-intersight-api": "AesPrimaryKey"
                                 },
                                 "description": {},
+                                "disabled_mac_address_learning_vlans": {
+                                    "default": "",
+                                    "description": "The default value is ``.  MAC learning will be disabled on the entered VLANs. VLAN IDs using a list of comma separated VLAN IDs and VLAN ID Ranges.",
+                                    "maxLength": 1024,
+                                    "minLength": 1,
+                                    "pattern": "^(((\\d+)|(\\d+-\\d+))(,((\\d+)|(\\d+-\\d+)))*)$",
+                                    "title": "Disable MAC Address Learning (VLANs)",
+                                    "type": "string",
+                                    "x-intersight-api": "$ref:MacLearningSettings:fabric.MacLearningSettings:DisabledVlans"
+                                },
                                 "fabric_port_channel_vhba_reset": {
                                     "default": "Disabled",
                                     "description": "The default value is `Disabled`.  When enabled, a Registered State Change Notification (RSCN) is sent to the VIC adapter when any member port within the fabric port-channel goes down and vHBA would reset to restore the connection immediately. When disabled (default), vHBA reset is done only when all the members of a fabric port-channel are down.\n  * `disabled` - Admin configured Disabled State.\n  * `Enabled` - Admin configured Enabled State.",
@@ -23903,19 +23913,34 @@
                                 "description": {},
                                 "enable_jumbo_frames": {
                                     "default": false,
-                                    "description": "To enable or disable Jumbo Frames on the switch. On Fabric Interconnects, Jumbo Frames are controlled by the System QoS policy, so this setting is ignored.",
-                                    "title": "enable_jumbo_frames",
+                                    "description": "The default value is `false`.  To enable or disable Jumbo Frames on the switch. On Fabric Interconnects, Jumbo Frames are controlled by the System QoS policy, so this setting is ignored.",
+                                    "title": "Jumbo Frame Settings > Enable Jumbo Frames",
                                     "type": "boolean",
                                     "x-intersight-api": "EnableJumboFrame"
                                 },
+                                "enable_lldp": {
+                                    "default": false,
+                                    "description": "The default value is `false`.  LLDP Global configurations for this switch. LLDP Global Configuration is supported on Unified Edge platform only, and will be ignored for other platforms.",
+                                    "title": "Link Layer Discovery Protocol (LLDP) > Enable LLDP",
+                                    "type": "boolean",
+                                    "x-intersight-api": "$ref:LldpSettings:fabric.LldpGlobalSettings:Enable"
+                                },
+                                "enable_stp": {
+                                    "default": false,
+                                    "description": "The default value is `false`.  This specifies the Spanning Tree Protocol global configurations for this switch. STP global configuration is supported on Unified Edge platform only, and will be ignored for other platforms.",
+                                    "title": "Spanning Tree Protocol (STP) > Enable STP",
+                                    "type": "boolean",
+                                    "x-intersight-api": "$ref:StpSettings:fabric.StpGlobalSettings:StpMode"
+                                },
                                 "mac_address_table_aging": {
                                     "default": "Default",
-                                    "description": "The default value is `Default`.  This specifies one of the option to configure the MAC address aging time.\n  * `Default` - This option sets the default MAC address aging time to 14500 seconds for End Host mode.\n  * `Custom` - This option allows the the user to configure the MAC address aging time on the switch. For Switch Model UCS-FI-6454 or higher, the valid range is `120 to 918000` seconds and the switch will set the lower multiple of 5 of the given time.",
+                                    "description": "The default value is `Default`.  This specifies one of the option to configure the MAC address aging time.\n  * `Default` - This option sets the default MAC address aging time to 14500 seconds for End Host mode.\n  * `Custom` - This option allows the the user to configure the MAC address aging time on the switch. For Switch Model UCS-FI-6454 or higher, the valid range is `120 to 918000` seconds and the switch will set the lower multiple of 5 of the given time.\n  * `Never` - This option disables the MAC address aging process and never allows the MAC address entries to get removed from the table.",
                                     "enum": [
+                                        "Custom",
                                         "Default",
-                                        "Custom"
+                                        "Never"
                                     ],
-                                    "title": "mac_address_table_aging",
+                                    "title": "MAC Address Table Aging",
                                     "type": "string",
                                     "x-intersight-api": "$ref:MacAgingSettings:fabric.MacAgingSettings:MacAgingOption"
                                 },
@@ -23924,7 +23949,7 @@
                                     "description": "The default value is `300`.  Define the MAC address aging time in seconds. This field is valid when the \"Custom\" MAC address aging option is selected.",
                                     "maximum": 630,
                                     "minimum": 10,
-                                    "title": "mac_aging_time",
+                                    "title": "MAC Address Aging Time",
                                     "type": "integer",
                                     "x-intersight-api": "$ref:MacAgingSettings:fabric.MacAgingSettings:MacAgingTime"
                                 },
@@ -24916,7 +24941,7 @@
                                     "x-intersight-api": "TargetPlatform"
                                 },
                                 "vlans": {
-                                    "description": "List of VLANs to add to the VLAN Policy.\n\nRequired Attributes:\n  * `name` - The name of the VLAN.\n  * `vlan_list` - List of VLAN IDs to configure\n\nOptional Attributes:\n  * `name_prefix` - Flag to decide how to treat the name value.\n  * `native_vlan` - Flag to set Native VLAN.  `vlan_list` must only include one VLAN when this is set.",
+                                    "description": "List of VLANs to add to the VLAN Policy.\n\nRequired Attributes:\n  * `name` - The name of the VLAN.\n  * `vlan_list` - List of VLAN IDs to configure\n\nOptional Attributes:\n  * `auto_allow_on_uplinks` - Flag to false allows intra_chassis VLAN definitions\n  * `auto_allow_on_secure_router_roles` - Flag to automatically apply VLANs to backplane ports connected to slots configured with secure router roles.\n  * `intra_chassis_vlan` - Flag to Restricts this VLAN(s) to intra-chassis traffic only. It does not carry traffic outside the chassis.\n  * `name_prefix` - Flag to decide how to treat the name value.\n  * `native_vlan` - Flag to set Native VLAN.  `vlan_list` must only include one VLAN when this is set.",
                                     "items": {
                                         "$ref": "#/definitions/vlan.vlans.unified_edge"
                                     },
@@ -24976,14 +25001,14 @@
                 "auto_allow_on_cluster_links": {
                     "default": false,
                     "description": "The default value is `false`.  Enable this option to automatically allow the VLAN on inter-cluster links. To configure disjoint Layer 2 VLANs, 'false' must be specified together with 'AutoAllowOnUplinks.' Note that 'AutoAllowOnClusterLinks' cannot be enabled for the default VLAN 1 or the native VLAN.",
-                    "title": "auto_allow_on_cluster_links",
+                    "title": "Auto Allow On Cluster Links",
                     "type": "boolean",
                     "x-intersight-api": "AutoAllowOnClusterLinks"
                 },
                 "auto_allow_on_uplinks": {
                     "default": false,
                     "description": "The default value is `false`.  Enable to automatically allow the VLAN(s) on all uplinks. It must be set to `false` for Disjoint Layer 2 VLAN configuration. VLAN 1 cannot be configured with auto_allow_on_uplinks set to `False`.",
-                    "title": "auto_allow_on_uplinks",
+                    "title": "Auto Allow On Uplinks",
                     "type": "boolean",
                     "x-intersight-api": "AutoAllowOnUplinks"
                 },
@@ -25070,6 +25095,27 @@
             "additionalProperties": false,
             "description": "Configuration object for Virtual LAN.",
             "properties": {
+                "auto_allow_on_uplinks": {
+                    "default": true,
+                    "description": "The default value is `true`.  Automatically applies VLANs to Ethernet uplinks and port channels.",
+                    "title": "Auto Allow On Uplinks",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnUplinks"
+                },
+                "auto_allow_on_secure_router_roles": {
+                    "default": false,
+                    "description": "The default value is `false`.  Automatically applies VLANs to backplane ports connected to slots configured with secure router roles.",
+                    "title": "Auto Allow On Secure Router Roles",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnSecureRouterRoles"
+                },
+                "intra_chassis_vlan": {
+                    "default": false,
+                    "description": "The default value is `false`.  Restricts this VLAN to intra-chassis traffic only. It does not carry traffic outside the chassis.  Note: Auto Allow On Uplinks must be disabled to use this setting.",
+                    "title": "Intra Chassis Vlan",
+                    "type": "boolean",
+                    "x-intersight-api": "AutoAllowOnInterSwitchPorts"
+                },
                 "name": {
                     "$ref": "#/definitions/abstract_attributes/properties/name",
                     "description": "Name or Prefix for the VLAN, or List of VLANs."

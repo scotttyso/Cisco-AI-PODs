@@ -1028,8 +1028,8 @@ def main():
         'thermal': 'compute/ThermalPolicies',
         'virtual_kvm': 'compute/VirtualKvmPolicies',
         'virtual_media': 'compute/VirtualMediaPolicies',
-        'vlan': 'fabric/Vlans',
-        'vsan': 'fabric/Vsans',
+        'vlan': 'fabric/EthNetworkPolicies',
+        'vsan': 'fabric/FcNetworkPolicies',
         # Pools - endpoints may vary
         'ip': 'ippool/IpPools',
         'mac': 'macpool/MacPools',
