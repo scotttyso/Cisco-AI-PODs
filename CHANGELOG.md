@@ -12,6 +12,35 @@ The format is based on Keep a Changelog.
 ### Changed
 - Move Intersight troubleshooting controls into a collapsed panel inside Automation on System (Orgs), UCS Domains, and UCS Servers; preserve per-page debug settings.
 
+## [0.1.15] - 2026-11-16
+
+### Added
+- **Corrected BIOS and Adapter Template Checker**: Rewritten with correct Intersight API endpoints (bios/Policies, vnic/EthAdapterPolicies, vnic/FcAdapterPolicies).
+  - Templates identified via organization filter (Moid: 5ddfd9ff6972652d31ee6582), not separate endpoints.
+  - Discovers 49 BIOS templates (475 attributes), 23 Ethernet Adapter templates (18 attributes), 9 FC Adapter templates (13 attributes).
+  - Generates JSON and Markdown reports for schema validation and compliance checking.
+- **Platform-Specific Policy Attributes** for UCS Domain vs Unified Edge distinction:
+  - Switch Control: LldpSettings, MacLearningSettings (UCS Domain + End Host mode), StpSettings.
+  - VLAN Policy: AutoAllowOnInterSwitchPorts, AutoAllowOnSecureRouterRoles.
+  - Pattern documented in POLICY_TEMPLATE_PATTERN.md for future policy enhancements.
+- **Enhanced Attribute Filtering** in template difference checker:
+  - Policy-specific exclusions (IsAesPrimaryKeySet for switch_control, etc.).
+  - Proper handling of reference objects and read-only attributes.
+  - Improved accuracy for compliance gap reporting.
+
+### Fixed
+- API endpoint mappings in template checker (critical):
+  - BIOS: use bios/Policies (not compute/BiosProfileTemplates).
+  - Ethernet Adapter: use vnic/EthAdapterPolicies (not ether/AdapterProfileTemplates).
+  - FC Adapter: use vnic/FcAdapterPolicies (not fc/AdapterProfileTemplates).
+  - Eliminated 403 errors and invalid compliance reports.
+- JSON attribute extraction depth handling to capture only top-level attributes.
+- Reference object filtering to exclude Profiles, Groups, Providers from compliance gaps.
+
+### Changed
+- Removed incorrect template objects checker (check_template_objects.py).
+- Separated concerns: check_bios_adapter_templates.py handles template discovery and reporting.
+
 ## [0.1.14] - 2026-11-14
 
 ### Added

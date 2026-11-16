@@ -286,21 +286,31 @@ class BiosAdapterTemplateChecker:
             if check_result.get('summary'):
                 print(f"  Unique Attributes: {check_result['summary']['unique_count']}")
 
-    def save_results(self, output_prefix: str = 'template_check'):
-        """Save results to files."""
+    def save_results(self, output_dir: str = None):
+        """Save results to files in output directory."""
+        if output_dir is None:
+            # Default to build/reports/template-checker
+            output_dir = Path('build/reports/template-checker')
+        else:
+            output_dir = Path(output_dir)
+        
+        # Create directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
         # JSON output
-        json_file = f"{output_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        json_file = output_dir / f"template_check_{timestamp}.json"
         with open(json_file, 'w') as f:
             json.dump(self.results, f, indent=2)
         self.logger.info(f"✅ Results saved to {json_file}")
 
         # Markdown output
-        md_file = f"{output_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        md_file = output_dir / f"template_check_{timestamp}.md"
         with open(md_file, 'w') as f:
             self._write_markdown(f)
         self.logger.info(f"✅ Markdown report saved to {md_file}")
 
-        return json_file, md_file
+        return str(json_file), str(md_file)
 
     def _write_markdown(self, f):
         """Write markdown report."""
@@ -387,8 +397,8 @@ def main():
     parser.add_argument('--vault', action='store_true', 
                         help='Load credentials from ~/.config/cisco-ai-pods/vault.yaml')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging')
-    parser.add_argument('-o', '--output', default='template_check',
-                        help='Output file prefix')
+    parser.add_argument('-o', '--output-dir', default='build/reports/template-checker',
+                        help='Output directory (default: build/reports/template-checker)')
 
     args = parser.parse_args()
 
@@ -422,7 +432,7 @@ def main():
         checker = BiosAdapterTemplateChecker(api_client, logger=logger)
         results = checker.run_all_checks()
         checker.print_summary()
-        json_file, md_file = checker.save_results(args.output)
+        json_file, md_file = checker.save_results(args.output_dir)
         logger.info(f"✅ Check completed successfully")
         return 0
     except Exception as e:
