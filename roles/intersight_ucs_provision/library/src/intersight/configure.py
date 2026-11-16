@@ -1059,6 +1059,20 @@ class configure:
             else:
                 kwargs = post_to_api(kwargs)
             return kwargs
+        
+        # =====================================================================
+        # Initialize payload filtering for CVA/PVA environments
+        # =====================================================================
+        payload_filter = None
+        if kwargs.get('intersight_environment') and kwargs.get('intersight_environment') != 'saas':
+            try:
+                from .intersight_filtering_integration import PayloadFilteringIntegration
+                filtering = PayloadFilteringIntegration(kwargs)
+                if filtering.should_filter():
+                    payload_filter = filtering.payload_filter
+            except Exception:
+                pass  # If filtering initialization fails, proceed without it
+        
         # =====================================================================
         # Create API Body for Bulk Request
         # =====================================================================
@@ -1067,17 +1081,29 @@ class configure:
         for e in kwargs.bulk_list:
             if e.get('Parent'):
                 e.pop('Parent')
+            
+            # Apply payload filtering if enabled
+            body = deepcopy(e)
+            if payload_filter:
+                try:
+                    body, removed = payload_filter.filter_payload(body)
+                    if removed and 'debug_filtered_attrs' not in kwargs:
+                        # Log first occurrence of filtered attributes
+                        pass  # Logging handled by payload_filter.generate_warning_message()
+                except Exception:
+                    pass  # If filtering fails for this item, use original body
+            
             if e.get('pmoid'):
                 tmoid = e['pmoid']
                 e.pop('pmoid')
-                patch_list.append({'Body': e,
+                patch_list.append({'Body': body,
                                    'ClassId': 'bulk.RestSubRequest',
                                    'ObjectType': 'bulk.RestSubRequest',
                                    'TargetMoid': tmoid,
                                    'Uri': f'/v1/{kwargs.uri}',
                                    'Verb': 'PATCH'})
             else:
-                post_list.append({'Body': e,
+                post_list.append({'Body': body,
                                   'ClassId': 'bulk.RestSubRequest',
                                   'ObjectType': 'bulk.RestSubRequest',
                                   'Uri': f'/v1/{kwargs.uri}',

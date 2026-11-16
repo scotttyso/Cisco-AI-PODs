@@ -14,10 +14,10 @@ from unittest.mock import patch, MagicMock
 # Add library path to sys.path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'library'))
 
-from src.intersight.feature2_environment import (
+from src.intersight.intersight_environment import (
     MultiEnvironmentVault, SchemaCache, EnvironmentDetector
 )
-from src.intersight.feature2_payload_filter import PayloadFilter, FilteredPayloadTracker
+from src.intersight.intersight_payload_filter import PayloadFilter, FilteredPayloadTracker
 
 
 class TestEnvironmentDetector:

@@ -7,6 +7,7 @@ It uses argparse to take in the following CLI arguments:
             -dl  or --debug-level:           Debug output level.
             -i   or --ignore-tls:            Ignore TLS server-side certificate verification.
             -ni  or --non-interactive:       Run in non-interactive mode with defaults.
+            -ie  or --intersight-environment: Target Intersight environment (saas, cva, pva).
 """
 # =============================================================================
 # Source Modules
@@ -78,6 +79,12 @@ def base_arguments(parser):
         action='store_false',
         help='Ignore TLS server-side certificate verification.  Default is False.')
     parser.add_argument(
+        '-ie',
+        '--intersight-environment',
+        default=os.getenv('INTERSIGHT_ENVIRONMENT'),
+        choices=['saas', 'cva', 'pva'],
+        help='Target Intersight environment: saas (default), cva, or pva.')
+    parser.add_argument(
         '-k',
         '--intersight-secret-key',
         default=os.getenv('intersight_secret_key'),
@@ -124,6 +131,47 @@ def main() -> int:
     pcolor.Cyan(
         f'\n{"-" * 108}\n\n  Starting -> Deploy Intersight/UCS CLI!\n\n{"-" * 108}\n')
     kwargs = cli_arguments()
+    
+    # =========================================================================
+    # Feature 2: Initialize multi-environment support
+    # =========================================================================
+    try:
+        from src.intersight.intersight_environment import (
+            MultiEnvironmentVault, EnvironmentDetector, SchemaCache
+        )
+        
+        # Initialize vault and environment detector
+        vault = MultiEnvironmentVault()
+        detector = EnvironmentDetector(vault)
+        
+        # Detect target environment (priority: CLI arg > env var > endpoint pattern > default)
+        intersight_env = detector.get_target_environment(
+            env_var=kwargs.args.intersight_environment,
+            endpoint=kwargs.args.intersight_fqdn
+        )
+        
+        # Store environment in kwargs for later use
+        kwargs.intersight_environment = intersight_env
+        
+        # Validate credentials exist for target environment
+        try:
+            detector.validate_credentials(intersight_env)
+            pcolor.Cyan(f'  ✅ Using {intersight_env.upper()} environment')
+        except ValueError as e:
+            pcolor.Red(f'  ❌ {e}')
+            return 1
+        
+        # Initialize schema cache for filtering
+        kwargs.schema_cache = SchemaCache()
+        
+    except ImportError:
+        # Feature 2 modules not available, default to SaaS
+        kwargs.intersight_environment = 'saas'
+        pcolor.Yellow('  ⚠️  Feature 2 modules not found, defaulting to SaaS')
+    except Exception as e:
+        pcolor.Red(f'  ❌ Error during environment initialization: {e}')
+        return 1
+    
     kwargs = shared_functions.base_script_settings(kwargs)
     kwargs = shared_functions.load_configurations(kwargs)
     kwargs = shared_functions.intersight_config(kwargs)
