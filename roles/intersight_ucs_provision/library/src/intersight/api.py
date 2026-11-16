@@ -163,6 +163,7 @@ class api:
                             (e for e in ikeys if re.search(parent_regex, e)
                              and isinstance(i[e], dict)
                              and isinstance(i[e].get('Moid'), str)
+                             and i[e].get('ObjectType') != 'organization.Organization'
                              and i[e]['Moid'] in parent_cache), None)
                         if 'PcId' in ikeys:
                             iname = str(i.PcId)
