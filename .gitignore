@@ -98,6 +98,12 @@ db.sqlite3-journal
 # Scrapy stuff:
 .scrapy
 
+# Template checker generated reports (outputs in root; docs are in docs/template_checker/)
+template_differences.*
+bios_adapter_compliance_check.*
+template_objects_diff.*
+compliance_check_summary.*
+
 # Sphinx documentation
 docs/_build/
 
