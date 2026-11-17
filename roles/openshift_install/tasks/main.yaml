@@ -155,9 +155,11 @@
 ##########################################################
 - name: Create Cluster Manifest
   ansible.builtin.copy:
-    content: "{{ lookup('template', 'iserver-cluster.json.j2') | to_nice_json(indent=4) }}"
+    content: "{{ (rendered if rendered is mapping else rendered | from_json) | to_nice_json(indent=4) }}"
     dest: "{{ assisted_installer_directory }}/cluster.json"
     mode: '0644'
+  vars:
+    rendered: "{{ lookup('template', 'iserver-cluster.json.j2') }}"
 
 - name: Create SSH Public Key File for Cluster Deployment
   ansible.builtin.copy:
@@ -184,9 +186,11 @@
 
 - name: Create Web Server Manifest
   ansible.builtin.copy:
-    content: "{{ lookup('template', 'iserver-web.json.j2') | to_nice_json(indent=4) }}"
-    dest: "{{ assisted_installer_directory }}/web_server.json"
+    content: "{{ (rendered if rendered is mapping else rendered | from_json) | to_nice_json(indent=4) }}"
+    dest: "{{ assisted_installer_directory }}/web.json"
     mode: '0644'
+  vars:
+    rendered: "{{ lookup('template', 'iserver-web.json.j2') }}"
 
 - name: Import Proxy Tasks if Proxy is enabled
   ansible.builtin.import_tasks: "tasks/proxy.yaml"

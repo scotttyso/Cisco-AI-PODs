@@ -1,7 +1,6 @@
 {
     "ip": "{{ openshift_install.iso_web_server.server_address }}",
     "image_base_url": "{{ openshift_install.iso_web_server.image_base_url }}",
-    "image_upload_directory": "{{ openshift_install.iso_web_server.image_upload_directory }}",
 {% if openshift_install.iso_web_server.username is defined %}
     "username": "{{ openshift_install.iso_web_server.username }}",
 {% if openshift_install.iso_web_server.ssh_public_key_file is defined %}
@@ -12,6 +11,7 @@
 {% endif %}
 {% endif %}
 {% if "https" in openshift_install.iso_web_server.image_base_url %}
-    "verify": false
+    "verify": false,
 {% endif %}
+    "image_upload_directory": "{{ openshift_install.iso_web_server.image_upload_directory }}"
 }

@@ -64,7 +64,7 @@ After running, `assisted-installer/` contains:
 - `server.json` — Assisted Installer server inventory
 - `nmstate_*.yaml` — Network profiles
 - `ssh.pub` — SSH public key
-- `web_server.json` — iServer web server payload
+- `web.json` — iServer web server payload
 - `proxy.json` — iServer proxy payload (if configured)
 - `manifests/` — Install-time MachineConfigs and operator manifests
 

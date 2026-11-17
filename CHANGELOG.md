@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-11-17
+
+### Fixed
+- Install cluster (iserver) failed with `'str' object does not support item assignment`: on Ansible 2.19 and newer `cluster.json` was written as a quoted JSON string instead of an object. `cluster.json` and `web.json` are now parsed and written as JSON objects on every Ansible version.
+- The web server payload is written to `web.json`, the name iserver reads (it was `web_server.json`), and the template no longer emits a trailing comma for plain `http` image URLs.
+
 ## [0.1.34] - 2026-11-17
 
 ### Changed
