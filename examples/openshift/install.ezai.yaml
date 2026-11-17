@@ -26,7 +26,9 @@ openshift:
             gateway: 198.18.0.254
         service_network:
           v4_cidr: 172.30.0.0/16
-      cluster_version: 4.20.16
+      # Defaults to the-latest-production-version (iserver installs the latest production release). Set a supported
+      # version to pin it, for example 4.20.16.
+      # cluster_version: 4.20.16
       fabric_interconnects:
         - ip: 198.18.1.90
           password: 1

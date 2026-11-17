@@ -231,6 +231,15 @@ class AutomationUiTests(unittest.TestCase):
             self.assertIn("isovalent-check", commands[0])
             self.assertEqual(commands[1], ["install"])
 
+    def test_version_choices_mark_the_recommended_and_keep_an_unsupported_current_value(self):
+        from aipod_webui import custom_pages
+
+        options = custom_pages.version_choices(["4.20.46", "4.20.16"], "4.20.16", "4.19.5", "the-latest-production-version")
+        self.assertEqual(list(options)[0], "the-latest-production-version")
+        self.assertEqual(options["4.20.16"], "4.20.16 (recommended)")
+        self.assertEqual(options["4.19.5"], "4.19.5 (not supported)")
+        self.assertEqual(custom_pages.version_choices(["1.19.7"], "1.19.7"), {"1.19.7": "1.19.7 (recommended)"})
+
 
 if __name__ == "__main__":
     unittest.main()

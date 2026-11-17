@@ -1,0 +1,33 @@
+---
+name: Version support check
+
+permissions:
+  contents: read
+
+'on':
+  schedule:
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+jobs:
+  version-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install pyyaml
+
+      # Compares the recommended OpenShift and Cilium versions in scripts/version_support_matrix.py with the public
+      # sources (Red Hat update graph, Isovalent public index) and fails when the matrix needs review. The Cilium
+      # registry index needs a token and is not reachable from here; see docs/openshift.md for a local cron job.
+      - name: Check the version support matrix
+        run: python scripts/version_support_matrix.py check

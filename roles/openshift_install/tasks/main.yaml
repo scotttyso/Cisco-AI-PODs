@@ -47,6 +47,41 @@
       downloads the Isovalent manifests for that version, for example 1.19.7.
   when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
 
+##########################################################
+# Supported versions (scripts/version_support_matrix.py)
+##########################################################
+- name: Validate the OpenShift version against the supported matrix
+  check_mode: false
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ playbook_dir | dirname }}/scripts/version_support_matrix.py"
+      - validate
+      - openshift
+      - "{{ openshift_install.cluster_version | default('the-latest-production-version') }}"
+  register: openshift_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Validate the Cilium version against the supported matrix
+  check_mode: false
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ playbook_dir | dirname }}/scripts/version_support_matrix.py"
+      - validate
+      - cilium
+      - "{{ openshift_install.cluster_networking.container_network_version }}"
+  register: cilium_version_check
+  changed_when: false
+  failed_when: false
+  when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
+
+- name: Stop when a version is not supported
+  ansible.builtin.fail:
+    msg: "{{ ([openshift_version_check.stdout | default(''), cilium_version_check.stdout | default('')] | select | join(' ')) }}"
+  when: openshift_version_check.rc != 0 or (cilium_version_check.rc | default(0)) != 0
+
 - name: Set Facts for SSH public key
   ansible.builtin.set_fact:
     ssh_public_key_env_name: "{{ 'ssh_public_key_' + (openshift_install.ssh_public_key | string) }}"

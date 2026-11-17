@@ -24,5 +24,5 @@
 {% if openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes') == 'Cilium' %}
     "cilium": {"version": "{{ openshift_install.cluster_networking.container_network_version }}"},
 {% endif %}
-    "openshift_version": "{{ openshift_install.cluster_version | default('4.20.16') }}"
+    "openshift_version": "{{ openshift_install.cluster_version | default('the-latest-production-version') }}"
 }

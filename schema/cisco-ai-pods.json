@@ -38174,7 +38174,6 @@
                         "base_dns_domain",
                         "cluster_name",
                         "cluster_networking",
-                        "cluster_version",
                         "iso_web_server",
                         "servers",
                         "ssh_public_key"
@@ -38182,7 +38181,7 @@
                     "type": "object"
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Cisco AI PODs - Red Hat Openshift cluster deployment.\n\nRequired fields are:`cluster_name`\n  * `cluster_domain`\n  * `cluster_networking`\n  * `cluster_version`\n  * `iso_web_server`\n  * `ssh_public_key`\n\nOptional fields are:`cpu_architecture`\n  * `fabric_interconnects`\n  * `iso`\n  * `ntp_servers`\n  * `proxy_servers`",
+            "description": "This dictionary provides the required configuration settings for Cisco AI PODs - Red Hat Openshift cluster deployment.\n\nRequired fields are:`cluster_name`\n  * `cluster_domain`\n  * `cluster_networking`\n  * `iso_web_server`\n  * `ssh_public_key`\n\nOptional fields are:`cluster_version`\n  * `cpu_architecture`\n  * `fabric_interconnects`\n  * `iso`\n  * `ntp_servers`\n  * `proxy_servers`",
             "title": "OpenShift Container Platform (OCP) - Bare Metal Provisioning",
             "unevaluatedProperties": false
         },
@@ -38819,15 +38818,15 @@
             "unevaluatedProperties": false
         },
         "openshift.install.cluster_version": {
-            "default": "4.20.16",
-            "description": "The default value is `4.20.16`.  OpenShift Cluster Version.",
+            "default": "the-latest-production-version",
+            "description": "The default value is `the-latest-production-version`, which lets iserver install the latest production release of OpenShift that the Red Hat Assisted Installer offers.  Set a version such as `4.20.16` to pin it.  Only releases supported by Cisco AI PODs are accepted (see scripts/version_support_matrix.py).",
             "examples": [
-                "4.20.16",
-                "4.19.23"
+                "the-latest-production-version",
+                "4.20.16"
             ],
-            "maxLength": 7,
+            "maxLength": 29,
             "minLength": 5,
-            "pattern": "^4\\.[0-9]{1,2}\\.[0-9]{1,2}$",
+            "pattern": "^(4\\.[0-9]{1,2}\\.[0-9]{1,2}|the-latest-production-version)$",
             "title": "OpenShift Cluster Version",
             "type": "string"
         },
@@ -39868,5 +39867,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.28"
+    "x-schema-version": "v0.1.29"
 }

@@ -6,6 +6,17 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-11-17
+
+### Added
+- **Supported OpenShift and Cilium versions** (`scripts/version_support_matrix.py`): a maintained matrix of supported minor releases and the recommended patch, live version lists, and a drift check (`check`) for cron or CI. OpenShift versions come from iserver (the versions the Assisted Installer accepts), falling back to Red Hat's public update graph; Cilium versions come from your registry's Helm index (optional **Version catalog URL** on the Cilium Registry page), falling back to the tested versions in the matrix.
+- Cluster Deployment **Versions and container network** card with restricted pick-lists and a Refresh button for each live list.
+- Prepare install validates the OpenShift and Cilium versions against the matrix and stops with the reason.
+- A weekly GitHub Actions job (`version-check.yml`) runs the drift check against the public sources.
+
+### Changed
+- `cluster_version` is optional and defaults to `the-latest-production-version`, so iserver installs the latest production OpenShift release unless you pin a supported version. The default is checked against what it resolves to; if that release is not supported yet, Prepare install asks you to pin one.
+
 ## [0.1.29] - 2026-11-17
 
 ### Changed

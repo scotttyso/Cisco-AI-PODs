@@ -31,8 +31,6 @@ NVIDIA_OPERATORS = {
     "nvidia-network-operator": "NVIDIA Network Operator",
     "nvidia-nim-operator": "NVIDIA NIM Operator",
 }
-DEFAULT_CILIUM_VERSION = "1.19.7"
-CILIUM_VERSION = re.compile(r"^[1-9]\.\d{1,2}\.\d{1,2}$")
 MAC_VLAN_COUNT = 8
 # Route host for the gitea-with-admin instance in the gitea-operator namespace; the
 # instance creates one user named lab-user (roles/openshift_gitea/templates/instance.yaml.j2).
@@ -710,6 +708,18 @@ ISOVALENT_REGISTRY = "registry.isovalent.com"
 REGISTRY_HOST = re.compile(r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(:\d{1,5})?$")
 
 
+def version_choices(versions: list[str], recommended: str, current: str = "", floating: str = "") -> dict[str, str]:
+    """Pick-list options: the floating default first, then supported versions with the recommended one marked.
+
+    A current value outside the list stays selectable (marked) so the form can show what the YAML holds."""
+    options = {floating: "Latest production release (default)"} if floating else {}
+    for version in versions:
+        options[version] = version + (" (recommended)" if version == recommended else "")
+    if current and current not in options:
+        options[current] = f"{current} (not supported)"
+    return options
+
+
 def registry_host_problem(host: str) -> str:
     """Why a registry host name cannot be used with iserver, or an empty string."""
     host = (host or "").strip()
@@ -737,6 +747,11 @@ def cilium_registry_form(handle) -> None:
                         ).props("outlined dense").classes("w-full max-w-xl")
         host.bind_enabled_from(kind, "value", backward=lambda value: value == "other")
         ui.label("Host name only, with no https:// and no path.").classes("muted text-xs")
+        catalog = ui.input("Version catalog URL (optional)", value=str(state.get("catalog_url") or ""),
+                           placeholder="https://registry.example.com/.../index.yaml"
+                           ).props("outlined dense").classes("w-full max-w-xl")
+        ui.label("Helm repository index of this registry. Cluster Deployment uses it, with the identity token, to list "
+                 "the Cilium versions the registry offers; leave empty to use the supported list.").classes("muted text-xs")
 
         def choose() -> None:
             if kind.value == "isovalent":
@@ -750,7 +765,11 @@ def cilium_registry_form(handle) -> None:
             if problem:
                 ui.notify(problem, type="negative")
                 return
-            handle.save_state({"registry": value})
+            url = (catalog.value or "").strip()
+            if url and not url.startswith("https://"):
+                ui.notify("The version catalog URL must start with https://", type="negative")
+                return
+            handle.save_state({"registry": value, "catalog_url": url})
             ui.notify(f"Registry saved: {value}", type="positive")
 
         ui.button("Save registry", icon="save", on_click=save).props("outline")
@@ -801,38 +820,91 @@ def ocp_cluster_form(handle) -> None:
     install_target = "openshift/install.ezai.yaml"
     workbench = handle.workbench
     if workbench and install_target in workbench.specs:
-        networking = ((((seeds.load(workbench.load(install_target)[0]).get("openshift") or {}).get("install") or {})
-                       .get("bare_metal") or {}).get("cluster_networking") or {})
-        with card("Container network (CNI)", "Cilium (Isovalent Enterprise) needs no manifests here: iserver downloads "
-                                             "them for the version you choose and applies its automated fixups. "
-                                             "Register the Cilium registry first (OpenShift > Cilium Registry).",
-                  icon="hub"):
+        import version_support_matrix as support
+
+        install = ((seeds.load(workbench.load(install_target)[0]).get("openshift") or {}).get("install") or {}).get(
+            "bare_metal") or {}
+        networking = install.get("cluster_networking") or {}
+        registry_state = handle.state("ocp-cilium-registry")
+        current_openshift = str(install.get("cluster_version") or support.LATEST_PRODUCTION)
+        current_cni = networking.get("container_network_interface") or "OVNKubernetes"
+        current_cilium = str(networking.get("container_network_version") or support.recommended("cilium"))
+        openshift_choices = version_choices([item["version"] for item in support.openshift_versions(offline=True)[0]],
+                                            support.recommended("openshift"), current_openshift, support.LATEST_PRODUCTION)
+        cilium_choices = version_choices(support.cilium_versions(offline=True)[0], support.recommended("cilium"),
+                                         current_cilium if current_cni == "Cilium" else "")
+        with card("Versions and container network", "Only releases that Cisco AI PODs supports can be chosen. The "
+                                                     "latest production release is the default; pin a version to "
+                                                     "stay on it.", icon="hub"):
             with ui.row().classes("w-full items-center gap-3"):
-                cni = ui.select(["OVNKubernetes", "Cilium"], label="CNI",
-                                value=networking.get("container_network_interface") or "OVNKubernetes"
+                openshift = ui.select(openshift_choices, label="OpenShift version", value=current_openshift
+                                      ).props("outlined dense").style("width:320px")
+                openshift_source = ui.label("Supported list (refresh for the live list)").classes("muted text-xs")
+
+                async def refresh_openshift() -> None:
+                    items, source = await run.io_bound(support.openshift_versions)
+                    openshift.set_options(version_choices([item["version"] for item in items],
+                                                          support.recommended("openshift"), openshift.value,
+                                                          support.LATEST_PRODUCTION), value=openshift.value)
+                    openshift_source.set_text(f"{len(items)} supported releases from {source}")
+
+                ui.button("Refresh", icon="refresh", on_click=refresh_openshift).props("flat dense")
+
+            with ui.row().classes("w-full items-center gap-3"):
+                cni = ui.select(["OVNKubernetes", "Cilium"], label="CNI", value=current_cni
                                 ).props("outlined dense").style("width:200px")
-                version = ui.input("Cilium version", value=str(networking.get("container_network_version")
-                                                               or DEFAULT_CILIUM_VERSION),
-                                   placeholder="1.19.7").props("outlined dense").style("width:160px")
-                version.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
+                cilium = ui.select(cilium_choices, label="Cilium version", value=current_cilium
+                                   ).props("outlined dense").style("width:240px")
+                cilium_source = ui.label("Supported list (refresh for the registry list)").classes("muted text-xs")
+                for item in (cilium, cilium_source):
+                    item.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
 
-                async def apply_network() -> None:
-                    chosen = (version.value or "").strip()
-                    if cni.value == "Cilium" and not CILIUM_VERSION.match(chosen):
-                        ui.notify("Enter the Cilium version as x.y.z, for example 1.19.7", type="negative")
-                        return
-                    current = seeds.load(await workbench.content(install_target))
-                    node = seeds.ensure(current, "openshift", "install", "bare_metal", "cluster_networking")
-                    node["container_network_interface"] = cni.value
-                    if cni.value == "Cilium":
-                        node["container_network_version"] = chosen
-                    else:
-                        node.pop("container_network_version", None)
-                    workbench.set_content(install_target, seeds.dump(current),
-                                          "Container network updated from the form (not saved yet)")
-                    ui.notify("YAML updated. Review it, then Save.", type="info")
+                async def refresh_cilium() -> None:
+                    try:
+                        token = (await run.io_bound(context.vault.load)).get("openshift", {}).get(
+                            "isovalent_registry_token", "")
+                    except Exception:  # an unreadable vault only means the public list is used
+                        token = ""
+                    versions, source = await run.io_bound(
+                        support.cilium_versions, str(registry_state.get("catalog_url") or ""), token)
+                    cilium.set_options(version_choices(versions, support.recommended("cilium"), cilium.value),
+                                       value=cilium.value)
+                    cilium_source.set_text(f"{len(versions)} supported releases from {source}")
 
-                ui.button("Apply to YAML", icon="playlist_add_check", on_click=apply_network).props("outline")
+                refresh_button = ui.button("Refresh", icon="refresh", on_click=refresh_cilium).props("flat dense")
+                refresh_button.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
+
+            async def apply_network() -> None:
+                problems = []
+                if openshift.value != support.LATEST_PRODUCTION:
+                    problems.append(support.is_supported("openshift", openshift.value)[1])
+                if cni.value == "Cilium":
+                    problems.append(support.is_supported("cilium", cilium.value)[1])
+                problems = [problem for problem in problems if problem]
+                if problems:
+                    ui.notify(" ".join(problems), type="negative", multi_line=True)
+                    return
+                current = seeds.load(await workbench.content(install_target))
+                bare_metal = seeds.ensure(current, "openshift", "install", "bare_metal")
+                if openshift.value == support.LATEST_PRODUCTION:
+                    bare_metal.pop("cluster_version", None)
+                else:
+                    bare_metal["cluster_version"] = openshift.value
+                node = seeds.ensure(bare_metal, "cluster_networking")
+                node["container_network_interface"] = cni.value
+                if cni.value == "Cilium":
+                    node["container_network_version"] = cilium.value
+                else:
+                    node.pop("container_network_version", None)
+                workbench.set_content(install_target, seeds.dump(current),
+                                      "Versions and container network updated from the form (not saved yet)")
+                ui.notify("YAML updated. Review it, then Save.", type="info")
+
+            ui.button("Apply to YAML", icon="playlist_add_check", on_click=apply_network).props("outline")
+            ui.label("Cilium needs Isovalent registry access first (OpenShift > Cilium Registry). iserver downloads "
+                     "the Cilium manifests for the chosen version and applies its automated fixups."
+                     ).classes("muted text-xs")
+
 
     with card("Node SSH key", "The public key is added to every node for the core user. Generate a new ed25519 key "
                               "pair here, or paste or upload an existing public key in the Credentials panel.", icon="vpn_key"):

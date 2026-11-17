@@ -24,6 +24,7 @@ and related packages). Activate your virtual environment first.
 | [merge_schemas.py](#merge_schemaspy) | Bundle the split JSON schemas. |
 | [check_schema_refs.py](#check_schema_refspy) | Check JSON schemas for broken `$ref` targets. |
 | [nvidia_support_matrix.py](#nvidia_support_matrixpy) | Report NVIDIA AI Enterprise compatibility. |
+| [version_support_matrix.py](#version_support_matrixpy) | Supported OpenShift and Cilium versions, with a drift check. |
 | [regenerate_kubeconfig.py](#regenerate_kubeconfigpy) | Rebuild a kubeconfig with a new CA, server, or token. |
 | [Shell helpers](#shell-helpers) | Environment setup, lint, and sanity helpers. |
 | [Typical schema workflow](#typical-schema-workflow) | Edit, bundle, and check the schemas. |
@@ -607,3 +608,27 @@ python3 scripts/merge_schemas.py
 # 3. Confirm nothing references a missing definition
 python3 scripts/check_schema_refs.py
 ```
+
+---
+
+## version_support_matrix.py
+
+Holds the OpenShift and Cilium (Isovalent Enterprise) versions Cisco AI PODs supports and lists what is currently available. Edit `VERSION_SUPPORT` in the script to change the policy: the supported minor releases, the recommended patch release, and the tested versions offered when no live list can be reached.
+
+```bash
+# OpenShift: iserver (Assisted Installer, needs the Console Registration token), else Red Hat's public update graph
+python3 scripts/version_support_matrix.py list openshift
+
+# Cilium: the Helm index of your registry (identity token sent as a bearer token), else the supported list
+CILIUM_VERSION_INDEX_URL=https://registry.example.com/.../index.yaml isovalent_registry_token=... \
+  python3 scripts/version_support_matrix.py list cilium
+
+# Accept or reject a version (the OpenShift value the-latest-production-version is checked against what it resolves to)
+python3 scripts/version_support_matrix.py validate openshift 4.20.16
+
+# Drift check for cron or CI: exits 1 when a newer patch release exists or the recommended one disappeared
+python3 scripts/version_support_matrix.py check
+```
+
+The install prep (`roles/openshift_install`) runs `validate` for the OpenShift and Cilium versions, and Cluster Deployment only offers supported versions.
+
