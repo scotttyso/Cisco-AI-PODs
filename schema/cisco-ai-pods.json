@@ -38528,16 +38528,14 @@
                             "type": "string"
                         },
                         "container_network_version": {
-                            "default": "1.17.9",
-                            "description": "The default value is `1.17.9`.  OpenShift Container Networking Intersight (CNI) Version.",
+                            "description": "Version of the Cilium CNI (Isovalent Enterprise), for example `1.19.7`.  Required when `container_network_interface` is `Cilium` and ignored for `OVNKubernetes`.  iserver downloads the Isovalent manifests for this version during the install and applies its automated fixups: the cluster pool CIDR and mask come from `cluster_network`, and the operator runs one replica on a single-node cluster.  Isovalent registry access must be configured (OpenShift > Cilium Registry).",
                             "examples": [
-                                "1.17.6",
-                                "1.17.9"
+                                "1.19.7"
                             ],
                             "maxLength": 7,
                             "minLength": 5,
                             "pattern": "^[1-9]\\.[0-9]{1,2}\\.[0-9]{1,2}$",
-                            "title": "OpenShift Container Networking Intersight (CNI) Version",
+                            "title": "Cilium Version",
                             "type": "string"
                         },
                         "dns_search_domains": {
@@ -39050,11 +39048,8 @@
                     "openshift_gitops"
                 ]
             },
-            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `cilium`\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `nvidia_nim_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
+            "description": "This dictionary defines the OpenShift operator configuration settings.\n\nRequired fields are:\n  * `operators_to_install`\n\nOptional fields are:\n  * `gitea`\n  * `nvidia_gpu_operator`\n  * `nvidia_network_operator`\n  * `nvidia_nim_operator`\n  * `openshift_gitops`\n  * `portworx`\n  * `redhat_ods_operator`",
             "properties": {
-                "cilium": {
-                    "$ref": "#/definitions/openshift.operators.cilium"
-                },
                 "gitea": {
                     "$ref": "#/definitions/openshift.operators.gitea"
                 },
@@ -39105,90 +39100,6 @@
             },
             "required": [],
             "title": "OpenShift Operators",
-            "type": "object"
-        },
-        "openshift.operators.cilium": {
-            "additionalProperties": false,
-            "anyOf": [
-                {
-                    "required": [
-                        "version"
-                    ]
-                },
-                {
-                    "required": [
-                        "download_url"
-                    ]
-                }
-            ],
-            "description": "This dictionary defines the Cilium CNI (Isovalent Enterprise) configuration.\n\nSet `version` (for example `1.19.7`) and iserver downloads and fixes up the Cilium manifests during the install, or set `download_url` to unpack a specific manifest bundle.  Isovalent registry access must be configured either way.\n\nRequired fields are:\n  * `cluster_network`\n  * `version` or `download_url`",
-            "properties": {
-                "cluster_network": {
-                    "$ref": "#/definitions/openshift.operators.cilium.cluster_network"
-                },
-                "download_url": {
-                    "description": "Download URL for the Cilium operator bundle.  Obtain the latest link from https://docs.isovalent.com.",
-                    "examples": [
-                        "https://docs.isovalent.com/v25.11/public/clife/clife-v1.18.8.tar.gz"
-                    ],
-                    "maxLength": 1024,
-                    "minLength": 1,
-                    "pattern": "^https?://",
-                    "title": "Cilium Download URL",
-                    "type": "string"
-                },
-                "enable_hubble_metrics": {
-                    "default": true,
-                    "description": "The default value is `true`.  Whether to enable Hubble metrics for observability.",
-                    "title": "Enable Hubble Metrics",
-                    "type": "boolean"
-                },
-                "enable_kube_proxy_replacement": {
-                    "default": true,
-                    "description": "The default value is `true`.  Whether to enable Cilium kube-proxy replacement mode.",
-                    "title": "Enable Kube-Proxy Replacement",
-                    "type": "boolean"
-                },
-                "version": {
-                    "description": "Isovalent Enterprise for Cilium version that iserver installs, for example `1.19.7`.",
-                    "examples": [
-                        "1.19.7"
-                    ],
-                    "pattern": "^\\d+\\.\\d+\\.\\d+$",
-                    "title": "Cilium Version",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "cluster_network"
-            ],
-            "title": "Cilium CNI Operator Configuration",
-            "type": "object"
-        },
-        "openshift.operators.cilium.cluster_network": {
-            "additionalProperties": false,
-            "description": "This object defines the Cilium cluster network CIDR settings.",
-            "properties": {
-                "v4_cidr": {
-                    "$ref": "#/definitions/abstract.ip/properties/ipv4_network",
-                    "title": "IPv4 Cluster Network CIDR"
-                },
-                "v4_host_prefix": {
-                    "description": "The prefix length allocated to each node for pod IP addresses (e.g. `23` gives each node a /23 block).",
-                    "examples": [
-                        23
-                    ],
-                    "maximum": 32,
-                    "minimum": 0,
-                    "title": "IPv4 Host Prefix",
-                    "type": "integer"
-                }
-            },
-            "required": [
-                "v4_cidr",
-                "v4_host_prefix"
-            ],
-            "title": "Cilium Cluster Network",
             "type": "object"
         },
         "openshift.operators.gitea": {
@@ -39957,5 +39868,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.21"
+    "x-schema-version": "v0.1.28"
 }

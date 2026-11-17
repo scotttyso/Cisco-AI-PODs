@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-11-17
+
+### Changed
+- **Cilium uses iserver's automated fixups; Prepare install (phase 1) no longer generates Cilium manifests.** The Cilium version is now set with the install settings (`cluster_networking.container_network_version`, next to `container_network_interface: Cilium`) and shown on the Cluster Deployment page (Container network (CNI) > Apply to YAML). Phase 1 writes the version into `cluster.json`, and iserver downloads the Isovalent manifests and fixes up the cluster pool CIDR and mask and the operator replicas. Prepare install fails with a clear message when Cilium is selected without a version.
+- Cilium is no longer an operator setting: `openshift.operators.cilium` is removed from the schema, the OpenShift GitOps page, and the examples. Delete the block from an existing `operators.ezai.yaml` (or run Build from inputs on the OpenShift GitOps page, which removes it).
+- **Install cluster** checks the Cilium registry when the install file selects Cilium (it previously looked at the operators file).
+
+### Removed
+- The Cilium manifest templates and tasks, and the settings only they used: `download_url`, `cluster_network`, `enable_kube_proxy_replacement`, and `enable_hubble_metrics`. iserver's fixups do not apply kube-proxy replacement or Hubble metrics; apply them after the install if needed.
+
 ## [0.1.28] - 2026-11-17
 
 ### Added

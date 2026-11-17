@@ -109,7 +109,24 @@ In the UI use **OpenShift > Cilium Registry**:
 3. Store the identity token in the Credentials panel (it is kept in the encrypted vault and masked in job logs).
 4. Click **Save registry**, then **Register Cilium registry**. This runs `iserver set ocp cilium registry --registry <host> --token <identity token>` and verifies access.
 
-**Check Cilium registry** runs `iserver get ocp cilium registry`. When `openshift.operators.cilium` is configured, **Install cluster** on the Cluster Deployment page runs this check first, so an expired token stops the job before any node is touched. Cilium itself is configured in `host_vars/openshift/operators.ezai.yaml`; setting `openshift.operators.cilium.version` lets iServer download the manifests for that version.
+**Check Cilium registry** runs `iserver get ocp cilium registry`. When the install file selects the Cilium CNI, **Install cluster** on the Cluster Deployment page runs this check first, so an expired token stops the job before any node is touched.
+
+### Selecting Cilium
+
+Choose the CNI and its version in the install file (`host_vars/openshift/install.ezai.yaml`), on the Cluster Deployment page (**Container network (CNI)**, then **Apply to YAML** and Save):
+
+```yaml
+openshift:
+  install:
+    bare_metal:
+      cluster_networking:
+        container_network_interface: Cilium
+        container_network_version: 1.19.7
+```
+
+**Prepare install (phase 1) generates no Cilium manifests.** It writes `"network_type": "Cilium"` and `"cilium": {"version": "1.19.7"}` into `cluster.json`; iServer then downloads the Isovalent manifests for that version and applies its automated fixups: the cluster pool CIDR and mask come from `cluster_network`, and the operator runs one replica on a single-node cluster ([Cilium fixups](https://github.com/datacenter/iserver/blob/main/doc/ocp/bm/cilium_fixup.md)). Prepare install stops with a clear message if Cilium is selected without `container_network_version`.
+
+Cilium is no longer an operator setting. An `openshift.operators.cilium` block in an older `operators.ezai.yaml` must be deleted (or run Build from inputs on the OpenShift GitOps page, which removes it), and the settings only the old manifest path used (`download_url`, `cluster_network`, `enable_kube_proxy_replacement`, `enable_hubble_metrics`) are gone; apply kube-proxy replacement or Hubble metrics after the install if you need them.
 
 ---
 

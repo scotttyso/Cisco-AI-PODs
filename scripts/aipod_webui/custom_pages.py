@@ -32,6 +32,7 @@ NVIDIA_OPERATORS = {
     "nvidia-nim-operator": "NVIDIA NIM Operator",
 }
 DEFAULT_CILIUM_VERSION = "1.19.7"
+CILIUM_VERSION = re.compile(r"^[1-9]\.\d{1,2}\.\d{1,2}$")
 MAC_VLAN_COUNT = 8
 # Route host for the gitea-with-admin instance in the gitea-operator namespace; the
 # instance creates one user named lab-user (roles/openshift_gitea/templates/instance.yaml.j2).
@@ -797,6 +798,42 @@ def ocp_cluster_form(handle) -> None:
 
             ui.button("Save", icon="save", on_click=save).props("outline")
 
+    install_target = "openshift/install.ezai.yaml"
+    workbench = handle.workbench
+    if workbench and install_target in workbench.specs:
+        networking = ((((seeds.load(workbench.load(install_target)[0]).get("openshift") or {}).get("install") or {})
+                       .get("bare_metal") or {}).get("cluster_networking") or {})
+        with card("Container network (CNI)", "Cilium (Isovalent Enterprise) needs no manifests here: iserver downloads "
+                                             "them for the version you choose and applies its automated fixups. "
+                                             "Register the Cilium registry first (OpenShift > Cilium Registry).",
+                  icon="hub"):
+            with ui.row().classes("w-full items-center gap-3"):
+                cni = ui.select(["OVNKubernetes", "Cilium"], label="CNI",
+                                value=networking.get("container_network_interface") or "OVNKubernetes"
+                                ).props("outlined dense").style("width:200px")
+                version = ui.input("Cilium version", value=str(networking.get("container_network_version")
+                                                               or DEFAULT_CILIUM_VERSION),
+                                   placeholder="1.19.7").props("outlined dense").style("width:160px")
+                version.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
+
+                async def apply_network() -> None:
+                    chosen = (version.value or "").strip()
+                    if cni.value == "Cilium" and not CILIUM_VERSION.match(chosen):
+                        ui.notify("Enter the Cilium version as x.y.z, for example 1.19.7", type="negative")
+                        return
+                    current = seeds.load(await workbench.content(install_target))
+                    node = seeds.ensure(current, "openshift", "install", "bare_metal", "cluster_networking")
+                    node["container_network_interface"] = cni.value
+                    if cni.value == "Cilium":
+                        node["container_network_version"] = chosen
+                    else:
+                        node.pop("container_network_version", None)
+                    workbench.set_content(install_target, seeds.dump(current),
+                                          "Container network updated from the form (not saved yet)")
+                    ui.notify("YAML updated. Review it, then Save.", type="info")
+
+                ui.button("Apply to YAML", icon="playlist_add_check", on_click=apply_network).props("outline")
+
     with card("Node SSH key", "The public key is added to every node for the core user. Generate a new ed25519 key "
                               "pair here, or paste or upload an existing public key in the Credentials panel.", icon="vpn_key"):
         with ui.row().classes("gap-2"):
@@ -1329,7 +1366,6 @@ def gitops_form(handle) -> None:
     openshift = data.get("openshift") or {}
     operators = openshift.get("operators") or {}
     selected = set(operators.get("operators_to_install") or [])
-    cilium = operators.get("cilium") or {}
     gitops = operators.get("openshift_gitops") or {}
     network = operators.get("nvidia_network_operator") or {}
     cluster_state = handle.state("ocp-cluster")
@@ -1347,12 +1383,6 @@ def gitops_form(handle) -> None:
         with ui.element("div").classes("services-grid"):
             for key, label in OPERATORS.items():
                 controls[key] = ui.checkbox(label, value=key in selected, on_change=changed)
-        with ui.row().classes("w-full items-center gap-3"):
-            controls["cilium"] = ui.checkbox("Isovalent Enterprise for Cilium (CNI)", value=bool(cilium), on_change=changed)
-            controls["cilium_version"] = ui.input("Cilium version", value=str(cilium.get("version") or DEFAULT_CILIUM_VERSION),
-                                                  on_change=changed).props("outlined dense").style("width:160px")
-            ui.label("Requires Isovalent registry access: store the identity token in Passwords and secrets, then run "
-                     "Register Isovalent registry (Tools).").classes("muted text-xs grow")
 
     with card("NVIDIA AI Enterprise", icon="memory"):
         versions = list(nvaie_schema.get("enum") or [])
@@ -1535,15 +1565,8 @@ def gitops_form(handle) -> None:
         node = seeds.ensure(root, "operators")
         chosen = [key for key in (*OPERATORS, *NVIDIA_OPERATORS) if controls[key].value]
         node["operators_to_install"] = seeds.seq(chosen)
-        if controls["cilium"].value:
-            settings = seeds.ensure(node, "cilium")
-            settings["version"] = (controls["cilium_version"].value or DEFAULT_CILIUM_VERSION).strip()
-            settings.pop("download_url", None)
-            if "cluster_network" not in settings:
-                settings["cluster_network"] = seeds.cmap(v4_cidr=cluster_state.get("cluster_network") or "10.128.0.0/14",
-                                                         v4_host_prefix=23)
-        else:
-            node.pop("cilium", None)
+        # Cilium is selected on the Cluster Deployment page; drop the setting an older operators file may hold.
+        node.pop("cilium", None)
         seeds.ensure(node, "gitea")["enable"] = bool(controls["gitea"].value)
         argo = seeds.ensure(node, "openshift_gitops")
         argo["enable"] = True

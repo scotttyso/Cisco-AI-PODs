@@ -10,16 +10,6 @@ openshift:
     - RTX PRO 6000 Blackwell Server Edition
   nvidia_ai_enterprise_version: '8.1'
   operators:
-    cilium:
-      cluster_network:
-        v4_cidr: 10.128.0.0/14
-        v4_host_prefix: 23
-      enable_kube_proxy_replacement: true
-      enable_hubble_metrics: true
-      # iserver downloads the Isovalent Enterprise manifests for this version (registry access required).
-      version: 1.19.7
-      # Alternatively, pin a manifest bundle from https://docs.isovalent.com/ink/install/openshift.html
-      # download_url: https://docs.isovalent.com/v25.11/public/clife/clife-v1.18.8.tar.gz
     gitea:
       enable: true
     nvidia_gpu_operator:

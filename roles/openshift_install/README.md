@@ -34,7 +34,6 @@ python library/generate_server_and_nmstate_templates.py --output-dir /tmp/previe
 | File | Description |
 |------|-------------|
 | `tasks/main.yaml` | Role entry point |
-| `tasks/cilium.yaml` | Cilium CNI task handler |
 | `tasks/persistent_net_rules.yaml` | Network operator task handler |
 | `tasks/proxy.yaml` | Proxy task handler |
 | `defaults/main.yaml` | Role defaults (None) |

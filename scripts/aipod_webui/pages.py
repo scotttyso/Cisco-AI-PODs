@@ -882,13 +882,14 @@ def cilium_registry(rc: RunContext) -> list[list[str]]:
 
 
 def cilium_configured(rc: RunContext) -> bool:
-    """True when the OpenShift operators file configures Cilium, which pulls from the authenticated registry."""
+    """True when the saved install file selects the Cilium CNI, which pulls from the authenticated registry."""
     try:
-        data = yaml.safe_load((rc.ui.host_vars_dir / OPERATORS_TARGET).read_text(encoding="utf-8")) or {}
+        data = yaml.safe_load((rc.ui.host_vars_dir / "openshift/install.ezai.yaml").read_text(encoding="utf-8")) or {}
     except (OSError, yaml.YAMLError):
         return False
-    operators = (data.get("openshift") or {}).get("operators") or {}
-    return bool(isinstance(operators, dict) and operators.get("cilium"))
+    networking = ((((data.get("openshift") or {}).get("install") or {}).get("bare_metal") or {})
+                  .get("cluster_networking") or {})
+    return isinstance(networking, dict) and networking.get("container_network_interface") == "Cilium"
 
 
 def with_cilium_registry_check(build: Callable[[RunContext], list[list[str]]]) -> Callable[[RunContext], list[list[str]]]:
@@ -1203,7 +1204,7 @@ SECTIONS = (
                                  with_cilium_registry_check(deploy("openshift", "--openshift-only-stage", "iserver")),
                                  secrets=("*",),
                                  confirm="Boots the nodes from the discovery ISO and installs OpenShift. Node disks are "
-                                         "erased. When Cilium is configured, the Cilium registry is checked first."),
+                                         "erased. When Cilium is the CNI, the Cilium registry is checked first."),
                           Action("status", "Cluster status", "monitor_heart", cluster_status, group="Post-check",
                                  env=ocp_env, files=False),
                           INTERSIGHT_MACS, OCP_REDFISH_MACS),
@@ -1232,13 +1233,11 @@ SECTIONS = (
                  notes=("The URL, base DNs, and bind DN pre-fill from Initial Inventory > Shared services > LDAP. Set the "
                         "cluster admin groups and group mappings here.", OPENSHIFT_UPLOAD_NOTE), group="OpenShift"),
         PageSpec("ocp-gitops", "OpenShift GitOps", "account_tree", "08-mlops",
-                 "OpenShift GitOps (Argo CD) operators: Cilium, NVIDIA AI Enterprise, and more. Register the Cilium "
-                 "registry on the Cilium Registry page.",
+                 "OpenShift GitOps (Argo CD) operators: NVIDIA AI Enterprise and more. Cilium is chosen on the "
+                 "Cluster Deployment page.",
                  files=(FileSpec("examples/openshift/operators.ezai.yaml", OPERATORS_TARGET,
                                  "ocp_operators"),),
-                 actions=(Action("isovalent-check", "Check Isovalent registry", "verified",
-                                 iserver_setup("isovalent-check"), group="Pre-check", files=False),
-                          Action("gitops", "Deploy GitOps", "account_tree", phase2("gitea,argocd,gitops"),
+                 actions=(Action("gitops", "Deploy GitOps", "account_tree", phase2("gitea,argocd,gitops"),
                                  secrets=("*",), env=ocp_env,
                                  confirm="Installs Gitea (when enabled) and OpenShift GitOps, and renders the "
                                          "operator applications into destination_directory. Then use Push to GitOps "

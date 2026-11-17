@@ -219,11 +219,13 @@ class AutomationUiTests(unittest.TestCase):
             install = pages.with_cilium_registry_check(lambda _rc: [["install"]])
 
             self.assertEqual(install(rc), [["install"]])
-            (host_vars / "openshift/operators.ezai.yaml").write_text(
-                "openshift:\n  operators:\n    nvidia_network_operator:\n      enabled: true\n")
+            install_file = host_vars / "openshift/install.ezai.yaml"
+            install_file.write_text("openshift:\n  install:\n    bare_metal:\n      cluster_networking:\n"
+                                    "        container_network_interface: OVNKubernetes\n")
             self.assertEqual(install(rc), [["install"]])
-            (host_vars / "openshift/operators.ezai.yaml").write_text(
-                "openshift:\n  operators:\n    cilium:\n      version: 1.19.9\n")
+            install_file.write_text("openshift:\n  install:\n    bare_metal:\n      cluster_networking:\n"
+                                    "        container_network_interface: Cilium\n"
+                                    "        container_network_version: 1.19.7\n")
             commands = install(rc)
             self.assertEqual(len(commands), 2)
             self.assertIn("isovalent-check", commands[0])
