@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-11-17
+
+### Added
+- **Synchronize writes A records to Active Directory DNS** over LDAP (AD-integrated zones). It finds the real zones from AD, creates missing records, and replaces the address of a record that exists with a different one. Other record types on the same name are kept, nothing is deleted, and a record outside any AD-integrated zone is reported as failed. If the domain controller refuses cleartext LDAP binds, it retries over LDAPS/StartTLS without verifying the certificate. The DNS service reads AD changes within about a minute.
+- Validate assigns each record to its real AD zone instead of guessing it from the hostname.
+
+### Changed
+- Synchronize still reports "not implemented" and changes nothing for Infoblox, BlueCat, Efficient IP, and BIND.
+
 ## [0.1.19] - 2026-11-17
 
 ### Fixed

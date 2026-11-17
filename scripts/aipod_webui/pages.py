@@ -960,7 +960,7 @@ DNS_MANAGER_ACTIONS = (
            tooltip="Check DNS records against the provider without making changes."),
     Action("sync", "Synchronize DNS records", "cloud_upload",
            dns_manager_sync, files=False, 
-           confirm="Update DNS records based on the saved configuration."),
+           confirm="Create the missing A records in Active Directory DNS and replace the address of records that exist with a different one. Other records and other record types are left unchanged and nothing is deleted. Run Validate first."),
 )
 
 

@@ -288,6 +288,104 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIsNone(provider.vault_client)
 
 
+class FakeLdap:
+    """Just enough of an ldap3 connection to exercise the AD record writer"""
+
+    def __init__(self, nodes=None):
+        self.nodes = nodes or {}  # node dn -> list of dnsRecord blobs
+        self.entries = []
+        self.result = {'description': 'success', 'message': ''}
+        self.calls = []
+
+    def search(self, base, query, scope, attributes=None):
+        label = query.split('(name=')[1].rstrip(')')
+        dn = f"DC={label},{base}"
+        self.entries = []
+        if dn in self.nodes:
+            entry = Mock(entry_dn=dn)
+            entry.dnsRecord.raw_values = self.nodes[dn]
+            entry.__contains__ = lambda self_, key: True
+            self.entries = [entry]
+        return bool(self.entries)
+
+    def add(self, dn, classes, attributes):
+        self.calls.append(('add', dn, attributes))
+        self.nodes[dn] = list(attributes['dnsRecord'])
+        return True
+
+    def modify(self, dn, changes):
+        self.calls.append(('modify', dn, changes))
+        self.nodes[dn] = list(changes['dnsRecord'][0][1])
+        return True
+
+
+class TestActiveDirectoryWrites(unittest.TestCase):
+    ZONE_DN = 'DC=aipod.local,CN=MicrosoftDNS,DC=DomainDnsZones,DC=aipod,DC=local'
+
+    def provider(self, nodes=None):
+        provider = ActiveDirectoryProvider({'server': 'dc'})
+        provider.connection = FakeLdap(nodes)
+        provider.zones = {'aipod.local': self.ZONE_DN}
+        provider.serials = {'aipod.local': 7}
+        return provider
+
+    def test_a_record_blob_layout(self):
+        blob = ActiveDirectoryProvider._a_blob('10.1.2.3', 3600, 7)
+        self.assertEqual(blob[:2], b'\x04\x00')          # data length
+        self.assertEqual(blob[2:4], b'\x01\x00')         # type A
+        self.assertEqual(blob[4:6], bytes([5, 240]))      # version, zone rank
+        self.assertEqual(blob[8:12], b'\x07\x00\x00\x00')  # serial
+        self.assertEqual(blob[12:16], (3600).to_bytes(4, 'big'))
+        self.assertEqual(blob[16:24], bytes(8))           # static record: no timestamp
+        self.assertEqual(blob[24:], bytes([10, 1, 2, 3]))
+
+    def test_zone_is_the_longest_matching_ad_zone(self):
+        provider = self.provider()
+        provider.zones['aid.aipod.local'] = 'x'
+        self.assertEqual(provider._zone_of('api.aid.aipod.local'), 'aid.aipod.local')
+        self.assertEqual(provider._zone_of('*.apps.aid.aipod.local'), 'aid.aipod.local')
+        self.assertEqual(provider._zone_of('host.aipod.local'), 'aipod.local')
+        self.assertIsNone(provider._zone_of('host.other.com'))
+
+    def test_create_adds_a_new_node(self):
+        provider = self.provider()
+        self.assertTrue(provider.create_record(DNSRecord('node1.aipod.local', '10.1.2.3', 'aipod.local')))
+        action, dn, attributes = provider.connection.calls[0]
+        self.assertEqual((action, dn), ('add', f'DC=node1,{self.ZONE_DN}'))
+        self.assertEqual(attributes['dnsRecord'][0][24:], bytes([10, 1, 2, 3]))
+
+    def test_wildcard_node_keeps_its_dotted_name(self):
+        provider = self.provider()
+        provider.create_record(DNSRecord('*.apps.aipod.local', '10.1.2.4', 'aipod.local'))
+        self.assertEqual(provider.connection.calls[0][1], f'DC=*.apps,{self.ZONE_DN}')
+
+    def test_existing_address_is_left_alone(self):
+        dn = f'DC=node1,{self.ZONE_DN}'
+        provider = self.provider({dn: [ActiveDirectoryProvider._a_blob('10.1.2.3', 3600, 1)]})
+        self.assertTrue(provider.create_record(DNSRecord('node1.aipod.local', '10.1.2.3', 'aipod.local')))
+        self.assertEqual(provider.connection.calls, [])
+
+    def test_different_address_is_replaced_and_other_records_kept(self):
+        dn = f'DC=node1,{self.ZONE_DN}'
+        txt = bytes([3, 0, 16, 0, 5, 240, 0, 0, 1, 0, 0, 0, 0, 0, 14, 16, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3])
+        provider = self.provider({dn: [ActiveDirectoryProvider._a_blob('10.9.9.9', 3600, 1), txt]})
+        self.assertTrue(provider.create_record(DNSRecord('node1.aipod.local', '10.1.2.3', 'aipod.local')))
+        others, addresses = ActiveDirectoryProvider._split_blobs(provider.connection.nodes[dn])
+        self.assertEqual(addresses, ['10.1.2.3'])
+        self.assertEqual(others, [txt])
+
+    def test_record_outside_ad_zones_fails_without_writing(self):
+        provider = self.provider()
+        self.assertFalse(provider.create_record(DNSRecord('host.other.com', '10.1.2.3', 'other.com')))
+        self.assertEqual(provider.connection.calls, [])
+
+    def test_stale_records_are_never_deleted(self):
+        provider = self.provider()
+        self.assertFalse(provider.deletes_stale)
+        self.assertFalse(provider.delete_record(DNSRecord('node1.aipod.local', '10.9.9.9', 'aipod.local')))
+        self.assertEqual(provider.connection.calls, [])
+
+
 def run_tests():
     """Run all tests with verbose output"""
     loader = unittest.TestLoader()
@@ -298,6 +396,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestInventoryParser))
     suite.addTests(loader.loadTestsFromTestCase(TestDNSComparator))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryProvider))
+    suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWrites))
     suite.addTests(loader.loadTestsFromTestCase(TestInfobloxProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestIntegration))
     suite.addTests(loader.loadTestsFromTestCase(TestErrorHandling))
