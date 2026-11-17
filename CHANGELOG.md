@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-11-17
+
+### Fixed
+- The OpenShift install seed writes `iso_web_server.image_base_url` and `image_upload_directory` with a trailing `/`, and the default media URL is `https://<appliance>/os-images` (Nginx only serves HTTPS).
+- Nginx redirects `/os-images` to `/os-images/`; without the slash the request fell through to the UI and returned 404. Existing appliances need the one-time Nginx change in docs/rocky_linux_vm.md (the appliance file is `/etc/nginx/conf.d/automation-ui.conf`).
+
 ## [0.1.37] - 2026-11-17
 
 ### Changed

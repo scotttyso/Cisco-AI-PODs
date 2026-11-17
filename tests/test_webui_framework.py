@@ -244,6 +244,14 @@ class SeedTest(unittest.TestCase):
         self.assertEqual(data["servers"], [{"hostname": "c885-1", "model": "C885A", "serial_number": "E",
                                             "bmc": {"ip": "10.0.0.41"}}])
 
+    def test_openshift_install_seed_points_at_the_https_media_directory_with_trailing_slashes(self):
+        context = seeds.SeedContext(self.ROWS, {}, {}, "https://10.0.0.5/os-images", "/var/www/html/os-images")
+        example = (REPOSITORY / "examples/openshift/install.ezai.yaml").read_text(encoding="utf-8")
+        web = yaml.safe_load(seeds.apply_seed("ocp_install", example, context))["openshift"]["install"][
+            "bare_metal"]["iso_web_server"]
+        self.assertEqual(web["image_base_url"], "https://10.0.0.5/os-images/")
+        self.assertEqual(web["image_upload_directory"], "/var/www/html/os-images/")
+
     def test_standalone_profiles_use_model_specific_families(self):
         rows = [
             {"hostname": "c845-1", "pid": "UCSC-845A-M8", "serial_number": "A"},

@@ -602,8 +602,9 @@ def seed_ocp_install(data: CommentedMap, ctx: SeedContext) -> None:
     set_if(bare, "ntp_servers", seq(services.get("ntp_servers", [])))
     if ctx.media_url:
         web = ensure(bare, "iso_web_server")
-        web["image_base_url"] = ctx.media_url.rstrip("/")
-        web["image_upload_directory"] = ctx.media_dir or web.get("image_upload_directory", "")
+        web["image_base_url"] = ctx.media_url.rstrip("/") + "/"
+        directory = ctx.media_dir or web.get("image_upload_directory", "")
+        web["image_upload_directory"] = directory.rstrip("/") + "/" if directory else ""
         web["server_address"] = "localhost"
         for key in ("username", "password", "ssh_public_key"):
             web.pop(key, None)

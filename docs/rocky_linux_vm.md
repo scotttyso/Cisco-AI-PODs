@@ -199,6 +199,10 @@ server {
     }
 
     # ISO Directory mapped for downstream endpoint deployment (iDRAC/iLO/PXE)
+    location = /os-images {
+        return 301 /os-images/;
+    }
+
     location /os-images/ {
         alias /var/www/html/os-images/;
         autoindex on;

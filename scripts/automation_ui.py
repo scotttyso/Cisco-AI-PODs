@@ -357,7 +357,7 @@ def media_url() -> str:
     bootstrap = [item for item in interfaces
                  if ipaddress.ip_address(item["address"]) in ipaddress.ip_network(DEFAULT_BOOTSTRAP_NETWORK)]
     chosen = (bootstrap or interfaces or [None])[0]
-    return f"http://{chosen['address']}/os-images" if chosen else ""
+    return f"https://{chosen['address']}/os-images" if chosen else ""
 
 
 def list_media() -> list[dict]:
