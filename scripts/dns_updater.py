@@ -11,6 +11,8 @@ Usage:
 import argparse
 import json
 import logging
+import os
+import socket
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
@@ -45,10 +47,14 @@ class DNSRecord:
 class DNSProvider(ABC):
     """Abstract base class for DNS providers"""
 
+    # Providers only report on the desired records until their create/update/delete calls are really implemented
+    supports_write = False
+
     def __init__(self, config: Dict, vault_client: Optional[VaultClient] = None):
         self.config = config
         self.vault_client = vault_client
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.expected: Set[DNSRecord] = set()
 
     @abstractmethod
     def authenticate(self):
@@ -105,25 +111,52 @@ class ActiveDirectoryProvider(DNSProvider):
                 self.username = creds.get('username')
                 self.password = creds.get('password')
             else:
-                self.username = self.config.get('username')
-                self.password = self.config.get('password')
+                # Secrets come from the web UI vault as environment variables; with shared LDAP settings the
+                # Shared Services LDAP bind password is reused.
+                self.username = (os.environ.get('ad_username') or self.config.get('username')
+                                 or self.config.get('bind_dn'))
+                self.password = os.environ.get('ad_password') or self.config.get('password')
+                if not self.password and self.config.get('use_shared_ldap'):
+                    self.password = os.environ.get('ldap_bind_password')
 
             self.server = self.config.get('server')
             if not self.server:
                 raise ValueError("AD server not configured")
 
             # TODO: Implement LDAP/DNS connection
-            self.logger.info(f"Authenticated with AD server: {self.server}")
+            self.logger.info(f"AD server: {self.server} (credentials {'found' if self.password else 'not set'})")
         except Exception as e:
             self.logger.error(f"AD authentication failed: {e}")
             raise
 
     def get_records(self, zone: str) -> Set[DNSRecord]:
-        """Retrieve DNS records from Active Directory"""
-        # TODO: Implement AD DNS record retrieval
-        # This would use dnspython or ldap3 to query AD DNS
-        self.logger.info(f"Retrieving records from AD zone: {zone}")
-        return set()
+        """Resolve the expected hostnames of a zone against the AD DNS server (read-only)"""
+        import dns.exception
+        import dns.resolver
+
+        wanted = [record for record in self.expected if record.zone == zone]
+        if not wanted:
+            return set()
+        self.logger.info(f"Querying {self.server} for zone: {zone}")
+        try:
+            nameserver = socket.gethostbyname(self.server)
+        except OSError as e:
+            raise RuntimeError(f"Cannot resolve the AD DNS server '{self.server}': {e}") from e
+        resolver = dns.resolver.Resolver(configure=False)
+        resolver.nameservers = [nameserver]
+        resolver.lifetime = float(self.config.get('timeout', 10))
+        found: Set[DNSRecord] = set()
+        for record in wanted:
+            try:
+                answer = resolver.resolve(record.hostname, 'A')
+            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+                continue
+            except dns.exception.DNSException as e:
+                raise RuntimeError(f"DNS query for {record.hostname} against {self.server} failed: "
+                                   f"{e.__class__.__name__}") from e
+            for rdata in answer:
+                found.add(DNSRecord(record.hostname, rdata.address, zone, ttl=answer.rrset.ttl))
+        return found
 
     def create_record(self, record: DNSRecord) -> bool:
         """Create a new DNS record in Active Directory"""
@@ -796,19 +829,21 @@ class DNSUpdater:
     def run(self, provider_name: str):
         """Execute DNS update for specified provider"""
         config = self._load_config()
-        
+
+        # The web UI writes everything under a top-level "dns" key; bare files are still accepted
+        config = config.get('dns', config)
         self._initialize_vault(config.get('vault', {}))
 
-        inventory_config = config.get('inventory', {})
-        provider_config = config.get('providers', {}).get(provider_name, {})
-
+        provider_config = self._find_provider(config.get('providers') or {}, provider_name)
         if not provider_config:
             self.logger.error(f"Provider '{provider_name}' not configured")
             sys.exit(1)
 
-        # Parse inventory
-        parser = InventoryParser(self.logger)
-        desired_records = parser.parse_all_sources(inventory_config)
+        desired_records = self._desired_records(config)
+        if not desired_records:
+            self.logger.error("No DNS records to process; add records to the configuration")
+            sys.exit(1)
+        self.logger.info(f"{len(desired_records)} desired records")
 
         # Initialize provider
         provider_class = self.PROVIDERS.get(provider_name)
@@ -817,6 +852,7 @@ class DNSUpdater:
             sys.exit(1)
 
         provider = provider_class(provider_config, self.vault_client)
+        provider.expected = desired_records
         provider.authenticate()
 
         # Get actual records from provider
@@ -834,9 +870,40 @@ class DNSUpdater:
 
         # Apply changes if not in dry-run mode
         if not self.dry_run:
+            if not provider.supports_write:
+                self.logger.error(f"Writing records to '{provider_name}' is not implemented yet; "
+                                  "nothing was changed")
+                sys.exit(2)
             self._apply_changes(provider, missing, stale)
         else:
             self.logger.info("DRY-RUN MODE: No changes applied")
+
+    PROVIDER_TYPES = {
+        'ad': {'ad', 'active_directory'},
+        'infoblox': {'infoblox'},
+        'bluecat': {'bluecat'},
+        'efficientip': {'efficientip', 'efficient_ip'},
+        'bind': {'bind', 'bind_dns'},
+    }
+
+    def _find_provider(self, providers: Dict, provider_name: str) -> Dict:
+        """Provider entries are named freely (ad_primary); match on the name or on the entry's type"""
+        types = self.PROVIDER_TYPES.get(provider_name, {provider_name})
+        for key, entry in providers.items():
+            if isinstance(entry, dict) and (key == provider_name or str(entry.get('type', '')).lower() in types):
+                return entry
+        return {}
+
+    def _desired_records(self, config: Dict) -> Set[DNSRecord]:
+        """Records listed as hostname/ipv4 pairs, plus any legacy inventory sources"""
+        records = set()
+        for item in config.get('records') or []:
+            hostname, ip = str(item.get('hostname', '')).strip().rstrip('.'), str(item.get('ipv4', '')).strip()
+            if hostname and ip:
+                records.add(DNSRecord(hostname, ip, InventoryParser._extract_zone(hostname)))
+        if config.get('inventory'):
+            records |= InventoryParser(self.logger).parse_all_sources(config['inventory'])
+        return records
 
     def _print_report(self, missing: Set[DNSRecord], stale: Set[DNSRecord], matching: Set[DNSRecord]):
         """Print comparison report"""

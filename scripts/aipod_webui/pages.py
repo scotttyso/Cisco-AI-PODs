@@ -910,68 +910,44 @@ def dns_manager_secrets(handle: PageHandle) -> list[SecretField]:
             DNS_EFFICIENTIP_PASSWORD, DNS_BINDNS_API_KEY]
 
 
-def dns_manager_actions(rc: RunContext) -> list[list[str]]:
-    """Run DNS updater with the saved dns_config.ezai.yaml"""
-    config_file = rc.output_dir / "dns/dns_config.ezai.yaml"
+DNS_PROVIDER_ARGS = {
+    "active_directory": "ad",
+    "ad": "ad",
+    "infoblox": "infoblox",
+    "bluecat": "bluecat",
+    "efficient_ip": "efficientip",
+    "efficientip": "efficientip",
+    "bind": "bind",
+    "bind_dns": "bind",
+}
+
+
+def dns_manager_command(rc: RunContext, mode: str) -> list[list[str]]:
+    config_file = rc.ui.host_vars_dir / "dns" / "dns_config.ezai.yaml"
     if not config_file.is_file():
         raise ValueError("Save the DNS Manager configuration first")
-    
-    # Load config to determine provider
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
-    
-    # Get first provider key from dns.providers
-    providers = config.get("dns", {}).get("providers", {})
+    try:
+        config = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as error:
+        raise ValueError(f"Cannot read {config_file.name}: {error}") from error
+    providers = (config.get("dns") or {}).get("providers") or {}
     if not providers:
         raise ValueError("No DNS providers configured in dns_config.ezai.yaml")
-    
-    provider_key = next(iter(providers.keys()))
-    provider_type = providers[provider_key].get("type", "active_directory")
-    
-    # Map provider type to provider name for the script
-    provider_map = {
-        "active_directory": "ad",
-        "infoblox": "infoblox",
-        "bluecat": "bluecat",
-        "efficient_ip": "efficient_ip",
-        "bind": "bind_dns",
-        "bind_dns": "bind_dns",
-    }
-    provider_arg = provider_map.get(provider_type, "ad")
-    
-    return [["python", "scripts/dns_updater.py", "--config", str(config_file), "--provider", provider_arg, "--dry-run"]]
+    provider_type = str(next(iter(providers.values())).get("type", "active_directory"))
+    provider = DNS_PROVIDER_ARGS.get(provider_type)
+    if not provider:
+        raise ValueError(f"Unsupported DNS provider type: {provider_type}")
+    return [[rc.ui.python(), "scripts/dns_updater.py", "--config", str(config_file), "--provider", provider, mode]]
+
+
+def dns_manager_actions(rc: RunContext) -> list[list[str]]:
+    """Compare the saved records with the provider without changing anything."""
+    return dns_manager_command(rc, "--dry-run")
 
 
 def dns_manager_sync(rc: RunContext) -> list[list[str]]:
-    """Synchronize DNS records using the saved configuration"""
-    config_file = rc.output_dir / "dns/dns_config.ezai.yaml"
-    if not config_file.is_file():
-        raise ValueError("Save the DNS Manager configuration first")
-    
-    # Load config to determine provider
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
-    
-    # Get first provider key from dns.providers
-    providers = config.get("dns", {}).get("providers", {})
-    if not providers:
-        raise ValueError("No DNS providers configured in dns_config.ezai.yaml")
-    
-    provider_key = next(iter(providers.keys()))
-    provider_type = providers[provider_key].get("type", "active_directory")
-    
-    # Map provider type to provider name for the script
-    provider_map = {
-        "active_directory": "ad",
-        "infoblox": "infoblox",
-        "bluecat": "bluecat",
-        "efficient_ip": "efficient_ip",
-        "bind": "bind_dns",
-        "bind_dns": "bind_dns",
-    }
-    provider_arg = provider_map.get(provider_type, "ad")
-    
-    return [["python", "scripts/dns_updater.py", "--config", str(config_file), "--provider", provider_arg, "--apply"]]
+    """Apply the saved records to the provider."""
+    return dns_manager_command(rc, "--apply")
 
 
 DNS_MANAGER_ACTIONS = (
