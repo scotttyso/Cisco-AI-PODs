@@ -14,6 +14,7 @@
 {% endif %}
 {% endif %}
     "dns_ip": "{% for dns in openshift_install.cluster_networking.dns_servers %}{{ dns }}{% if not loop.last %},{% endif %}{% endfor %}",
+    "dns_search": "{% for domain in openshift_install.cluster_networking.dns_search_domains | default([openshift_install.base_dns_domain], true) %}{{ domain }}{% if not loop.last %},{% endif %}{% endfor %}",
     "iso": "{{ openshift_install.iso | default ('full')}}",
     "machine_network_gateway": "{{ openshift_install.cluster_networking.machine_network_gateway.v4 }}",
     "name": "{{ openshift_install.cluster_name }}",

@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-11-17
+
+### Fixed
+- Install cluster (iserver) failed with `Key dns_search missing`. `cluster.json` now has `dns_search`, built from `cluster_networking.dns_search_domains` (comma-separated like `dns_ip`), or from `base_dns_domain` when no search domains are set.
+
 ## [0.1.35] - 2026-11-17
 
 ### Fixed

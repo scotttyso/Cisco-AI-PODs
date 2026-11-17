@@ -32,7 +32,7 @@ class GeneratorTests(unittest.TestCase):
 class IserverTemplateTests(unittest.TestCase):
     """The iserver payload templates must render strictly valid JSON (newer Ansible parses them with from_json)."""
 
-    def render(self, name, **web):
+    def render(self, name, dns_search_domains=None, **web):
         import jinja2
 
         template = jinja2.Environment(trim_blocks=True, lstrip_blocks=True).from_string(
@@ -40,6 +40,8 @@ class IserverTemplateTests(unittest.TestCase):
         networking = {"api": {"v4": "10.0.0.1"}, "ingress": {"v4": "10.0.0.2"}, "dns_servers": ["10.0.0.3"],
                       "machine_network_gateway": {"v4": "10.0.0.254"}, "container_network_interface": "Cilium",
                       "container_network_version": "1.19.7"}
+        if dns_search_domains:
+            networking["dns_search_domains"] = dns_search_domains
         install = {"servers": [1, 2, 3], "base_dns_domain": "example.com", "cluster_name": "c1",
                    "cluster_networking": networking, "ntp_servers": ["10.0.0.4"],
                    "iso_web_server": {"server_address": "10.0.0.5", "image_upload_directory": "/var/image", **web}}
@@ -50,6 +52,12 @@ class IserverTemplateTests(unittest.TestCase):
         payload = self.render("iserver-cluster.json.j2", image_base_url="http://h/x")
         self.assertEqual(payload["cilium"], {"version": "1.19.7"})
         self.assertEqual(payload["openshift_version"], "the-latest-production-version")
+
+    def test_cluster_json_dns_search_defaults_to_the_base_domain(self):
+        self.assertEqual(self.render("iserver-cluster.json.j2", image_base_url="http://h/x")["dns_search"], "example.com")
+        payload = self.render("iserver-cluster.json.j2", image_base_url="http://h/x",
+                              dns_search_domains=["a.example.com", "b.example.com"])
+        self.assertEqual(payload["dns_search"], "a.example.com,b.example.com")
 
     def test_web_json_is_valid_for_http_https_and_remote_servers(self):
         self.assertNotIn("verify", self.render("iserver-web.json.j2", image_base_url="http://h/x"))
