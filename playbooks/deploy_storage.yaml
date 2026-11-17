@@ -31,23 +31,27 @@
         everpure: "{{ merged_vars.everpure | default({}) }}"
 
     - name: Create Temporary Model File for Sensitive Variable Validation
+      check_mode: false
       ansible.builtin.tempfile:
         state: file
         suffix: .json
       register: sensitive_model_file
 
     - name: Write Merged Variables for Sensitive Variable Validation
+      check_mode: false
       ansible.builtin.copy:
         dest: "{{ sensitive_model_file.path }}"
         content: "{{ merged_vars | to_nice_json }}"
         mode: "0600"
 
     - name: Validate Sensitive Environment Variables
+      check_mode: false
       ansible.builtin.command:
         cmd: "{{ ansible_python_interpreter }} {{ playbook_dir }}/../scripts/validate_sensitive_variables.py --models {{ sensitive_model_file.path }}"
       changed_when: false
 
     - name: Remove Temporary Model File
+      check_mode: false
       ansible.builtin.file:
         path: "{{ sensitive_model_file.path }}"
         state: absent

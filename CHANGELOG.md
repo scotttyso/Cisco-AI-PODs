@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.26] - 2026-11-17
+
+### Fixed
+- Validate (check mode) on OpenShift Cluster Deployment failed with `object of type 'dict' has no attribute 'path'`: in check mode Ansible skipped the temporary model file that the sensitive-variable validation needs. The temporary-file, write, validate, and cleanup tasks now always run (`check_mode: false`) in the OpenShift, OpenShift phase 1/2, storage, and observability playbooks. They only write and remove a temporary file and run the read-only validator.
+
 ## [0.1.25] - 2026-11-17
 
 ### Fixed

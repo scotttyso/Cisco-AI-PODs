@@ -41,6 +41,7 @@
       tags: always
 
     - name: Create Temporary Model File for Sensitive Variable Validation
+      check_mode: false
       ansible.builtin.tempfile:
         state: file
         suffix: .json
@@ -48,6 +49,7 @@
       tags: always
 
     - name: Write Merged Variables for Sensitive Variable Validation
+      check_mode: false
       ansible.builtin.copy:
         dest: "{{ sensitive_model_file.path }}"
         content: "{{ merged_vars | to_nice_json }}"
@@ -55,6 +57,7 @@
       tags: always
 
     - name: Validate Sensitive Environment Variables
+      check_mode: false
       ansible.builtin.command:
         cmd: "{{ ansible_python_interpreter }} {{ playbook_dir }}/../scripts/validate_sensitive_variables.py --models {{ sensitive_model_file.path }}"
       register: sensitive_validation_result
@@ -77,6 +80,7 @@
       tags: always
 
     - name: Remove Temporary Model File
+      check_mode: false
       ansible.builtin.file:
         path: "{{ sensitive_model_file.path }}"
         state: absent
