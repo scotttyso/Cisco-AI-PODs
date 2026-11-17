@@ -148,9 +148,5 @@ dns:
     #   enabled: false
     #   format: "yaml"
     
-    # EveryPure Inventory (optional)
-    # For EveryPure storage system inventory
-    # everpure:
-    #   file: "../everpure/everpure.ezai.yaml"
-    #   enabled: false
-    #   format: "yaml"
+    
+    # Storage arrays (Everpure, NetApp, VAST, ...) are added to Initial Inventory with the Storage array role

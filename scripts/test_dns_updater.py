@@ -72,15 +72,23 @@ class TestInventoryParser(unittest.TestCase):
     @patch('builtins.open')
     @patch('yaml.safe_load')
     def test_parse_openshift_inventory(self, mock_yaml, mock_open):
-        mock_yaml.return_value = {
-            'nodes': [
-                {'name': 'ocp-master-1.example.com', 'ip': '192.168.1.10'},
-                {'name': 'ocp-worker-1.example.com', 'ip': '192.168.1.20'},
-            ]
-        }
-        
-        records = self.parser.parse_openshift("openshift.yaml")
-        self.assertEqual(len(records), 2)
+        mock_yaml.return_value = {'openshift': {'install': {'bare_metal': {
+            'base_dns_domain': 'example.com',
+            'cluster_name': 'ai-pods',
+            'cluster_networking': {'api': {'v4': '10.0.0.9'}, 'ingress': {'v4': '10.0.0.10'}},
+            'servers': [{'hostname': 'node1', 'role': 'master',
+                         'interfaces': {'ethernet': [{'name': 'eno1', 'ipv4': '10.0.0.11/24'}]}}],
+        }}}}
+
+        records = {(r.hostname, r.ip_address) for r in self.parser.parse_openshift("install.ezai.yaml")}
+
+        self.assertEqual(records, {
+            ('api.ai-pods.example.com', '10.0.0.9'),
+            ('api-int.ai-pods.example.com', '10.0.0.9'),
+            ('*.apps.ai-pods.example.com', '10.0.0.10'),
+            ('node1.example.com', '10.0.0.11'),
+            ('node1-eno1.example.com', '10.0.0.11'),
+        })
 
     @patch('builtins.open')
     @patch('yaml.safe_load')
@@ -93,19 +101,6 @@ class TestInventoryParser(unittest.TestCase):
         }
         
         records = self.parser.parse_intersight("intersight.yaml")
-        self.assertEqual(len(records), 2)
-
-    @patch('builtins.open')
-    @patch('yaml.safe_load')
-    def test_parse_everpure_inventory(self, mock_yaml, mock_open):
-        mock_yaml.return_value = {
-            'devices': [
-                {'hostname': 'switch-1.example.com', 'ip_address': '192.168.200.1'},
-                {'hostname': 'switch-2.example.com', 'ip_address': '192.168.200.2'},
-            ]
-        }
-        
-        records = self.parser.parse_everpure("everpure.yaml")
         self.assertEqual(len(records), 2)
 
 
@@ -172,10 +167,10 @@ class TestDNSComparator(unittest.TestCase):
         
         missing, stale, matching = self.comparator.compare(desired, actual)
         
-        # test3 is missing, test2 differs in IP (not in missing because hostname matches)
-        self.assertEqual(len(missing), 1)  # test3
-        self.assertEqual(len(stale), 1)    # old.example.com
-        self.assertEqual(len(matching), 1) # test1
+        # A record whose address differs is both missing (desired) and stale (current), so apply replaces it
+        self.assertEqual({r.hostname for r in missing}, {"test2.example.com", "test3.example.com"})
+        self.assertEqual({r.hostname for r in stale}, {"test2.example.com", "old.example.com"})
+        self.assertEqual({r.hostname for r in matching}, {"test1.example.com"})
 
 
 class TestActiveDirectoryProvider(unittest.TestCase):

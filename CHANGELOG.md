@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-11-17
+
+### Changed
+- DNS Manager no longer imports `everpure/everpure.ezai.yaml`; its format has no addresses for the arrays. Add Everpure, NetApp, VAST, or other storage arrays to Initial Inventory with the Storage array role and they are included with the Initial Inventory devices.
+- Validate lists records that exist with a different address in their own "changed" section instead of as both missing and stale.
+
+### Fixed
+- Updated the DNS updater unit tests that still used made-up OpenShift and comparator behaviour; the DNS updater test suite passes.
+
 ## [0.1.20] - 2026-11-17
 
 ### Added

@@ -783,86 +783,6 @@ class InventoryParser:
         
         return records
 
-    def parse_everpure(self, file_path: str) -> Set[DNSRecord]:
-        """Parse EveryPure inventory from storage configuration
-        
-        Extracts DNS records for EveryPure appliances and cluster including:
-        - Individual appliance management IPs
-        - Cluster VIP
-        - Cluster API endpoint
-        """
-        records = set()
-        try:
-            with open(file_path, 'r') as f:
-                data = yaml.safe_load(f)
-            
-            if not data or 'everpure' not in data:
-                return records
-            
-            everpure_config = data['everpure']
-            
-            # Determine base DNS domain
-            base_dns_domain = 'local'
-            if 'shared_services' in data:
-                base_dns_domain = data['shared_services'].get('dns_domain', 'local')
-            
-            # Parse individual appliances
-            appliances = everpure_config.get('appliances', [])
-            if isinstance(appliances, dict):
-                appliances = list(appliances.values()) if appliances else []
-            
-            for appliance in appliances:
-                if isinstance(appliance, dict):
-                    hostname = appliance.get('hostname')
-                    # Try different field names for IP
-                    ip = appliance.get('ip') or appliance.get('mgmt_ip') or appliance.get('management_ip')
-                    
-                    if hostname and ip:
-                        fqdn = hostname if '.' in hostname else f"{hostname}.{base_dns_domain}"
-                        zone = self._extract_zone(fqdn)
-                        records.add(DNSRecord(
-                            hostname=fqdn,
-                            ip_address=ip,
-                            zone=zone,
-                            description="EveryPure Appliance"
-                        ))
-            
-            # Parse cluster configuration
-            cluster = everpure_config.get('cluster', {})
-            if isinstance(cluster, dict):
-                cluster_hostname = cluster.get('hostname')
-                cluster_vip = cluster.get('vip')
-                api_hostname = cluster.get('api_hostname')
-                api_ip = cluster.get('api_ip')
-                
-                # Add cluster VIP
-                if cluster_hostname and cluster_vip:
-                    fqdn = cluster_hostname if '.' in cluster_hostname else f"{cluster_hostname}.{base_dns_domain}"
-                    zone = self._extract_zone(fqdn)
-                    records.add(DNSRecord(
-                        hostname=fqdn,
-                        ip_address=cluster_vip,
-                        zone=zone,
-                        description="EveryPure Cluster"
-                    ))
-                
-                # Add API endpoint
-                if api_hostname and api_ip:
-                    fqdn = api_hostname if '.' in api_hostname else f"{api_hostname}.{base_dns_domain}"
-                    zone = self._extract_zone(fqdn)
-                    records.add(DNSRecord(
-                        hostname=fqdn,
-                        ip_address=api_ip,
-                        zone=zone,
-                        description="EveryPure API"
-                    ))
-            
-            self.logger.info(f"Parsed {len(records)} records from EveryPure inventory ({file_path})")
-        except Exception as e:
-            self.logger.error(f"Failed to parse EveryPure inventory: {e}")
-        
-        return records
-
     def parse_all_sources(self, config: Dict) -> Set[DNSRecord]:
         """Parse all configured inventory sources
         
@@ -907,8 +827,6 @@ class InventoryParser:
                 all_records.update(self.parse_openshift(file_path))
             elif source_type.lower() == 'intersight':
                 all_records.update(self.parse_intersight(file_path))
-            elif source_type.lower() == 'everpure':
-                all_records.update(self.parse_everpure(file_path))
             else:
                 self.logger.warning(f"Unknown inventory source type: {source_type}")
         
@@ -1066,18 +984,31 @@ class DNSUpdater:
             for record in sorted(matching, key=lambda r: r.hostname):
                 print(f"  {record.hostname:40} -> {record.ip_address}")
 
-        if missing:
-            print(f"\n+ MISSING ({len(missing)} records - would be created):")
-            for record in sorted(missing, key=lambda r: r.hostname):
+        by_name = {}
+        for record in stale:
+            by_name.setdefault(record.hostname.lower(), []).append(record)
+        new = [r for r in missing if r.hostname.lower() not in by_name]
+        changed = [r for r in missing if r.hostname.lower() in by_name]
+        stale_only = [r for r in stale if r.hostname.lower() not in {c.hostname.lower() for c in changed}]
+
+        if new:
+            print(f"\n+ MISSING ({len(new)} records - would be created):")
+            for record in sorted(new, key=lambda r: r.hostname):
                 print(f"  {record.hostname:40} -> {record.ip_address}")
 
-        if stale:
-            print(f"\n- STALE ({len(stale)} records - present with a different address):")
-            for record in sorted(stale, key=lambda r: r.hostname):
+        if changed:
+            print(f"\n~ CHANGED ({len(changed)} records - exist with another address, would be replaced):")
+            for record in sorted(changed, key=lambda r: r.hostname):
+                current = ", ".join(sorted(r.ip_address for r in by_name[record.hostname.lower()]))
+                print(f"  {record.hostname:40} {current} -> {record.ip_address}")
+
+        if stale_only:
+            print(f"\n- STALE ({len(stale_only)} records):")
+            for record in sorted(stale_only, key=lambda r: r.hostname):
                 print(f"  {record.hostname:40} -> {record.ip_address}")
 
         print("\n" + "="*80)
-        print(f"Summary: {len(matching)} matching, {len(missing)} missing, {len(stale)} stale")
+        print(f"Summary: {len(matching)} matching, {len(new)} missing, {len(changed)} changed, {len(stale_only)} stale")
         print("="*80 + "\n")
 
     def _apply_changes(self, provider: DNSProvider, missing: Set[DNSRecord], stale: Set[DNSRecord]):

@@ -1634,26 +1634,6 @@ def dns_manager_form(handle) -> None:
                             "hostname": hostname if "." in hostname or not base_domain else f"{hostname}.{base_domain}",
                             "ipv4": ip,
                         })
-            
-            # Extract from Everpure if selected
-            if import_everpure.value:
-                everpure_path = saved_file("everpure/everpure.ezai.yaml")
-
-                if everpure_path:
-                    with open(everpure_path) as f:
-                        everpure_data = yaml.safe_load(f)
-                    
-                    if everpure_data and 'everpure' in everpure_data:
-                        # Extract storage system hostnames and IPs
-                        for system in everpure_data.get('everpure', {}).get('systems', []):
-                            hostname = system.get('hostname', '')
-                            mgmt_ip = system.get('management_ip', '')
-                            if hostname and mgmt_ip:
-                                fqdn = f"{hostname}.{base_domain}"
-                                records.append({
-                                    "hostname": fqdn,
-                                    "ipv4": mgmt_ip,
-                                })
         
         except Exception as e:
             print(f"Error extracting DNS records: {e}")
@@ -1875,18 +1855,12 @@ def dns_manager_form(handle) -> None:
                 ui.label("Check this box to include OpenShift cluster nodes, API, and ingress from openshift/install.ezai.yaml").classes("text-xs muted ml-6")
                 
                 import_initial_inventory = ui.checkbox(
-                    "Initial Inventory with Shared Services",
+                    "Initial Inventory devices, including storage arrays",
                     value=bool(context.store.inventory()),
                     on_change=generate_dns_config
                 )
-                ui.label("Check this box to include the devices in this environment's Initial Inventory").classes("text-xs muted ml-6")
-                
-                import_everpure = ui.checkbox(
-                    "Everpure Storage Inventory (everpure/everpure.ezai.yaml)",
-                    value=file_exists("everpure/everpure.ezai.yaml"),
-                    on_change=generate_dns_config
-                )
-                ui.label("Check this box to include Everpure storage systems from everpure/everpure.ezai.yaml").classes("text-xs muted ml-6")
+                ui.label("Includes every device with a hostname and IP in this environment's Initial Inventory. Add Everpure, NetApp, "
+                         "VAST, or other storage arrays there with the Storage array role").classes("text-xs muted ml-6")
             
             ui.separator().classes("my-4")
             
