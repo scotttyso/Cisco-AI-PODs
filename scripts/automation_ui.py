@@ -910,7 +910,7 @@ def workspace_page():
                     field.set_value("")
             ldap_status.refresh()
             ui.notify(f"Saved {len(document['initial_inventory'])} devices and {len(overrides)} shared-service overrides. "
-                      "The DHCP, Nexus Dashboard, Compute, and OpenShift pages pre-fill from them.", type="positive",
+                      "The DHCP, DNS Manager, Nexus Dashboard, Compute, and OpenShift pages pre-fill from them.", type="positive",
                       multi_line=True)
         except VaultError as error:
             ui.notify(f"Password not stored in the vault: {error}", type="negative", multi_line=True)

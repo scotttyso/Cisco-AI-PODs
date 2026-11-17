@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-11-17
+
+### Fixed
+- DNS Manager: with "Use LDAP settings from Shared Services" the Passwords and secrets panel shows the Shared Services bind password as stored (entered on Initial Inventory) instead of asking for a separate Active Directory password; separate AD username/password fields appear only when shared LDAP is not used.
+
+### Changed
+- The Initial Inventory save message lists DNS Manager among the pages that pre-fill from it.
+
 ## [0.1.18] - 2026-11-17
 
 ### Fixed

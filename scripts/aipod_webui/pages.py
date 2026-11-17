@@ -896,11 +896,13 @@ def dns_manager_secrets(handle: PageHandle) -> list[SecretField]:
     providers = (config.get("dns") or {}).get("providers") or {}
     selected = {DNS_PROVIDER_ARGS.get(str(entry.get("type", "")))
                 for entry in providers.values() if isinstance(entry, dict)} - {None}
-    # Active Directory uses the Shared Services LDAP bind account unless its own credentials are stored.
-    ad = [dataclasses.replace(DNS_AD_USERNAME, optional=True,
-                              help="Optional. Defaults to the Shared Services LDAP bind DN."),
-          dataclasses.replace(DNS_AD_PASSWORD, optional=True,
-                              help="Optional. Defaults to the Shared Services LDAP bind password.")]
+    shared_ldap = any(isinstance(entry, dict) and entry.get("use_shared_ldap") for entry in providers.values())
+    if shared_ldap:
+        # The bind account is the one saved under Initial Inventory - Shared services; show its stored state only.
+        ad = [secret("ldap_bind_password", "Active Directory bind password", ("openshift", "ldap_bind_password"))]
+        ad = linked(ad, "Initial Inventory - Shared services")
+    else:
+        ad = [DNS_AD_USERNAME, DNS_AD_PASSWORD]
     by_provider = {
         "ad": ad,
         "infoblox": [DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD],
