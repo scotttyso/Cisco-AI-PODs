@@ -294,6 +294,98 @@ class TestActiveDirectoryWrites(unittest.TestCase):
         self.assertEqual(provider.connection.calls, [])
 
 
+class FakeWinrmSession:
+    def __init__(self, outputs=None, fail=None):
+        self.scripts = []
+        self.outputs = list(outputs or [])
+        self.fail = fail
+
+    def run_ps(self, script):
+        self.scripts.append(script)
+        if self.fail:
+            return Mock(status_code=1, std_out=b'', std_err=self.fail)
+        return Mock(status_code=0, std_out=self.outputs.pop(0) if self.outputs else b'CREATED', std_err=b'')
+
+
+class TestActiveDirectoryWinrmFallback(unittest.TestCase):
+
+    def provider(self, session=None, **config):
+        provider = ActiveDirectoryProvider({'server': 'dc', 'domain': 'aipod.local', **config})
+        provider.server = 'dc'
+        provider.username = 'CN=Administrator,CN=Users,DC=aipod,DC=local'
+        provider.password = 'secret'
+        provider.writable = True
+        provider.session = session
+        provider.backend = 'winrm' if session else None
+        provider.zones = {'aipod.local': 'aipod.local'}
+        return provider
+
+    def test_account_is_converted_from_the_bind_dn(self):
+        self.assertEqual(self.provider()._winrm_account(), 'Administrator@aipod.local')
+        provider = self.provider()
+        provider.username = 'svc@aipod.local'
+        self.assertEqual(provider._winrm_account(), 'svc@aipod.local')
+
+    def test_falls_back_to_winrm_when_ldap_fails(self):
+        provider = self.provider()
+        session = FakeWinrmSession([b'"aipod.local"'])
+        fake_winrm = Mock()
+        fake_winrm.Session.return_value = session
+        with patch.object(provider, '_load_zones_ldap', side_effect=RuntimeError('strongerAuthRequired')), \
+                patch.dict(sys.modules, {'winrm': fake_winrm}):
+            provider._load_zones()
+        self.assertEqual(provider.backend, 'winrm')
+        self.assertEqual(provider.zones, {'aipod.local': 'aipod.local'})
+        self.assertEqual(fake_winrm.Session.call_args.kwargs['transport'], 'ntlm')
+        self.assertEqual(fake_winrm.Session.call_args.args[0], 'http://dc:5985/wsman')
+        self.assertEqual(fake_winrm.Session.call_args.kwargs['auth'], ('Administrator@aipod.local', 'secret'))
+
+    def test_validate_does_not_use_winrm(self):
+        provider = self.provider()
+        provider.writable = False
+        with patch.object(provider, '_load_zones_ldap', side_effect=RuntimeError('down')), \
+                patch.object(provider, '_load_zones_winrm') as winrm:
+            provider._load_zones()
+        winrm.assert_not_called()
+
+    def test_both_failures_are_reported(self):
+        provider = self.provider()
+        with patch.object(provider, '_load_zones_ldap', side_effect=RuntimeError('ldap down')), \
+                patch.object(provider, '_load_zones_winrm', side_effect=RuntimeError('winrm down')):
+            with self.assertRaises(RuntimeError) as raised:
+                provider._load_zones()
+        self.assertIn('ldap down', str(raised.exception))
+        self.assertIn('winrm down', str(raised.exception))
+
+    def test_create_runs_a_script_for_the_right_zone_and_name(self):
+        session = FakeWinrmSession([b'CREATED'])
+        provider = self.provider(session)
+        self.assertTrue(provider.create_record(DNSRecord('*.apps.aipod.local', '10.1.2.3', 'aipod.local')))
+        script = session.scripts[0]
+        self.assertIn("$zone = 'aipod.local'", script)
+        self.assertIn("$name = '*.apps'", script)
+        self.assertIn("$ip = '10.1.2.3'", script)
+        self.assertNotIn('secret', script)
+
+    def test_unchanged_and_replaced_are_success(self):
+        for output in (b'UNCHANGED', b'REPLACED 10.9.9.9'):
+            provider = self.provider(FakeWinrmSession([output]))
+            self.assertTrue(provider.create_record(DNSRecord('a.aipod.local', '10.1.2.3', 'aipod.local')))
+
+    def test_powershell_failure_is_a_failed_record(self):
+        provider = self.provider(FakeWinrmSession(fail=b'Access is denied'))
+        self.assertFalse(provider.create_record(DNSRecord('a.aipod.local', '10.1.2.3', 'aipod.local')))
+
+    def test_unexpected_names_are_refused_before_any_command(self):
+        session = FakeWinrmSession()
+        provider = self.provider(session)
+        self.assertFalse(provider.create_record(DNSRecord("a';calc;'.aipod.local", '10.1.2.3', 'aipod.local')))
+        self.assertEqual(session.scripts, [])
+
+    def test_names_are_quoted_for_powershell(self):
+        self.assertEqual(ActiveDirectoryProvider._ps_quote("it's"), "'it''s'")
+
+
 class TestCheckMode(unittest.TestCase):
     """--check turns a dry run into a pass/fail gate"""
 
@@ -335,6 +427,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestDNSComparator))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWrites))
+    suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWinrmFallback))
     suite.addTests(loader.loadTestsFromTestCase(TestCheckMode))
     suite.addTests(loader.loadTestsFromTestCase(TestInfobloxProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestErrorHandling))

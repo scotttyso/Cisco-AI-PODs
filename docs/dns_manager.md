@@ -79,7 +79,10 @@ Example Validate report:
 
 Synchronize binds to the domain controller over LDAP with the bind account, finds the AD-integrated DNS zones, and writes each A record into the zone with the longest matching name. The bind account needs permission to create and modify DNS records in those zones.
 
-- Current domain controllers refuse simple binds on cleartext LDAP (port 389, `strongerAuthRequired`). The updater then retries over LDAPS (636) and StartTLS, without verifying the domain controller certificate, and logs a warning. This only works when the domain controller has a server certificate installed. If every attempt fails, install a certificate on the domain controller (for example from AD Certificate Services) so LDAPS answers on 636, or relax the "Domain controller: LDAP server signing requirements" policy for a lab.
+- Current domain controllers refuse simple binds on cleartext LDAP (port 389, `strongerAuthRequired`). The updater then retries over LDAPS (636) and StartTLS, without verifying the domain controller certificate, and logs a warning. This only works when the domain controller has a server certificate installed.
+- **WinRM fallback:** when no LDAP bind works, Synchronize connects to the domain controller over WinRM (HTTP 5985, then HTTPS 5986) with NTLM and runs the Windows DNS Server cmdlets there (`Get-DnsServerZone`, `Add-DnsServerResourceRecordA`, `Set-DnsServerResourceRecord`). WinRM is enabled by default on Windows Server 2012 and later, and the account needs rights to manage DNS (Administrator or DnsAdmins). The domain controller must also run the DNS Server role, which an AD DNS server does. Validate never uses WinRM.
+- The WinRM logon name is derived from the bind DN as `<common name>@<domain>`. If the account's common name differs from its logon name, store the Active Directory username (as `user@domain`) under Passwords and secrets.
+- Synchronize logs which method it used (`AD DNS zones (LDAP)` or `Connected over WinRM`).
 - A hostname that is not inside any AD-integrated zone is reported as failed, and the run exits with an error.
 - Existing records are changed only for names in your `records` list.
 
@@ -101,8 +104,8 @@ Credentials are read from the environment: `ad_username` and `ad_password`, or `
 |---|---|
 | "Save the DNS Manager configuration first" | No `dns/dns_config.ezai.yaml` saved in the active environment |
 | "Active Directory credentials are not set" | The bind password is not stored in Shared services, or the AD password is not stored on the DNS Manager page |
-| "Cannot bind to ..." with `strongerAuthRequired` and a failed 636 or StartTLS | The domain controller requires signing or TLS and has no LDAPS certificate; see above |
-| "Cannot bind to ..." (other) | The bind DN or password is wrong, or the domain controller is unreachable on the LDAP ports |
+| "LDAP failed: ... WinRM fallback failed: ..." | Neither method worked. The LDAP part says why LDAP failed (`strongerAuthRequired` means signing or TLS is required and there is no LDAPS certificate). The WinRM part says why WinRM failed: wrong account name or password, WinRM not enabled or blocked on 5985/5986, or no rights to manage DNS |
+| "the pywinrm package is not installed" | Update the appliance with the release that includes it, or `pip install pywinrm` |
 | "No AD-integrated DNS zone found for ..." | The hostname's domain is not an AD-integrated zone on that server |
 | Generate Configuration warns that no records were found | Save the OpenShift install file, or add devices to the Initial Inventory |
 | Validate still shows missing records right after Synchronize | Wait about a minute for the DNS service to load the change |

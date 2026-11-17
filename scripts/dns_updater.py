@@ -12,6 +12,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import socket
 import ssl
 import struct
@@ -114,6 +115,9 @@ class ActiveDirectoryProvider(DNSProvider):
         self.server = None
         self.username = None
         self.password = None
+        self.backend = None
+        self.connection = None
+        self.session = None
 
     def authenticate(self):
         """Authenticate with Active Directory"""
@@ -184,6 +188,8 @@ class ActiveDirectoryProvider(DNSProvider):
     def _load_zones(self):
         """Connect over LDAP and list the AD-integrated DNS zones (needed to write; optional to validate)"""
         self.connection = None
+        self.backend = None
+        self.session = None
         self.zones: Dict[str, str] = {}
         self.serials: Dict[str, int] = {}
         if not (self.username and self.password):
@@ -192,29 +198,143 @@ class ActiveDirectoryProvider(DNSProvider):
             self.logger.warning("No credentials; zones are inferred from the hostnames")
             return
         try:
-            from ldap3 import SUBTREE
-            from ldap3.core.exceptions import LDAPException
-            connection = self._connect()
-            info = connection.server.info
-            default = (info.other.get('defaultNamingContext') or [''])[0]
-            bases = [c for c in info.naming_contexts if c.upper().startswith(('DC=DOMAINDNSZONES', 'DC=FORESTDNSZONES'))]
-            if default:
-                bases.append(f"CN=MicrosoftDNS,CN=System,{default}")
-            for base in bases:
-                try:
-                    if connection.search(base, '(objectClass=dnsZone)', SUBTREE, attributes=['name']):
-                        for entry in connection.entries:
-                            name = str(entry.name.value).lower()
-                            if not name.startswith('..'):
-                                self.zones.setdefault(name, entry.entry_dn)
-                except LDAPException:
-                    continue
-            self.connection = connection
-            self.logger.info(f"AD DNS zones: {', '.join(sorted(self.zones)) or 'none found'}")
-        except Exception as e:
-            if self.writable:
-                raise
-            self.logger.warning(f"LDAP unavailable ({e}); zones are inferred from the hostnames")
+            self._load_zones_ldap()
+        except Exception as ldap_error:
+            if not self.writable:
+                self.logger.warning(f"LDAP unavailable ({ldap_error}); zones are inferred from the hostnames")
+                return
+            self.logger.warning(f"LDAP unavailable ({ldap_error}); trying WinRM on the domain controller")
+            try:
+                self._load_zones_winrm()
+            except Exception as winrm_error:
+                raise RuntimeError(f"LDAP failed: {ldap_error} WinRM fallback failed: {winrm_error}") from winrm_error
+
+    def _load_zones_ldap(self):
+        self.zones = {}
+        from ldap3 import SUBTREE
+        from ldap3.core.exceptions import LDAPException
+        connection = self._connect()
+        info = connection.server.info
+        default = (info.other.get('defaultNamingContext') or [''])[0]
+        bases = [c for c in info.naming_contexts if c.upper().startswith(('DC=DOMAINDNSZONES', 'DC=FORESTDNSZONES'))]
+        if default:
+            bases.append(f"CN=MicrosoftDNS,CN=System,{default}")
+        for base in bases:
+            try:
+                if connection.search(base, '(objectClass=dnsZone)', SUBTREE, attributes=['name']):
+                    for entry in connection.entries:
+                        name = str(entry.name.value).lower()
+                        if not name.startswith('..'):
+                            self.zones.setdefault(name, entry.entry_dn)
+            except LDAPException:
+                continue
+        self.connection = connection
+        self.backend = 'ldap'
+        self.logger.info(f"AD DNS zones (LDAP): {', '.join(sorted(self.zones)) or 'none found'}")
+
+    # ---- WinRM fallback: run the Windows DNS Server cmdlets on the domain controller ----
+
+    HOSTNAME_PATTERN = re.compile(r'^[A-Za-z0-9*@_.-]+$')
+
+    def _winrm_account(self) -> str:
+        """NTLM needs user@domain or DOMAIN\\user, not a distinguished name"""
+        user = self.username or ''
+        if '=' not in user:
+            return user
+        first = user.split(',')[0]
+        name = first.split('=', 1)[1] if '=' in first else first
+        domain = self.config.get('domain') or '.'.join(
+            part.split('=', 1)[1] for part in user.split(',') if part.strip().upper().startswith('DC='))
+        return f"{name}@{domain}" if domain else name
+
+    @staticmethod
+    def _ps_quote(value: str) -> str:
+        return "'" + value.replace("'", "''") + "'"
+
+    def _run_ps(self, script: str) -> str:
+        result = self.session.run_ps("$ErrorActionPreference = 'Stop'\n$ProgressPreference = 'SilentlyContinue'\n" + script)
+        if result.status_code != 0:
+            detail = (result.std_err or b'').decode('utf-8', 'replace').strip()
+            detail = re.sub(r'<[^>]+>|#< CLIXML', ' ', detail)
+            raise RuntimeError(' '.join(detail.split())[:400] or f"PowerShell exit code {result.status_code}")
+        return (result.std_out or b'').decode('utf-8', 'replace').strip()
+
+    def _load_zones_winrm(self):
+        try:
+            import winrm
+        except ImportError as e:
+            raise RuntimeError("the pywinrm package is not installed") from e
+        timeout = max(int(self.config.get('timeout', 10)), 10)
+        account = self._winrm_account()
+        errors = []
+        for scheme, port in (('http', 5985), ('https', 5986)):
+            try:
+                session = winrm.Session(f"{scheme}://{self.server}:{port}/wsman", auth=(account, self.password),
+                                        transport='ntlm', server_cert_validation='ignore',
+                                        operation_timeout_sec=timeout, read_timeout_sec=timeout + 10)
+                self.session = session
+                names = self._run_ps("@(Get-DnsServerZone | Where-Object { $_.ZoneType -eq 'Primary' -and "
+                                     "-not $_.IsReverseLookupZone -and -not $_.IsAutoCreated } | "
+                                     "ForEach-Object { $_.ZoneName }) | ConvertTo-Json -Compress")
+                zones = json.loads(names) if names else []
+                zones = [zones] if isinstance(zones, str) else zones
+                self.zones = {str(zone).lower(): str(zone) for zone in zones}
+                self.backend = 'winrm'
+                self.logger.info(f"Connected over WinRM ({scheme}) as {account}")
+                self.logger.info(f"DNS zones (WinRM): {', '.join(sorted(self.zones)) or 'none found'}")
+                return
+            except Exception as e:
+                self.session = None
+                errors.append(f"{scheme} {port}: {e}")
+        hint = (" Check that WinRM is enabled on the domain controller (winrm quickconfig) and that the account can "
+                "manage DNS; for an account whose common name differs from its logon name, store the Active "
+                "Directory username as user@domain.")
+        raise RuntimeError("; ".join(errors) + hint)
+
+    def _winrm_upsert(self, record: DNSRecord) -> bool:
+        zone = self._zone_of(record.hostname)
+        if not zone:
+            raise RuntimeError(f"No AD-integrated DNS zone found for {record.hostname}")
+        name = record.hostname.rstrip('.')
+        label = '@' if name.lower() == zone else name[:-(len(zone) + 1)]
+        if not self.HOSTNAME_PATTERN.match(label):
+            raise RuntimeError(f"Unsupported characters in {record.hostname}")
+        ip_address = socket.inet_ntoa(socket.inet_aton(record.ip_address))
+        quote = self._ps_quote
+        add = ("Add-DnsServerResourceRecordA -ZoneName $zone -Name $name -IPv4Address $ip -TimeToLive $ttl "
+               "| Out-Null")
+        script = (
+            f"$zone = {quote(self.zones[zone])}; $name = {quote(label)}; $ip = {quote(ip_address)}\n"
+            f"$ttl = New-TimeSpan -Seconds {int(record.ttl)}\n"
+            "$existing = @(Get-DnsServerResourceRecord -ZoneName $zone -Name $name -RRType A "
+            "-ErrorAction SilentlyContinue | Where-Object { $_.HostName -ieq $name })\n"
+            "$current = ($existing | ForEach-Object { $_.RecordData.IPv4Address.IPAddressToString }) -join ','\n"
+            "if ($existing.Count -eq 1 -and $current -eq $ip) { 'UNCHANGED' } "
+            "elseif ($existing.Count -eq 0) {\n"
+            f"  {add}\n"
+            "  'CREATED'\n"
+            "} elseif ($existing.Count -eq 1) {\n"
+            "  $new = $existing[0].Clone()\n"
+            "  $new.RecordData.IPv4Address = [System.Net.IPAddress]::Parse($ip)\n"
+            "  Set-DnsServerResourceRecord -ZoneName $zone -OldInputObject $existing[0] -NewInputObject $new "
+            "| Out-Null\n"
+            "  'REPLACED ' + $current\n"
+            "} else {\n"
+            "  foreach ($old in $existing) { Remove-DnsServerResourceRecord -ZoneName $zone -InputObject $old -Force }\n"
+            f"  {add}\n"
+            "  'REPLACED ' + $current\n"
+            "}\n")
+        output = self._run_ps(script).splitlines()
+        outcome = output[-1].strip() if output else ''
+        if outcome == 'UNCHANGED':
+            self.logger.info(f"Already present: {record.hostname} -> {record.ip_address}")
+        elif outcome.startswith('REPLACED'):
+            self.logger.info(f"Replaced {record.hostname}: {outcome[len('REPLACED'):].strip()} -> {record.ip_address}")
+        elif outcome == 'CREATED':
+            self.logger.info(f"Created AD record: {record.hostname} -> {record.ip_address}")
+        else:
+            raise RuntimeError(f"Unexpected response from the domain controller: {outcome or 'empty'}")
+        return True
 
     def _zone_of(self, hostname: str) -> Optional[str]:
         name = hostname.lower().rstrip('.')
@@ -299,6 +419,8 @@ class ActiveDirectoryProvider(DNSProvider):
         from ldap3.utils.dn import escape_rdn
 
         try:
+            if self.backend == 'winrm':
+                return self._winrm_upsert(record)
             if not self.connection:
                 raise RuntimeError("Not connected to Active Directory")
             zone = self._zone_of(record.hostname)

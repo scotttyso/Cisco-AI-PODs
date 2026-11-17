@@ -32,3 +32,6 @@ validators
 dnspython>=2.4.0
 hvac>=1.2.0
 ldap3>=2.9.1
+
+# DNS Manager Active Directory fallback (WinRM to the domain controller)
+pywinrm>=0.4.3

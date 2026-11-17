@@ -901,6 +901,10 @@ def dns_manager_secrets(handle: PageHandle) -> list[SecretField]:
         # The bind account is the one saved under Initial Inventory - Shared services; show its stored state only.
         ad = [secret("ldap_bind_password", "Active Directory bind password", ("openshift", "ldap_bind_password"))]
         ad = linked(ad, "Initial Inventory - Shared services")
+        # Only the WinRM fallback needs a logon name; it defaults to the bind DN's common name at the domain.
+        ad.append(dataclasses.replace(DNS_AD_USERNAME, optional=True,
+                                      help="Optional. Only if the bind DN's common name is not the logon name; "
+                                           "enter user@domain. Used for LDAP and the WinRM fallback."))
     else:
         ad = [DNS_AD_USERNAME, DNS_AD_PASSWORD]
     by_provider = {

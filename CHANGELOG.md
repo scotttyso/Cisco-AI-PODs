@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-11-17
+
+### Added
+- **WinRM fallback for Active Directory Synchronize.** When no LDAP bind works (for example the domain controller requires signing or TLS and has no LDAPS certificate), Synchronize connects to the domain controller over WinRM (NTLM, port 5985 then 5986) and uses the Windows DNS Server cmdlets to create or replace the A records. Validate is unchanged. Adds the `pywinrm` requirement.
+- **Check DNS records** pre-check on the OpenShift Cluster Deployment page: fails unless every node, `api`, and `*.apps` name in the saved DNS Manager configuration resolves to its address (`dns_updater.py --check`).
+- An optional Active Directory username in Passwords and secrets for accounts whose common name is not their logon name (`user@domain`).
+
+### Changed
+- A failed LDAP bind prints one clear error (including the signing/TLS explanation) instead of a traceback.
+
+### Removed
+- The unused `scripts/dns_validator.py` and the old file-based `inventory:` parsing in `dns_updater.py` and the DNS schema.
+
 ## [0.1.21] - 2026-11-17
 
 ### Changed
