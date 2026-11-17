@@ -412,6 +412,10 @@ RECOMMENDED_FIRMWARE = Action(
 REDFISH_MACS = Action("macs-redfish", "Collect MACs from BMC Redfish", "developer_board", collect_redfish_macs,
                       group="Tools", secrets=("*",), inventory=True, files=False,
                       tooltip="Read NIC MACs from the CIMC / BMC Redfish API of standalone and HGX servers.")
+# On the OpenShift page the Compute-page credentials are optional, so check the default BMC passwords by name.
+OCP_REDFISH_MACS = dataclasses.replace(
+    REDFISH_MACS, secrets=(stage_inventory.vault_key(stage_inventory.CIMC_PASSWORD_REF),
+                           stage_inventory.vault_key(stage_inventory.HGX_PASSWORD_REF)))
 
 
 def model_secrets(handle: PageHandle) -> list[SecretField]:
@@ -879,9 +883,13 @@ def linked(fields: list[SecretField], source: str) -> list[SecretField]:
 
 
 def ocp_cluster_secrets(handle: PageHandle) -> list[SecretField]:
-    """The install YAML's own secrets, plus the Intersight and BMC credentials entered on the Compute pages."""
-    return (model_secrets(handle) + linked(hgx_secrets(handle, only_used=True), "Compute - HGX Servers")
-            + linked(registration_secrets(handle), "Compute - Intersight - Claim Targets"))
+    """The install YAML's own secrets, plus the Intersight and device passwords entered on the Compute pages.
+
+    The install itself does not use the Compute-page credentials; only the Collect MACs tools do, and they check the
+    ones they need. They are listed for reference and never block Validate, Prepare, or Install."""
+    reference = (linked(hgx_secrets(handle, only_used=True), "Compute - HGX Servers")
+                 + linked(registration_secrets(handle), "Compute - Intersight - Claim Targets"))
+    return model_secrets(handle) + [dataclasses.replace(item, optional=True) for item in reference]
 
 
 def PHASE2_SECRETS(handle):
@@ -1156,7 +1164,7 @@ SECTIONS = (
                                          "erased."),
                           Action("status", "Cluster status", "monitor_heart", cluster_status, group="Post-check",
                                  env=ocp_env, files=False),
-                          INTERSIGHT_MACS, REDFISH_MACS),
+                          INTERSIGHT_MACS, OCP_REDFISH_MACS),
                  secrets=ocp_cluster_secrets, form=custom_pages.ocp_cluster_form, on_save=save_cluster_state,
                  upload_dirs=(OCP_UPLOADS["ocp-cluster"],), notes=(OPENSHIFT_UPLOAD_NOTE,), group="OpenShift"),
         PageSpec("ocp-certificates", "Certificates", "verified_user", "07-openshift-cluster",

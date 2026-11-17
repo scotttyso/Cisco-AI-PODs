@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-11-17
+
+### Fixed
+- OpenShift Cluster Deployment no longer blocks Validate, Prepare install, or Install cluster on the Intersight API key, Fabric Interconnect, CIMC, or HGX BMC passwords. The install does not use them; they are still listed for reference from the Compute pages, and Collect MACs from Intersight and from BMC Redfish still check the credentials they need.
+
 ## [0.1.24] - 2026-11-17
 
 ### Fixed

@@ -169,6 +169,19 @@ class AutomationUiTests(unittest.TestCase):
         # The HGX page itself always offers the default password.
         self.assertEqual([item.label for item in pages.hgx_secrets(handle([fabric]))], ["HGX BMC password"])
 
+    def test_compute_credentials_do_not_block_the_openshift_install(self):
+        from types import SimpleNamespace
+        from aipod_webui import pages
+
+        rows = [{"hostname": "fi-a", "ip": "10.0.0.1", "pid": "UCS-FI-6454", "role": "fabric-interconnect",
+                 "serial_number": "A"},
+                {"hostname": "hgx1", "ip": "10.0.0.2", "pid": "HGX-C885A", "role": "hgx-node", "serial_number": "B"}]
+        store = SimpleNamespace(inventory=lambda: rows, page_state=lambda key: {})
+        handle = SimpleNamespace(context=SimpleNamespace(store=store), models=lambda: [])
+        fields = pages.ocp_cluster_secrets(handle)
+        self.assertTrue(fields)
+        self.assertTrue(all(item.optional for item in fields))
+
 
 if __name__ == "__main__":
     unittest.main()
