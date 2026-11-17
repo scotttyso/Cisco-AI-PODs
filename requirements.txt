@@ -31,5 +31,4 @@ validators
 # DNS Manager dependencies
 dnspython>=2.4.0
 hvac>=1.2.0
-ldap3>=4.1.0
-pyad>=0.6.0
+ldap3>=2.9.1

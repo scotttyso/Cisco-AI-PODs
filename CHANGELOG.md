@@ -6,6 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-11-17
+
+### Fixed
+- v0.1.16 could not be installed: `requirements.txt` pinned `ldap3>=4.1.0`, which does not exist (latest is 2.9.1), so `setup.sh` failed and the UI stayed down. It now requires `ldap3>=2.9.1`.
+- Removed `pyad` from `requirements.txt`; it is Windows-only and unused.
+- v0.1.16 shipped UI runtime data under `scripts/deployments/` (an example environment's DHCP, Initial Inventory, and site settings). It is no longer tracked and `scripts/deployments/` and `scripts/jobs/` are ignored.
+
 ## [0.1.16] - 2026-11-17
 
 ### Added

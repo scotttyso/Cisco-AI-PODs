@@ -282,3 +282,7 @@ credentials*
 
 # Automation UI editor build dependencies (the built bundle in scripts/aipod_webui/static is committed)
 /scripts/aipod_webui/editor/node_modules/
+
+# UI runtime data (environments, vault, job logs)
+scripts/deployments/
+scripts/jobs/

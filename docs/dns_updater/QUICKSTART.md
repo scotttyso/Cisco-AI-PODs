@@ -21,7 +21,6 @@ Key DNS Manager packages installed:
 - `dnspython` - DNS query and validation
 - `hvac` - HashiCorp Vault integration
 - `ldap3` - LDAP/Active Directory connectivity
-- `pyad` - PyAD for AD operations
 
 ## Step 2: Create Configuration File
 
