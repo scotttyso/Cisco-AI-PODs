@@ -1,0 +1,77 @@
+---
+release_summary: |
+  DNS Manager v0.1.16 - Production-ready DNS record management with multi-provider support and schema compliance.
+
+major_changes:
+  - |
+    **DNS Manager Framework**: Complete DNS record synchronization system supporting 5 DNS providers
+    (Active Directory, Infoblox, BlueCat, Efficient IP, BIND DNS).
+  - |
+    **Web UI - DNS Manager Page**: User-friendly interface for DNS provider configuration, LDAP auto-setup,
+    and DNS record management from multiple inventory sources.
+  - |
+    **Automatic Record Extraction**: Intelligent parser extracts DNS A records from OpenShift cluster
+    deployments, Initial Inventory, and Everpure storage systems.
+  - |
+    **Schema Documentation**: Comprehensive JSON Schema with Required/Optional attribute descriptions
+    following intersight.json format for API clarity.
+
+features:
+  - |
+    Multi-provider DNS support with unified configuration model for AD, Infoblox, BlueCat, EfficientIP, BIND.
+  - |
+    LDAP auto-configuration from Initial Inventory shared services with manual override capability.
+  - |
+    Record extraction from OpenShift (cluster API, ingress VIPs, node records), Initial Inventory
+    (device records), and Everpure (storage system records).
+  - |
+    DNS validation and dry-run capability before applying changes to production DNS providers.
+  - |
+    Vault integration for secure credential storage with environment variable support.
+  - |
+    Pre-installation DNS validation to verify hostname/IP resolution before OpenShift cluster deployment.
+
+bugfixes:
+  - |
+    Fixed LDAP configuration loading from Initial Inventory LDAP URLs (ldap://server:port format).
+  - |
+    Fixed base_dn domain extraction from LDAP distinguished names (DC=X,DC=Y format).
+  - |
+    Fixed file detection to check both workspace/ and host_vars/ directory paths for inventory files.
+  - |
+    Fixed Python bytecode caching by clearing __pycache__ and restarting server for schema changes.
+  - |
+    Fixed YAML generation indentation for records array and proper PyYAML formatting.
+  - |
+    Fixed schema validation by adding records property to dns_manager.json and regenerating merged schema.
+
+known_issues:
+  - |
+    OpenShift file detection requires ezai.yaml format with cluster networking and servers arrays.
+  - |
+    Initial Inventory must include shared_services.ldap configuration for Active Directory auto-load.
+  - |
+    Everpure inventory expected in YAML format with systems array; JSON format support planned for future.
+
+documentation:
+  - |
+    Comprehensive release notes with provider configuration examples and security best practices.
+  - |
+    Customer deployment guide with quick start, troubleshooting, and checklist.
+  - |
+    Schema descriptions for all 5 DNS providers with Required/Optional attributes.
+  - |
+    Workflow documentation explaining multi-step DNS Manager process.
+
+release_notes: |
+  **For detailed deployment instructions and configuration examples, see RELEASE_v0.1.16.md**
+
+  This production release includes:
+  - Complete DNS Manager implementation with 5 provider types
+  - Automatic record extraction from 3 inventory sources
+  - Robust LDAP auto-configuration
+  - Production-grade schema validation
+  - Comprehensive error handling and troubleshooting guides
+
+  Customers can now automate DNS record management as part of their Cisco AI PODs deployment
+  workflow, eliminating manual DNS changes and ensuring consistency across multiple DNS providers.
