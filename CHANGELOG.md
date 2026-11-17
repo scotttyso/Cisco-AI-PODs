@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.23] - 2026-11-17
+
+### Changed
+- Synchronize now confirms its work for Active Directory writes made over LDAP: it checks DNS up to 4 times, 60 seconds apart, stops as soon as every written record resolves, and fails with a clear message if some still do not resolve after about 4 minutes. The DNS service loads AD changes about every 3 minutes by default, not every minute as the previous messages said.
+
 ## [0.1.22] - 2026-11-17
 
 ### Added

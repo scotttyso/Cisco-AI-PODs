@@ -60,7 +60,7 @@ On the OpenShift Cluster Deployment page, **Check DNS records** (Pre-check) reso
 2. Open DNS Manager, pick the provider, tick the sources, and click Generate Configuration. Review the YAML and Save.
 3. Run **Validate** and review the report.
 4. Run **Synchronize** and confirm.
-5. Wait about 3 minutes (the DNS service polls Active Directory for changes on that interval) or refresh the zone in the DNS console, then run **Validate** again. Every record should now be matching.
+5. When Synchronize writes over LDAP it stays running to confirm the result: it checks DNS up to 4 times, 60 seconds apart (the DNS service polls Active Directory about every 3 minutes), and stops as soon as every record resolves. A run that ends with "Verified: all N records resolve" needs no further check. If records are written but still not resolving after about 4 minutes, the job fails and says so; refresh the zone on the domain controller and run **Validate**. Writes made over WinRM take effect immediately and are not waited on. Every record should now be matching.
 
 Example Validate report:
 

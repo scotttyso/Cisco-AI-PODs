@@ -386,6 +386,52 @@ class TestActiveDirectoryWinrmFallback(unittest.TestCase):
         self.assertEqual(ActiveDirectoryProvider._ps_quote("it's"), "'it''s'")
 
 
+class TestVerifyAfterWrite(unittest.TestCase):
+    """Synchronize waits for the DNS server to load what it wrote"""
+
+    def apply(self, visible_after, needs_settle=True):
+        from dns_updater import DNSUpdater
+
+        record = DNSRecord('api.example.com', '10.0.0.1', 'example.com')
+        calls = {'count': 0}
+
+        class Provider:
+            deletes_stale = False
+
+            def create_record(self, item):
+                return True
+
+            def get_records(self, zone):
+                calls['count'] += 1
+                return {record} if calls['count'] >= visible_after else set()
+
+        provider = Provider()
+        provider.needs_settle = needs_settle
+        updater = DNSUpdater('unused.yaml')
+        updater.VERIFY_INTERVAL = 0
+        with patch('dns_updater.time.sleep'):
+            updater._apply_changes(provider, {record}, set())
+        return calls['count']
+
+    def test_stops_waiting_as_soon_as_records_resolve(self):
+        self.assertEqual(self.apply(visible_after=2), 2)
+
+    def test_fails_when_records_never_resolve(self):
+        with self.assertRaises(SystemExit) as raised:
+            self.apply(visible_after=99)
+        self.assertEqual(raised.exception.code, 1)
+
+    def test_providers_that_apply_immediately_are_not_polled(self):
+        self.assertEqual(self.apply(visible_after=1, needs_settle=False), 0)
+
+    def test_only_ldap_writes_need_to_settle(self):
+        provider = ActiveDirectoryProvider({'server': 'dc'})
+        provider.backend = 'ldap'
+        self.assertTrue(provider.needs_settle)
+        provider.backend = 'winrm'
+        self.assertFalse(provider.needs_settle)
+
+
 class TestCheckMode(unittest.TestCase):
     """--check turns a dry run into a pass/fail gate"""
 
@@ -428,6 +474,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWrites))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWinrmFallback))
+    suite.addTests(loader.loadTestsFromTestCase(TestVerifyAfterWrite))
     suite.addTests(loader.loadTestsFromTestCase(TestCheckMode))
     suite.addTests(loader.loadTestsFromTestCase(TestInfobloxProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestErrorHandling))

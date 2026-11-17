@@ -17,6 +17,7 @@ import socket
 import ssl
 import struct
 import sys
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -55,6 +56,8 @@ class DNSProvider(ABC):
     # Providers that only replace a name's addresses on update leave differing records alone on apply
     deletes_stale = True
     writable = False
+    # True when written records only show up in DNS after the server loads them (AD over LDAP)
+    needs_settle = False
 
     def __init__(self, config: Dict, vault_client: Optional[VaultClient] = None):
         self.config = config
@@ -109,6 +112,10 @@ class ActiveDirectoryProvider(DNSProvider):
 
     supports_write = True
     deletes_stale = False
+
+    @property
+    def needs_settle(self) -> bool:
+        return self.backend == 'ldap'
 
     def __init__(self, config: Dict, vault_client: Optional[VaultClient] = None):
         super().__init__(config, vault_client)
@@ -699,6 +706,10 @@ class DNSUpdater:
         'bind': BindDNSProvider,
     }
 
+    # After writing, check DNS this many times, this many seconds apart (the AD DNS service polls about every 3 minutes)
+    VERIFY_CHECKS = 4
+    VERIFY_INTERVAL = 60
+
     def __init__(self, config_file: str, dry_run: bool = True, verbose: bool = False, check: bool = False):
         self.config_file = config_file
         self.check = check
@@ -863,13 +874,14 @@ class DNSUpdater:
         """Apply DNS changes to the provider"""
         self.logger.info("Applying changes...")
 
-        created = 0
+        written = []
         deleted = 0
 
         for record in missing:
             if provider.create_record(record):
-                created += 1
+                written.append(record)
 
+        created = len(written)
         failed = len(missing) - created
         if provider.deletes_stale:
             for record in stale:
@@ -877,10 +889,34 @@ class DNSUpdater:
                     deleted += 1
 
         self.logger.info(f"Changes applied: {created} created or updated, {deleted} deleted, {failed} failed")
-        if created:
-            self.logger.info("The DNS service loads AD changes on its polling interval (about 3 minutes by default); refresh the zone or run Validate again after that")
+        unverified = self._verify(provider, written) if written and provider.needs_settle else []
         if failed:
             sys.exit(1)
+        if unverified:
+            self.logger.error(f"{len(unverified)} records were written but do not resolve yet. The DNS service loads "
+                              "AD changes on its polling interval (about 3 minutes by default); refresh the zone on "
+                              "the domain controller or run Validate again shortly")
+            sys.exit(1)
+
+    def _verify(self, provider: DNSProvider, written: List[DNSRecord]) -> List[DNSRecord]:
+        """Wait for the DNS server to load the written records; returns the ones still not resolving"""
+        pending = set(written)
+        zones = {record.zone for record in written}
+        for check in range(1, self.VERIFY_CHECKS + 1):
+            self.logger.info(f"Waiting {self.VERIFY_INTERVAL}s for the DNS service to load the changes "
+                             f"(check {check} of {self.VERIFY_CHECKS})")
+            time.sleep(self.VERIFY_INTERVAL)
+            visible = set()
+            for zone in zones:
+                visible |= provider.get_records(zone)
+            pending = {record for record in pending if record not in visible}
+            if not pending:
+                self.logger.info(f"Verified: all {len(written)} records resolve to their addresses")
+                return []
+            self.logger.info(f"{len(written) - len(pending)} of {len(written)} records resolve so far")
+        for record in sorted(pending, key=lambda r: r.hostname):
+            self.logger.warning(f"Not resolving yet: {record.hostname} -> {record.ip_address}")
+        return sorted(pending, key=lambda r: r.hostname)
 
 
 def main():
