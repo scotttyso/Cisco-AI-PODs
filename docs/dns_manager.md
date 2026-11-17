@@ -1,0 +1,100 @@
+# DNS Manager
+
+The DNS Manager page (Environment Preparation > DNS Manager) builds the list of A records for a deployment and compares it with your DNS server. Validate reports what is missing. Synchronize creates the missing records in Active Directory DNS.
+
+## What it does
+
+| Action | Active Directory | Infoblox, BlueCat, Efficient IP, BIND |
+|---|---|---|
+| Validate | Queries the AD DNS server for every record and reports matching, missing, changed, and stale records. Nothing is changed. | Not implemented yet |
+| Synchronize | Creates missing A records and replaces the address of a record that exists with a different one. | Not implemented yet; stops without changing DNS |
+
+Synchronize never deletes records, and other record types on a name (TXT, CNAME, and so on) are kept.
+
+## Where the records come from
+
+Generate Configuration builds `dns/dns_config.ezai.yaml` for the active environment from the sources you tick:
+
+| Source | Records |
+|---|---|
+| OpenShift Cluster Deployment (`openshift/install.ezai.yaml`) | Each node, `api.<cluster>.<domain>`, and `*.apps.<cluster>.<domain>` |
+| Initial Inventory | Every device with a hostname and IP, including storage arrays |
+
+Add storage arrays (Everpure, NetApp, VAST, and so on) to **Initial Inventory** with the **Storage array** role so they are included. A hostname without a domain gets the OpenShift base domain (or the Active Directory domain when there is none). A hostname that is already fully qualified is kept as it is.
+
+The `records` list in the saved file is what Validate and Synchronize use. You can edit it by hand and Save before running an action.
+
+```yaml
+dns:
+  providers:
+    ad_primary:
+      type: active_directory
+      use_shared_ldap: true
+      server: dc1.example.com
+      domain: example.com
+      bind_dn: CN=dns-automation,CN=Users,DC=example,DC=com
+      timeout: 10
+  records:
+    - hostname: node1.example.com
+      ipv4: 198.18.0.1
+    - hostname: "*.apps.cluster.example.com"
+      ipv4: 198.18.0.10
+```
+
+Hover over any field in the editor for its description, including which attributes are required.
+
+## Credentials
+
+Passwords are never written to the YAML. They are stored in the vault and passed to the updater when an action runs.
+
+- **Active Directory with `use_shared_ldap: true`:** the server, domain, and bind DN come from Initial Inventory > Shared services > LDAP, and the bind password saved there is used. The DNS Manager page shows whether it is stored.
+- **Active Directory without shared LDAP, and the other providers:** enter the username and password under Passwords and secrets on the DNS Manager page. Only the fields for the provider in the saved file are listed.
+
+## Typical run
+
+1. Save the OpenShift install file and the Initial Inventory (devices, storage arrays, and the LDAP shared service with its bind password).
+2. Open DNS Manager, pick the provider, tick the sources, and click Generate Configuration. Review the YAML and Save.
+3. Run **Validate** and review the report.
+4. Run **Synchronize** and confirm.
+5. Wait about a minute (the DNS service reads Active Directory changes on a short delay) and run **Validate** again. Every record should now be matching.
+
+Example Validate report:
+
+```text
++ MISSING (2 records - would be created):
+  api.cluster.example.com                  -> 198.18.0.9
+  node2.example.com                        -> 198.18.0.2
+
+~ CHANGED (1 records - exist with another address, would be replaced):
+  node1.example.com                        198.18.0.99 -> 198.18.0.1
+```
+
+## How Active Directory records are written
+
+Synchronize binds to the domain controller over LDAP with the bind account, finds the AD-integrated DNS zones, and writes each A record into the zone with the longest matching name. The bind account needs permission to create and modify DNS records in those zones.
+
+- If the domain controller refuses simple binds on cleartext LDAP, the updater retries over LDAPS and then StartTLS. In that case the domain controller certificate is not verified, and a warning is logged.
+- A hostname that is not inside any AD-integrated zone is reported as failed, and the run exits with an error.
+- Existing records are changed only for names in your `records` list.
+
+## Command line
+
+The page runs `scripts/dns_updater.py`. To run it by hand:
+
+```bash
+python scripts/dns_updater.py --config <environment>/host_vars/dns/dns_config.ezai.yaml --provider ad            # validate
+python scripts/dns_updater.py --config <environment>/host_vars/dns/dns_config.ezai.yaml --provider ad --apply    # synchronize
+```
+
+Credentials are read from the environment: `ad_username` and `ad_password`, or `ldap_bind_password` with shared LDAP. The UI sets them from the vault. Unit tests are in `scripts/test_dns_updater.py`.
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| "Save the DNS Manager configuration first" | No `dns/dns_config.ezai.yaml` saved in the active environment |
+| "Active Directory credentials are not set" | The bind password is not stored in Shared services, or the AD password is not stored on the DNS Manager page |
+| "Cannot bind to ..." | The bind DN or password is wrong, or the domain controller is unreachable on the LDAP ports |
+| "No AD-integrated DNS zone found for ..." | The hostname's domain is not an AD-integrated zone on that server |
+| Generate Configuration warns that no records were found | Save the OpenShift install file, or add devices to the Initial Inventory |
+| Validate still shows missing records right after Synchronize | Wait about a minute for the DNS service to load the change |

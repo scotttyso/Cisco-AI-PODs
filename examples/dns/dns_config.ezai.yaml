@@ -1,152 +1,23 @@
-# DNS Manager Configuration for Cisco AI PODs
-# Example configuration for Active Directory DNS provider
-# This configuration is used by scripts/dns_updater.py
-
+# yaml-language-server: $schema=../../schema/cisco-ai-pods.json
+# DNS Manager configuration, normally written by Generate Configuration on the DNS Manager page.
+# Passwords are not stored here. Active Directory with use_shared_ldap: true uses the bind password saved under
+# Initial Inventory > Shared services; other providers use the credentials stored in the vault on the DNS Manager page.
 dns:
   providers:
-    # Active Directory DNS Provider (primary)
-    # 
-    # This example shows how to configure Active Directory for DNS management.
-    # 
-    # LDAP Configuration Options:
-    # 
-    # Option 1 (Recommended): Use LDAP from Initial Inventory
-    # If you've already configured LDAP/Active Directory in the Initial Inventory
-    # (via NiceGUI > Kubernetes > Cluster Deployment > Shared Services > LDAP),
-    # you can reference it automatically:
-    #
-    #   use_shared_ldap: true
-    #   # Then set path to initial_inventory in inventory section below
-    #
-    # Option 2: Explicit Configuration
-    # Provide all LDAP details directly:
-    #
-    #   use_shared_ldap: false
-    #   server: "dc1.example.com"
-    #   domain: "example.com"
-    #   bind_dn: "CN=dns-automation,CN=Users,DC=example,DC=com"
-    #   password: "${AD_PASSWORD}"  # or vault_path in production
-    #
     ad_primary:
-      type: "active_directory"
-      # Set to true to inherit LDAP configuration from shared_services.ldap
-      # This avoids duplicating LDAP bind_dn, server, and domain settings
-      use_shared_ldap: false
-      
-      # Required if use_shared_ldap is false:
-      server: "dc1.example.com"
-      domain: "example.com"
-      bind_dn: "CN=dns-automation,CN=Users,DC=example,DC=com"
-      
-      # Optional LDAP settings
+      type: active_directory
+      use_shared_ldap: true
+      server: dc1.example.com
+      domain: example.com
+      bind_dn: CN=dns-automation,CN=Users,DC=example,DC=com
       ldap_port: 389
       secure_ldap_port: 636
       use_ssl: false
-      
-      # Password for bind authentication
-      # In production, use vault_path instead (e.g., "activedirectory/dns-credentials")
-      password: "${AD_PASSWORD}"
-      
-      # Connection timeout in seconds
       timeout: 10
-
-    # Additional AD server (optional failover)
-    # ad_secondary:
-    #   type: "active_directory"
-    #   server: "dc2.example.com"
-    #   domain: "example.com"
-    #   ldap_port: 389
-    #   use_ssl: false
-    #   bind_dn: "CN=dns-automation,CN=Users,DC=example,DC=com"
-    #   password: "${AD_PASSWORD}"
-    #   timeout: 10
-
-    # Example: Using shared LDAP configuration from Initial Inventory
-    # This configuration inherits LDAP details from shared_services.ldap
-    # To use this, uncomment and enable initial_inventory in the inventory section below
-    #
-    # ad_from_shared:
-    #   type: "active_directory"
-    #   use_shared_ldap: true  # Inherit server, domain, bind_dn from shared_services.ldap
-    #   ldap_port: 389
-    #   secure_ldap_port: 636
-    #   use_ssl: false
-    #   # bind_dn and server inherited from shared_services.ldap configuration
-    #   password: "${AD_PASSWORD}"  # Still need to provide password separately
-    #   timeout: 10
-
-    # Infoblox DNS Provider (optional)
-    # infoblox_primary:
-    #   type: "infoblox"
-    #   server: "infoblox.example.com"
-    #   api_version: "2.11"
-    #   username: "api_user"
-    #   password: "${INFOBLOX_PASSWORD}"
-    #   use_ssl: true
-    #   verify_ssl: true
-    #   wapi_port: 443
-    #   timeout: 30
-
-    # BIND DNS Provider (optional)
-    # bind_primary:
-    #   type: "bind"
-    #   server: "ns1.example.com"
-    #   zone_file_path: "/var/lib/named/zones"
-    #   nsupdate: true
-    #   tsig_keyfile: "/etc/named.keys/update.key"
-    #   timeout: 10
-
-    # BlueCat DNS Provider (optional)
-    # bluecat_primary:
-    #   type: "bluecat"
-    #   server: "bluecat.example.com"
-    #   api_version: "v1"
-    #   username: "api_user"
-    #   password: "${BLUECAT_PASSWORD}"
-    #   use_ssl: true
-    #   verify_ssl: true
-    #   timeout: 30
-
-    # Efficient IP DNS Provider (optional)
-    # efficientip_primary:
-    #   type: "efficientip"
-    #   server: "efficientip.example.com"
-    #   api_version: "v1"
-    #   username: "api_user"
-    #   password: "${EFFICIENTIP_PASSWORD}"
-    #   use_ssl: true
-    #   verify_ssl: true
-    #   timeout: 30
-
-  inventory:
-    # OpenShift Cluster Deployment Config
-    # Path to openshift/install.ezai.yaml from cluster deployment page
-    openshift:
-      file: "../openshift/install.ezai.yaml"
-      enabled: true
-      format: "yaml"
-    
-    # Initial Inventory (Shared Services with LDAP Configuration)
-    # Path to initial_inventory.ezai.yaml from infrastructure inventory
-    # This file contains shared services including LDAP/Active Directory configuration
-    # from NiceGUI > Kubernetes > Cluster Deployment > Shared Services > LDAP
-    # 
-    # Enable this if:
-    # - You want to reference LDAP config from shared_services.ldap using use_shared_ldap: true
-    # - You want to pull additional DNS records from infrastructure inventory
-    # 
-    # This includes servers, storage, network devices from Intersight
-    initial_inventory:
-      file: "../../host_vars/initial_inventory.ezai.yaml"
-      enabled: false
-      format: "yaml"
-    
-    # Intersight Inventory (optional)
-    # For raw Intersight server/device inventory
-    # intersight:
-    #   file: "../intersight/"
-    #   enabled: false
-    #   format: "yaml"
-    
-    
-    # Storage arrays (Everpure, NetApp, VAST, ...) are added to Initial Inventory with the Storage array role
+  records:
+    - hostname: node1.example.com
+      ipv4: 198.18.0.1
+    - hostname: api.cluster.example.com
+      ipv4: 198.18.0.9
+    - hostname: "*.apps.cluster.example.com"
+      ipv4: 198.18.0.10

@@ -72,6 +72,7 @@ Cisco-AI-PODs/
     intersight.md
     openshift.md
     everpure.md
+    dns_manager.md
     splunk_observability.md
     tests.md
     guide_cisco_ai_pods_runbook.md
@@ -115,6 +116,7 @@ All documentation is in the `docs/` folder:
   - [docs/intersight.md](docs/intersight.md) — Intersight/UCS provisioning
   - [docs/openshift.md](docs/openshift.md) — OpenShift deployment
   - [docs/everpure.md](docs/everpure.md) — Storage configuration
+  - [docs/dns_manager.md](docs/dns_manager.md) — DNS record validation and synchronization
   - [docs/splunk_observability.md](docs/splunk_observability.md) — Observability integration
   - [docs/tests.md](docs/tests.md) — Standalone OpenShift cluster validation tests
 
