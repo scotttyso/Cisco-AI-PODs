@@ -2,29 +2,39 @@
 - name: Create Temporary Directory for Assisted Installer Manifest Generation
   block:
     - name: Create temporary directory for assisted installer manifest generation
+      check_mode: false
       ansible.builtin.tempfile:
         state: directory
         prefix: assisted_installer_
       register: temp_dir
 
 - name: Save OpenShift Dictionary to Temporary File
+  check_mode: false
   ansible.builtin.copy:
-    content: "{{ openshift | to_nice_json }}"
+    content: "{{ {'openshift': openshift} | to_nice_json }}"
     dest: "{{ temp_dir.path }}/openshift.json"
     mode: '0644'
   changed_when: false
 
 - name: Generate Server and NMState Manifest Templates from Inventory
+  check_mode: false
   ansible.builtin.command:
-    cmd: "python3 {{ role_path }}/library/generate_server_and_nmstate_templates.py --vars-file {{ temp_dir.path }}/openshift.json"
+    cmd: >-
+      python3 {{ role_path }}/library/generate_server_and_nmstate_templates.py
+      --vars-file {{ temp_dir.path }}/openshift.json
+      --templates-dir {{ role_path }}/templates
+      --output-dir {{ (temp_dir.path ~ '/assisted-installer') if ansible_check_mode else ((playbook_dir | dirname) ~ '/assisted-installer') }}
   register: validation_result
   failed_when: validation_result.rc != 0
   changed_when: false
 
-- name: Set Facts for assisted installer manifests & SSH public key
+- name: Set Facts for assisted installer manifests
   ansible.builtin.set_fact:
     assisted_installer_directory: "{{ playbook_dir | dirname }}/assisted-installer"
     openshift_install: "{{ openshift.install.bare_metal | default({}) }}"
+
+- name: Set Facts for SSH public key
+  ansible.builtin.set_fact:
     ssh_public_key_env_name: "{{ 'ssh_public_key_' + (openshift_install.ssh_public_key | string) }}"
     ssh_public_key_value: "{{ lookup('ansible.builtin.env', 'ssh_public_key_' + (openshift_install.ssh_public_key | string)) }}"
 

@@ -544,6 +544,16 @@ def parse_args() -> argparse.Namespace:
         help="Path to a vars YAML file or a directory of vars files. Defaults to ../script_vars/.",
     )
     parser.add_argument(
+        "--templates-dir",
+        type=Path,
+        help="Directory with the iserver-nmstate-*.yaml.j2 templates. Defaults to the role's templates/ directory.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Directory to write server.json, ssh.pub and nmstate_*.yaml to. Defaults to <repository>/assisted-installer.",
+    )
+    parser.add_argument(
         "--check-env",
         action="store_true",
         help=(
@@ -728,8 +738,9 @@ def main() -> None:  # pylint: disable=too-many-statements
 
     script_dir = Path(__file__).parent
     vars_path = args.vars_file if args.vars_file else script_dir.parent / "script_vars"
-    output_dir = script_dir / "assisted-installer"
-    templates_dir = script_dir / "templates"
+    # The script lives in <repository>/roles/openshift_install/library/
+    output_dir = args.output_dir or script_dir.parents[2] / "assisted-installer"
+    templates_dir = args.templates_dir or script_dir.parent / "templates"
 
     if not templates_dir.exists():
         print(f"Error: templates directory not found: {templates_dir}")

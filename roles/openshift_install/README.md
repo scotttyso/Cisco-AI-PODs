@@ -25,7 +25,8 @@ Generates:
 ```bash
 cd roles/openshift_install
 python library/generate_server_and_nmstate_templates.py --check-env  # Validate only
-python library/generate_server_and_nmstate_templates.py               # Generate output
+python library/generate_server_and_nmstate_templates.py               # Generate output into <repository>/assisted-installer
+python library/generate_server_and_nmstate_templates.py --output-dir /tmp/preview  # Generate somewhere else
 ```
 
 ## Files

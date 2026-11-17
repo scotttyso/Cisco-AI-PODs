@@ -1,5 +1,6 @@
 ---
 - name: Udev rules for NVIDIA Network Operator
+  check_mode: false
   ansible.builtin.copy:
     content: "{{ lookup('template', '70-persistent-net.rules.j2') }}"
     dest: "{{ role_path }}/70-persistent-net.rules"
@@ -23,6 +24,7 @@
     openshift.operators | json_query('nvidia_network_operator.persistent_net_rules') is defined
 
 - name: Remove the temporary Persistent Net Rules file
+  check_mode: false
   ansible.builtin.file:
     path: "{{ role_path }}/70-persistent-net.rules"
     state: absent

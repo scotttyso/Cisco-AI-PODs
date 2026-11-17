@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-11-17
+
+### Fixed
+- OpenShift install prep (`openshift_install` role) could not run, in check mode or for real. Four separate problems, found by running the phase 1 playbook end to end:
+  - The temporary directory, saved variables, and manifest generator tasks were skipped in check mode, so Validate (check mode) failed with `object of type 'dict' has no attribute 'path'`. They now run in check mode; the generator writes to the temporary directory there, so Validate never writes install files.
+  - `generate_server_and_nmstate_templates.py` was moved into the role without updating its paths and failed with "templates directory not found". It now takes `--templates-dir` and `--output-dir`, defaulting to the role's `templates/` and `<repository>/assisted-installer`, which is where the iserver step reads.
+  - The role saved the OpenShift variables without their top-level `openshift:` key, so the generator found "No servers". 
+  - A `set_fact` used a fact it defined in the same task; it is now two tasks.
+
 ## [0.1.26] - 2026-11-17
 
 ### Fixed
