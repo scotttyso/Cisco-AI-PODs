@@ -10,10 +10,13 @@ openshift:
         cluster_network:
           v4_cidr: 10.128.0.0/14
           v4_host_prefix: 23
-        container_network_interface: Cilium
         # iserver downloads the Isovalent Enterprise manifests for this version and applies its automated fixups
         # (registry access required: OpenShift > Cilium Registry).
-        container_network_version: 1.19.7
+        cilium:
+          enable_hubble_metrics: false
+          enable_kube_proxy_replacement: false
+          version: 1.19.7
+        container_network_interface: Cilium
         dns_servers:
           - 208.67.220.220
           - 208.67.222.222

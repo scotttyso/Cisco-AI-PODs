@@ -39,7 +39,7 @@ class IserverTemplateTests(unittest.TestCase):
             (REPO / "roles/openshift_install/templates" / name).read_text())
         networking = {"api": {"v4": "10.0.0.1"}, "ingress": {"v4": "10.0.0.2"}, "dns_servers": ["10.0.0.3"],
                       "machine_network_gateway": {"v4": "10.0.0.254"}, "container_network_interface": "Cilium",
-                      "container_network_version": "1.19.7"}
+                      "cilium": {"version": "1.19.7"}}
         if dns_search_domains:
             networking["dns_search_domains"] = dns_search_domains
         install = {"servers": [1, 2, 3], "base_dns_domain": "example.com", "cluster_name": "c1",
@@ -52,6 +52,29 @@ class IserverTemplateTests(unittest.TestCase):
         payload = self.render("iserver-cluster.json.j2", image_base_url="http://h/x")
         self.assertEqual(payload["cilium"], {"version": "1.19.7"})
         self.assertEqual(payload["openshift_version"], "the-latest-production-version")
+
+    def test_ciliumconfig_follows_the_cilium_settings(self):
+        import jinja2
+        import yaml
+
+        def render(servers, **cilium):
+            template = jinja2.Environment(trim_blocks=True, lstrip_blocks=True).from_string(
+                (REPO / "roles/openshift_install/templates/cilium-config.yaml.j2").read_text())
+            install = {"servers": servers, "cluster_name": "c1", "base_dns_domain": "example.com",
+                       "cluster_networking": {"cluster_network": {"v4_cidr": "10.128.0.0/14", "v4_host_prefix": 23},
+                                              "cilium": {"version": "1.19.7", **cilium}}}
+            return yaml.safe_load(template.render(openshift_install=install))["spec"]
+
+        plain = render([1, 2, 3])
+        self.assertNotIn("metrics", plain["hubble"])
+        self.assertIs(plain["kubeProxyReplacement"], False)
+        self.assertNotIn("replicas", plain["operator"])
+        tuned = render([1], enable_hubble_metrics=True, enable_kube_proxy_replacement=True)
+        self.assertTrue(tuned["hubble"]["metrics"]["enabled"])
+        self.assertIs(tuned["kubeProxyReplacement"], True)
+        self.assertEqual(tuned["k8sServiceHost"], "api.c1.example.com")
+        self.assertEqual(tuned["operator"]["replicas"], 1)
+        self.assertEqual(tuned["ipam"]["operator"]["clusterPoolIPv4MaskSize"], 23)
 
     def test_cluster_json_dns_search_defaults_to_the_base_domain(self):
         self.assertEqual(self.render("iserver-cluster.json.j2", image_base_url="http://h/x")["dns_search"], "example.com")

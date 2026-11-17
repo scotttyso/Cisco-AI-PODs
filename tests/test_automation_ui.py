@@ -225,7 +225,7 @@ class AutomationUiTests(unittest.TestCase):
             self.assertEqual(install(rc), [["install"]])
             install_file.write_text("openshift:\n  install:\n    bare_metal:\n      cluster_networking:\n"
                                     "        container_network_interface: Cilium\n"
-                                    "        container_network_version: 1.19.7\n")
+                                    "        cilium:\n          version: 1.19.7\n")
             commands = install(rc)
             self.assertEqual(len(commands), 2)
             self.assertIn("isovalent-check", commands[0])

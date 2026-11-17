@@ -36,15 +36,16 @@
 ##########################################################
 # Cilium CNI
 ##########################################################
-# No Cilium manifests are generated here. With container_network_version in cluster.json, iserver downloads the
-# Isovalent manifests and applies its automated fixups (cluster pool CIDR and mask, operator replicas).
+# With cilium.version in cluster.json, iserver downloads the Isovalent manifests and applies its automated fixups
+# (cluster pool CIDR and mask, operator replicas). The CiliumConfig is rendered from cilium-config.yaml.j2 so the
+# Hubble metrics and kube-proxy replacement settings are part of the install.
 - name: Require a Cilium version when Cilium is the CNI
   ansible.builtin.assert:
     that:
-      - openshift_install.cluster_networking.container_network_version is defined
+      - openshift_install.cluster_networking.cilium.version is defined
     fail_msg: >-
-      container_network_interface is Cilium but cluster_networking.container_network_version is not set. iserver
-      downloads the Isovalent manifests for that version, for example 1.19.7.
+      container_network_interface is Cilium but cluster_networking.cilium.version is not set. iserver downloads the
+      Isovalent manifests for that version, for example 1.19.7.
   when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
 
 ##########################################################
@@ -71,7 +72,7 @@
       - "{{ playbook_dir | dirname }}/scripts/version_support_matrix.py"
       - validate
       - cilium
-      - "{{ openshift_install.cluster_networking.container_network_version }}"
+      - "{{ openshift_install.cluster_networking.cilium.version }}"
   register: cilium_version_check
   changed_when: false
   failed_when: false
@@ -98,6 +99,17 @@
     path: "{{ assisted_installer_directory }}/manifests"
     state: directory
     mode: '0755'
+
+##########################################################
+# Cilium CiliumConfig
+##########################################################
+# Same file name iserver uses for the CiliumConfig it unpacks from the Isovalent manifests.
+- name: Manifests for Assisted Installer - Cilium Config if Cilium is the CNI
+  ansible.builtin.copy:
+    content: "{{ lookup('template', 'cilium-config.yaml.j2') }}"
+    dest: "{{ assisted_installer_directory }}/manifests/ciliumconfig.yaml"
+    mode: '0644'
+  when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
 
 ##########################################################
 # Machine Configuration Tasks

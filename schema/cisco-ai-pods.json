@@ -38513,6 +38513,9 @@
                         "api": {
                             "$ref": "#/definitions/openshift.install.cluster_networking.api"
                         },
+                        "cilium": {
+                            "$ref": "#/definitions/openshift.install.cluster_networking.cilium"
+                        },
                         "cluster_network": {
                             "$ref": "#/definitions/openshift.install.cluster_networking.cluster_network"
                         },
@@ -38524,17 +38527,6 @@
                                 "OVNKubernetes"
                             ],
                             "title": "Container Network Interface (CNI)",
-                            "type": "string"
-                        },
-                        "container_network_version": {
-                            "description": "Version of the Cilium CNI (Isovalent Enterprise), for example `1.19.7`.  Required when `container_network_interface` is `Cilium` and ignored for `OVNKubernetes`.  iserver downloads the Isovalent manifests for this version during the install and applies its automated fixups: the cluster pool CIDR and mask come from `cluster_network`, and the operator runs one replica on a single-node cluster.  Isovalent registry access must be configured (OpenShift > Cilium Registry).",
-                            "examples": [
-                                "1.19.7"
-                            ],
-                            "maxLength": 7,
-                            "minLength": 5,
-                            "pattern": "^[1-9]\\.[0-9]{1,2}\\.[0-9]{1,2}$",
-                            "title": "Cilium Version",
                             "type": "string"
                         },
                         "dns_search_domains": {
@@ -38578,7 +38570,7 @@
                     "type": "object"
                 }
             ],
-            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster network configuration.\n\nRequired fields are:\n  * `api`\n  * `ingress`\n  * `machine_network_gateway`\n  * `routes`\n\nOptional fields are:\n  * `container_network_interface`\n  * `container_network_version`\n  * `dns_search_domains`\n  * `dns_servers`\n  * `service_network`",
+            "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster network configuration.\n\nRequired fields are:\n  * `api`\n  * `ingress`\n  * `machine_network_gateway`\n  * `routes`\n\nOptional fields are:\n  * `cilium`\n  * `container_network_interface`\n  * `dns_search_domains`\n  * `dns_servers`\n  * `service_network`",
             "title": "OpenShift Container Platform (OCP) - Networking",
             "unevaluatedProperties": false
         },
@@ -38606,6 +38598,45 @@
             ],
             "description": "This dictionary provides the required configuration settings for Red Hat Openshift cluster API addressing.\n\nOptional fields are:\n  * `v4`\n  * `v6`",
             "title": "OpenShift Container Platform (OCP) - Networking - API",
+            "unevaluatedProperties": false
+        },
+        "openshift.install.cluster_networking.cilium": {
+            "allOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "enable_hubble_metrics": {
+                            "default": false,
+                            "description": "The default value is `false`.  Enables the Hubble metrics list in the CiliumConfig.",
+                            "title": "Enable Hubble Metrics",
+                            "type": "boolean"
+                        },
+                        "enable_kube_proxy_replacement": {
+                            "default": false,
+                            "description": "The default value is `false`.  Replaces kube-proxy with Cilium (kubeProxyReplacement) and points Cilium at the cluster API (`api.<cluster_name>.<base_dns_domain>:6443`).",
+                            "title": "Enable Kube-Proxy Replacement",
+                            "type": "boolean"
+                        },
+                        "version": {
+                            "description": "Version of the Cilium CNI (Isovalent Enterprise), for example `1.19.7`.  iserver downloads the Isovalent manifests for this version during the install and applies its automated fixups: the cluster pool CIDR and mask come from `cluster_network`, and the operator runs one replica on a single-node cluster.  Isovalent registry access must be configured (OpenShift > Cilium Registry).",
+                            "examples": [
+                                "1.19.7"
+                            ],
+                            "maxLength": 7,
+                            "minLength": 5,
+                            "pattern": "^[1-9]\\.[0-9]{1,2}\\.[0-9]{1,2}$",
+                            "title": "Cilium Version",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "version"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "This dictionary provides the Cilium CNI (Isovalent Enterprise) settings.  It is used when `container_network_interface` is `Cilium` and ignored for `OVNKubernetes`.\n\nRequired fields are:\n  * `version`\n\nOptional fields are:\n  * `enable_hubble_metrics`\n  * `enable_kube_proxy_replacement`",
+            "title": "OpenShift Container Platform (OCP) - Networking - Cilium",
             "unevaluatedProperties": false
         },
         "openshift.install.cluster_networking.cluster_network": {
@@ -39868,5 +39899,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.32"
+    "x-schema-version": "v0.1.36"
 }

@@ -889,7 +889,9 @@ def ocp_cluster_form(handle) -> None:
         registry_state = handle.state("ocp-cilium-registry")
         current_openshift = str(install.get("cluster_version") or support.LATEST_PRODUCTION)
         current_cni = networking.get("container_network_interface") or "OVNKubernetes"
-        current_cilium = str(networking.get("container_network_version") or support.recommended("cilium"))
+        saved_cilium = networking.get("cilium") if isinstance(networking.get("cilium"), dict) else {}
+        current_cilium = str(saved_cilium.get("version") or networking.get("container_network_version")
+                             or support.recommended("cilium"))
 
         def cilium_ok(version: str) -> bool:
             return support.is_supported("cilium", version)[0]
@@ -971,6 +973,13 @@ def ocp_cluster_form(handle) -> None:
                 refresh_button = ui.button("Refresh", icon="refresh", on_click=refresh_cilium).props("flat dense")
                 refresh_button.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
 
+            with ui.row().classes("w-full items-center gap-6"):
+                hubble = ui.checkbox("Enable Hubble metrics", value=bool(saved_cilium.get("enable_hubble_metrics")))
+                proxy_replacement = ui.checkbox("Replace kube-proxy",
+                                                value=bool(saved_cilium.get("enable_kube_proxy_replacement")))
+                for item in (hubble, proxy_replacement):
+                    item.bind_visibility_from(cni, "value", backward=lambda value: value == "Cilium")
+
             async def apply_network() -> None:
                 problems = []
                 if openshift.value != support.LATEST_PRODUCTION:
@@ -993,10 +1002,13 @@ def ocp_cluster_form(handle) -> None:
                     bare_metal["cluster_version"] = openshift.value
                 node = seeds.ensure(bare_metal, "cluster_networking")
                 node["container_network_interface"] = cni.value
+                node.pop("container_network_version", None)
                 if cni.value == "Cilium":
-                    node["container_network_version"] = cilium.value
+                    node["cilium"] = {"enable_hubble_metrics": bool(hubble.value),
+                                      "enable_kube_proxy_replacement": bool(proxy_replacement.value),
+                                      "version": cilium.value}
                 else:
-                    node.pop("container_network_version", None)
+                    node.pop("cilium", None)
                 workbench.set_content(install_target, seeds.dump(current),
                                       "Versions and container network updated from the form (not saved yet)")
                 ui.notify("YAML updated. Review it, then Save.", type="info")

@@ -6,6 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.37] - 2026-11-17
+
+### Changed
+- Cilium settings are a `cilium` block under `openshift.install.bare_metal.cluster_networking`: `version` (required, replaces `container_network_version`), `enable_hubble_metrics` and `enable_kube_proxy_replacement` (both default `false`). An existing `container_network_version` must be replaced; Apply to YAML on Cluster Deployment does it.
+- When the CNI is Cilium, Prepare install renders `cilium-config.yaml.j2` to `assisted-installer/manifests/ciliumconfig.yaml` (the CiliumConfig name iserver uses), including Hubble metrics, kube-proxy replacement and a single operator replica on single-node clusters.
+- Cluster Deployment has Enable Hubble metrics and Replace kube-proxy checkboxes next to the Cilium version.
+
 ## [0.1.36] - 2026-11-17
 
 ### Fixed

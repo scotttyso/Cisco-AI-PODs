@@ -23,7 +23,7 @@
     "ntp": "{% for ntp in openshift_install.ntp_servers %}{{ ntp }}{% if not loop.last %},{% endif %}{% endfor %}",
 {% endif %}
 {% if openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes') == 'Cilium' %}
-    "cilium": {"version": "{{ openshift_install.cluster_networking.container_network_version }}"},
+    "cilium": {"version": "{{ openshift_install.cluster_networking.cilium.version }}"},
 {% endif %}
     "openshift_version": "{{ openshift_install.cluster_version | default('the-latest-production-version') }}"
 }
