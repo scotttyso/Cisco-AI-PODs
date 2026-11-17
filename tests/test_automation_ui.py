@@ -152,6 +152,23 @@ class AutomationUiTests(unittest.TestCase):
         manual = web.bulk_inventory_rows(pooled, ["a", "c"], ip="198.18.0.5", pool_ip=False)
         self.assertEqual([row["ip"] for row in manual], ["198.18.0.5", "", "198.18.0.6"])
 
+    def test_hgx_bmc_password_is_required_only_when_the_inventory_has_hgx_nodes(self):
+        from types import SimpleNamespace
+        from aipod_webui import pages
+
+        fabric = {"hostname": "fi-a", "ip": "10.0.0.1", "pid": "UCS-FI-6454", "role": "fabric-interconnect",
+                  "serial_number": "A"}
+        hgx = {"hostname": "hgx1", "ip": "10.0.0.2", "pid": "HGX-C885A", "role": "hgx-node", "serial_number": "B"}
+
+        def handle(rows):
+            store = SimpleNamespace(inventory=lambda: rows, page_state=lambda key: {})
+            return SimpleNamespace(context=SimpleNamespace(store=store), models=lambda: [])
+
+        self.assertEqual(pages.hgx_secrets(handle([fabric]), only_used=True), [])
+        self.assertEqual(len(pages.hgx_secrets(handle([fabric, hgx]), only_used=True)), 1)
+        # The HGX page itself always offers the default password.
+        self.assertEqual([item.label for item in pages.hgx_secrets(handle([fabric]))], ["HGX BMC password"])
+
 
 if __name__ == "__main__":
     unittest.main()

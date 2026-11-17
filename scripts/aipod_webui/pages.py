@@ -801,9 +801,11 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
     ) + ((RECOMMENDED_FIRMWARE,) if scope == "servers" else ())
 
 
-def hgx_secrets(handle: PageHandle) -> list[SecretField]:
+def hgx_secrets(handle: PageHandle, only_used: bool = False) -> list[SecretField]:
+    """BMC passwords for HGX nodes. The HGX page always offers the default one; other pages (``only_used``) list
+    only the passwords the inventory's HGX nodes and this page's own YAML reference."""
     hosts = stage_inventory.registration_hosts(handle.context.store.inventory(), registration_state(handle.context))
-    references = {stage_inventory.HGX_PASSWORD_REF: "HGX BMC password"}
+    references = {} if only_used else {stage_inventory.HGX_PASSWORD_REF: "HGX BMC password"}
     for item in hosts.values():
         if item["ucs"]["device_role"] == "hgx-node":
             references.setdefault(item["ucs"]["cimc"]["pass_ref"], f"{item['ucs']['hostname']} BMC password")
@@ -878,7 +880,7 @@ def linked(fields: list[SecretField], source: str) -> list[SecretField]:
 
 def ocp_cluster_secrets(handle: PageHandle) -> list[SecretField]:
     """The install YAML's own secrets, plus the Intersight and BMC credentials entered on the Compute pages."""
-    return (model_secrets(handle) + linked(hgx_secrets(handle), "Compute - HGX Servers")
+    return (model_secrets(handle) + linked(hgx_secrets(handle, only_used=True), "Compute - HGX Servers")
             + linked(registration_secrets(handle), "Compute - Intersight - Claim Targets"))
 
 

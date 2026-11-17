@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-11-17
+
+### Fixed
+- OpenShift Cluster Deployment no longer asks for the HGX BMC password when the Initial Inventory has no HGX nodes. The default HGX password is listed there only when an HGX node uses it; the HGX Servers page still offers it.
+
 ## [0.1.23] - 2026-11-17
 
 ### Changed
