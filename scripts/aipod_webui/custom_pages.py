@@ -817,6 +817,53 @@ def ocp_cluster_form(handle) -> None:
 
             ui.button("Save", icon="save", on_click=save).props("outline")
 
+    with card("Node MAC addresses", "Run Collect MACs from Intersight (domain and standalone servers) and Collect MACs "
+                                    "from BMC Redfish (HGX C880A / C885A) in Tools, then Refresh from inventory.", icon="settings_ethernet"):
+        macs = context.collected_macs()
+        nodes = seeds.by_role(context.store.inventory(), *seeds.COMPUTE_ROLES)
+        found = sum(1 for row in nodes if macs.get(seeds.host_key(row["hostname"])))
+        ui.label(f"{found} of {len(nodes)} compute nodes in the inventory have collected MACs.").classes("text-sm")
+
+    with card("Node SSH key", "The public key is added to every node for the core user. Generate a new ed25519 key "
+                              "pair here, or paste or upload an existing public key in the Credentials panel.", icon="vpn_key"):
+        with ui.row().classes("gap-2"):
+            async def generate() -> None:
+                from cryptography.hazmat.primitives import serialization
+                from cryptography.hazmat.primitives.asymmetric import ed25519
+
+                number = _ssh_reference(handle)
+                key = ed25519.Ed25519PrivateKey.generate()
+                private = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH,
+                                            serialization.NoEncryption()).decode()
+                public = key.public_key().public_bytes(serialization.Encoding.OpenSSH,
+                                                       serialization.PublicFormat.OpenSSH).decode() + " aipod-openshift"
+                try:
+                    await run.io_bound(context.vault.update, {("openshift", f"ssh_public_key_{number}"): public,
+                                                              ("openshift", f"ssh_private_key_{number}"): private})
+                except VaultError as error:
+                    ui.notify(f"Vault update failed: {error}", type="negative")
+                    return
+                ui.download.content(private, "aipod-openshift-id_ed25519")
+                handle.refresh_credentials()
+                ui.notify(f"Stored ssh_public_key_{number} and its private key in the vault; the private key is "
+                          "downloading.", type="positive", multi_line=True)
+
+            async def download() -> None:
+                number = _ssh_reference(handle)
+                try:
+                    data = await run.io_bound(context.vault.load)
+                except VaultError as error:
+                    ui.notify(str(error), type="negative")
+                    return
+                private = (data.get("openshift") or {}).get(f"ssh_private_key_{number}")
+                if not private:
+                    ui.notify("No generated private key is stored for this cluster", type="warning")
+                    return
+                ui.download.content(private, "aipod-openshift-id_ed25519")
+
+            ui.button("Generate key pair", icon="vpn_key", on_click=generate).props("outline")
+            ui.button("Download private key", icon="download", on_click=download).props("flat")
+
     install_target = "openshift/install.ezai.yaml"
     workbench = handle.workbench
     if workbench and install_target in workbench.specs:
@@ -904,54 +951,6 @@ def ocp_cluster_form(handle) -> None:
             ui.label("Cilium needs Isovalent registry access first (OpenShift > Cilium Registry). iserver downloads "
                      "the Cilium manifests for the chosen version and applies its automated fixups."
                      ).classes("muted text-xs")
-
-
-    with card("Node SSH key", "The public key is added to every node for the core user. Generate a new ed25519 key "
-                              "pair here, or paste or upload an existing public key in the Credentials panel.", icon="vpn_key"):
-        with ui.row().classes("gap-2"):
-            async def generate() -> None:
-                from cryptography.hazmat.primitives import serialization
-                from cryptography.hazmat.primitives.asymmetric import ed25519
-
-                number = _ssh_reference(handle)
-                key = ed25519.Ed25519PrivateKey.generate()
-                private = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH,
-                                            serialization.NoEncryption()).decode()
-                public = key.public_key().public_bytes(serialization.Encoding.OpenSSH,
-                                                       serialization.PublicFormat.OpenSSH).decode() + " aipod-openshift"
-                try:
-                    await run.io_bound(context.vault.update, {("openshift", f"ssh_public_key_{number}"): public,
-                                                              ("openshift", f"ssh_private_key_{number}"): private})
-                except VaultError as error:
-                    ui.notify(f"Vault update failed: {error}", type="negative")
-                    return
-                ui.download.content(private, "aipod-openshift-id_ed25519")
-                handle.refresh_credentials()
-                ui.notify(f"Stored ssh_public_key_{number} and its private key in the vault; the private key is "
-                          "downloading.", type="positive", multi_line=True)
-
-            async def download() -> None:
-                number = _ssh_reference(handle)
-                try:
-                    data = await run.io_bound(context.vault.load)
-                except VaultError as error:
-                    ui.notify(str(error), type="negative")
-                    return
-                private = (data.get("openshift") or {}).get(f"ssh_private_key_{number}")
-                if not private:
-                    ui.notify("No generated private key is stored for this cluster", type="warning")
-                    return
-                ui.download.content(private, "aipod-openshift-id_ed25519")
-
-            ui.button("Generate key pair", icon="vpn_key", on_click=generate).props("outline")
-            ui.button("Download private key", icon="download", on_click=download).props("flat")
-
-    with card("Node MAC addresses", "Run Collect MACs from Intersight (domain and standalone servers) and Collect MACs "
-                                    "from BMC Redfish (HGX C880A / C885A) in Tools, then Refresh from inventory.", icon="settings_ethernet"):
-        macs = context.collected_macs()
-        nodes = seeds.by_role(context.store.inventory(), *seeds.COMPUTE_ROLES)
-        found = sum(1 for row in nodes if macs.get(seeds.host_key(row["hostname"])))
-        ui.label(f"{found} of {len(nodes)} compute nodes in the inventory have collected MACs.").classes("text-sm")
 
 
 # ---------------------------------------------------------------------------------------------------- Certificates

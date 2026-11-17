@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-11-17
+
+### Changed
+- Cluster Deployment cards are in alphabetical order: Cluster access, Node MAC addresses, Node SSH key, Versions and container network.
+
 ## [0.1.30] - 2026-11-17
 
 ### Added
