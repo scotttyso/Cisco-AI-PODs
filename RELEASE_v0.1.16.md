@@ -55,9 +55,9 @@ providers:
     ldap_port: 389
     secure_ldap_port: 636
     use_ssl: false
-    password: ${AD_PASSWORD}
     timeout: 10
 ```
+The bind password is not stored in this file. Enter it under Passwords and secrets on the DNS Manager page (stored in the vault); with `use_shared_ldap: true` the Shared Services LDAP bind password is used when no Active Directory password is stored.
 
 #### Infoblox
 ```yaml
@@ -67,7 +67,6 @@ providers:
     server: infoblox.example.com
     api_version: "2.11"
     username: api_user
-    password: ${INFOBLOX_PASSWORD}
     use_ssl: true
     verify_ssl: true
     wapi_port: 443
@@ -93,7 +92,6 @@ providers:
     type: bluecat
     server: bluecat.example.com
     username: api_user
-    password: ${BLUECAT_PASSWORD}
     timeout: 30
 ```
 
@@ -104,7 +102,6 @@ providers:
     type: efficientip
     server: efficientip.example.com
     username: api_user
-    password: ${EFFICIENTIP_PASSWORD}
     timeout: 30
 ```
 
@@ -205,9 +202,9 @@ records:
 ## 🛡️ Security Considerations
 
 ### Credential Storage
-- Passwords can be stored in Vault for production use
-- Support for `vault_path` field in provider configuration
-- Fallback to environment variables or plaintext (for testing only)
+- Passwords are stored in the web UI vault (Passwords and secrets on the DNS Manager page) and passed to the updater as environment variables; they are not written to `dns_config.ezai.yaml`
+- With `use_shared_ldap: true` the Shared Services LDAP bind password is reused for Active Directory
+- Support for `vault_path` field in provider configuration (HashiCorp Vault)
 
 ### LDAP Security
 - Support for LDAPS (SSL/TLS) connections
@@ -243,9 +240,16 @@ Main DNS Manager description includes:
 - Fixed file detection for host_vars directory structure
 - Fixed LDAP field extraction from Initial Inventory
 - Proper YAML indentation for records section
+- Validate and Synchronize buttons now run: the actions looked for the saved file in the wrong folder and failed silently
+- The updater reads the `dns.providers` / `dns.records` structure the UI writes and accepts the provider names the UI uses
+- Validate (dry-run) queries the Active Directory DNS server for each expected record and reports matching and missing records
+- Generated YAML no longer contains an unresolved `password` placeholder
 
 ## ⚠️ Known Limitations
 
+- **Synchronize does not write records yet.** Creating, updating and deleting records is not implemented for any provider; Synchronize stops with "Writing records to '<provider>' is not implemented yet; nothing was changed" and makes no changes. Use Validate to see which records are missing.
+- Validate is implemented for Active Directory only (read-only DNS queries against the configured server); other providers do not query their DNS yet
+- Validate reports records that are absent or have a different address; it does not list extra records in the zone
 - Initial Inventory LDAP loading requires shared_services.ldap configuration
 - OpenShift file must be in host_vars/openshift/ or workspace/openshift/ directory
 - Everpure file must be in host_vars/everpure/ or workspace/everpure/ directory
@@ -359,7 +363,6 @@ dns:
       server: ad1.example.com
       domain: example.com
       bind_dn: CN=dns-automation,CN=Users,DC=example,DC=com
-      password: ${AD_PASSWORD}
       timeout: 10
     
     infoblox_backup:
@@ -367,7 +370,6 @@ dns:
       server: infoblox.example.com
       api_version: "2.11"
       username: api_user
-      password: ${INFOBLOX_PASSWORD}
       timeout: 30
   
   records:
@@ -389,8 +391,8 @@ dns:
 - [ ] "Generate Configuration" button works
 - [ ] YAML is properly formatted with correct indentation
 - [ ] Schema validation passes for generated config
-- [ ] Validate (dry-run) action executes successfully
-- [ ] Sync action prepares for DNS provider synchronization
+- [ ] Validate (dry-run) action executes and lists matching and missing records
+- [ ] Sync action reports that writing is not implemented (no DNS changes are made)
 
 ## 📋 Release Notes by Component
 

@@ -44,8 +44,24 @@ bugfixes:
     Fixed YAML generation indentation for records array and proper PyYAML formatting.
   - |
     Fixed schema validation by adding records property to dns_manager.json and regenerating merged schema.
+  - |
+    Fixed the DNS Manager Validate and Synchronize buttons doing nothing: the actions looked for the saved
+    configuration in the wrong folder and failed without an error message.
+  - |
+    Fixed dns_updater.py to read the dns.providers and dns.records structure written by the UI and to accept the
+    provider names the UI passes (efficientip, bind).
+  - |
+    Validate now queries the Active Directory DNS server for each expected record and reports matching and missing
+    records; credentials come from the web UI vault (Shared Services LDAP bind password is reused with shared LDAP).
+  - |
+    Removed the unresolved password placeholder from generated DNS provider YAML.
 
 known_issues:
+  - |
+    Synchronize does not write records yet: record create, update and delete are not implemented for any provider,
+    and Synchronize stops with a "not implemented" error without changing DNS. Use Validate to find missing records.
+  - |
+    Validate queries DNS for Active Directory only; other providers do not query their DNS yet.
   - |
     OpenShift file detection requires ezai.yaml format with cluster networking and servers arrays.
   - |

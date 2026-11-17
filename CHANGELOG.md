@@ -6,10 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-11-17
+
+### Added
+- **DNS Manager**: Web UI page and `scripts/dns_updater.py` to compare DNS records built from the OpenShift install, Initial Inventory, and Everpure inventories with Active Directory, Infoblox, BlueCat, Efficient IP, or BIND DNS. The schema (`dns_manager.json`) documents Required and Optional attributes for every provider.
+- Pre-installation DNS validation (`scripts/dns_validator.py`) of node, API, and wildcard names before an OpenShift install.
+- Active Directory validation queries the AD DNS server for each expected record and reports matching and missing records. Credentials come from the web UI vault; the Shared Services LDAP bind password is reused with shared LDAP settings.
+
 ### Fixed
+- DNS Manager Validate and Synchronize buttons did nothing because the saved configuration was looked up in the wrong folder; they now run, and the updater reads the `dns.providers` / `dns.records` structure the UI writes.
+- Generated DNS provider YAML no longer contains an unresolved `password` placeholder.
 - Read activation workflow lookup and polling responses without configuration-object caching, avoiding an unhashable DotMap error while preserving workflow failure checks.
 
 ### Changed
+- Synchronize stops with a "not implemented" error and makes no DNS changes: writing records is not implemented for any provider yet. Use Validate to see missing records.
 - Move Intersight troubleshooting controls into a collapsed panel inside Automation on System (Orgs), UCS Domains, and UCS Servers; preserve per-page debug settings.
 
 ## [0.1.15] - 2026-11-16
