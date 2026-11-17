@@ -177,7 +177,7 @@ class ChannelTests(unittest.TestCase):
 
     def test_offline_falls_back_to_the_tested_versions(self):
         rows, source = matrix.openshift_channels(offline=True)
-        self.assertEqual([(row["minor"], row["latest"]) for row in rows], [("4.20", "4.20.16")])
+        self.assertEqual([(row["minor"], row["latest"]) for row in rows], [("4.20", "4.20.46")])
         self.assertTrue(source.startswith("matrix"))
 
 

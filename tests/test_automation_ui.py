@@ -245,12 +245,9 @@ class AutomationUiTests(unittest.TestCase):
 
         channels = [{"minor": "4.21", "latest": "4.21.42", "supported": False},
                     {"minor": "4.20", "latest": "4.20.46", "supported": True}]
-        ok = lambda version: version.startswith("4.20.")  # noqa: E731
-        options = custom_pages.channel_choices(channels, "4.20.16", "the-latest-production-version", ok)
-        self.assertEqual(list(options), ["the-latest-production-version", "4.20.46", "4.20.16"])
+        options = custom_pages.channel_choices(channels, "the-latest-production-version")
+        self.assertEqual(list(options), ["the-latest-production-version", "4.20.46"])
         self.assertEqual(options["4.20.46"], "4.20.46 (latest stable 4.20)")
-        self.assertEqual(options["4.20.16"], "4.20.16 (older patch)")
-        self.assertEqual(custom_pages.channel_choices(channels, "4.19.5", "", ok)["4.19.5"], "4.19.5 (not supported)")
 
 
 if __name__ == "__main__":

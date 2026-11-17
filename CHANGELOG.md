@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.34] - 2026-11-17
+
+### Changed
+- The OpenShift list on Cluster Deployment offers only the latest production release (default) and the latest stable release of each supported channel. A saved `cluster_version` that is not in the list (such as 4.20.16) is no longer added to it; the form shows the latest production release instead.
+- The offline fallback release for 4.20 is 4.20.46.
+
 ## [0.1.33] - 2026-11-17
 
 ### Changed

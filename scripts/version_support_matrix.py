@@ -49,7 +49,7 @@ import yaml
 VERSION_SUPPORT = {
     "openshift": {
         "supported_minors": ["4.19", "4.20", "4.21", "4.22", "5.0"],
-        "tested": ["4.20.16"],
+        "tested": ["4.20.46"],
     },
     "cilium": {
         "supported_minors": ["1.19"],

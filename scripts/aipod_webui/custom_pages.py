@@ -725,14 +725,12 @@ def version_choices(versions: list[str], recommended: str, current: str = "", fl
     return options
 
 
-def channel_choices(channels: list[dict], current: str = "", floating: str = "", is_supported=None) -> dict[str, str]:
+def channel_choices(channels: list[dict], floating: str = "") -> dict[str, str]:
     """OpenShift pick-list: the floating default, then the latest stable release of each supported channel."""
     options = {floating: "Latest production release (default)"} if floating else {}
     for row in sorted(channels, key=lambda item: [int(part) for part in item["minor"].split(".")], reverse=True):
         if row["supported"]:
             options[row["latest"]] = f"{row['latest']} (latest stable {row['minor']})"
-    if current and current not in options:
-        options[current] = _unlisted(current, is_supported)
     return options
 
 
@@ -893,14 +891,12 @@ def ocp_cluster_form(handle) -> None:
         current_cni = networking.get("container_network_interface") or "OVNKubernetes"
         current_cilium = str(networking.get("container_network_version") or support.recommended("cilium"))
 
-        def openshift_ok(version: str) -> bool:
-            return support.is_supported("openshift", version)[0]
-
         def cilium_ok(version: str) -> bool:
             return support.is_supported("cilium", version)[0]
 
-        openshift_choices = channel_choices(support.openshift_channels(offline=True)[0], current_openshift,
-                                            support.LATEST_PRODUCTION, openshift_ok)
+        openshift_choices = channel_choices(support.openshift_channels(offline=True)[0], support.LATEST_PRODUCTION)
+        if current_openshift not in openshift_choices:
+            current_openshift = support.LATEST_PRODUCTION
         cilium_choices = version_choices(support.cilium_versions(offline=True)[0], support.recommended("cilium"),
                                          current_cilium if current_cni == "Cilium" else "", is_supported=cilium_ok)
         with card("Versions and container network", "Only releases that Cisco AI PODs supports can be chosen. The "
@@ -928,8 +924,6 @@ def ocp_cluster_form(handle) -> None:
                 row = next((item for item in channels if value.startswith(item["minor"] + ".")), None)
                 if value == support.LATEST_PRODUCTION:
                     text = "iserver installs the latest production release the Assisted Installer offers."
-                elif row and value != row["latest"]:
-                    text = f"{value} is pinned; the latest stable {row['minor']} release is {row['latest']}."
                 else:
                     text = ""
                 openshift_status.set_text(text)
@@ -939,8 +933,9 @@ def ocp_cluster_form(handle) -> None:
             async def refresh_openshift() -> None:
                 rows, source = await run.io_bound(support.openshift_channels)
                 channels[:] = rows
-                openshift.set_options(channel_choices(rows, openshift.value, support.LATEST_PRODUCTION, openshift_ok),
-                                      value=openshift.value)
+                options = channel_choices(rows, support.LATEST_PRODUCTION)
+                openshift.set_options(options, value=openshift.value if openshift.value in options
+                                      else support.LATEST_PRODUCTION)
                 channel_table.rows = [{**row, "supported": "supported" if row["supported"] else "",
                                        "until": row["until"] or "", "installer": row.get("installer", "")}
                                       for row in rows]
