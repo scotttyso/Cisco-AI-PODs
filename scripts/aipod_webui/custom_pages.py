@@ -1545,27 +1545,26 @@ def dns_manager_form(handle) -> None:
         },
     }
     
+    def saved_file(relative: str) -> Path | None:
+        """A page file saved in the active environment (any environment name), whose folder is context.output_dir."""
+        for folder in (context.host_vars_dir, context.output_dir):
+            path = folder / relative
+            if path.is_file():
+                return path
+        return None
+
     def extract_dns_records_from_files():
         """Extract DNS A records from selected inventory files."""
         records = []
-        base_domain = "example.com"
-        
+        # Hostnames without a domain get the OpenShift base domain, then the Active Directory domain.
+        ldap_domain = (load_ldap_from_inventory() or {}).get("domain", "")
+        base_domain = context.store.page_state("ocp-cluster").get("base_dns_domain") or ldap_domain
+
         try:
             # Extract from OpenShift if selected
             if import_openshift.value:
-                # Try multiple possible locations for openshift file
-                openshift_paths = [
-                    context.output_dir.parent / "host_vars" / "openshift" / "install.ezai.yaml",
-                    context.output_dir / "openshift" / "install.ezai.yaml",
-                    Path("scripts/deployments/environments/default/host_vars/openshift/install.ezai.yaml"),
-                ]
-                
-                openshift_path = None
-                for path in openshift_paths:
-                    if path.is_file():
-                        openshift_path = path
-                        break
-                
+                openshift_path = saved_file("openshift/install.ezai.yaml")
+
                 if openshift_path:
                     with open(openshift_path) as f:
                         ocp_data = yaml.safe_load(f)
@@ -1625,50 +1624,21 @@ def dns_manager_form(handle) -> None:
                                 "ipv4": ingress_ip,
                             })
             
-            # Extract from initial inventory
+            # Extract from the environment's Initial Inventory (workspace)
             if import_initial_inventory.value:
-                # Try multiple possible locations
-                inv_paths = [
-                    context.output_dir / "initial_inventory.json",
-                    Path("scripts/deployments/environments/default/workspace/initial_inventory.json"),
-                ]
-                
-                inv_path = None
-                for path in inv_paths:
-                    if path.is_file():
-                        inv_path = path
-                        break
-                
-                if inv_path:
-                    with open(inv_path) as f:
-                        inv_data = json.load(f)
-                    
-                    if isinstance(inv_data, list):
-                        for device in inv_data:
-                            hostname = device.get('hostname', '')
-                            ip = device.get('ip', '')
-                            if hostname and ip:
-                                fqdn = f"{hostname}.{base_domain}"
-                                records.append({
-                                    "hostname": fqdn,
-                                    "ipv4": ip,
-                                })
+                for device in context.store.inventory():
+                    hostname = str(device.get('hostname', '')).strip()
+                    ip = str(device.get('ip', '')).strip()
+                    if hostname and ip:
+                        records.append({
+                            "hostname": hostname if "." in hostname or not base_domain else f"{hostname}.{base_domain}",
+                            "ipv4": ip,
+                        })
             
             # Extract from Everpure if selected
             if import_everpure.value:
-                # Try multiple possible locations
-                everpure_paths = [
-                    context.output_dir.parent / "host_vars" / "everpure" / "everpure.ezai.yaml",
-                    context.output_dir / "everpure" / "everpure.ezai.yaml",
-                    Path("scripts/deployments/environments/default/host_vars/everpure/everpure.ezai.yaml"),
-                ]
-                
-                everpure_path = None
-                for path in everpure_paths:
-                    if path.is_file():
-                        everpure_path = path
-                        break
-                
+                everpure_path = saved_file("everpure/everpure.ezai.yaml")
+
                 if everpure_path:
                     with open(everpure_path) as f:
                         everpure_data = yaml.safe_load(f)
@@ -1745,34 +1715,8 @@ def dns_manager_form(handle) -> None:
         return None
     
     def file_exists(file_path: str) -> bool:
-        """Check if a file has been saved in the environment."""
-        # Check in workspace first
-        full_path = context.output_dir / file_path
-        if full_path.is_file():
-            return True
-        
-        # Also check in host_vars directory for openshift/everpure files
-        if file_path.startswith("openshift/"):
-            alt_path = context.output_dir.parent / "host_vars" / file_path
-            if alt_path.is_file():
-                return True
-        elif file_path.startswith("everpure/"):
-            alt_path = context.output_dir.parent / "host_vars" / file_path
-            if alt_path.is_file():
-                return True
-        
-        return False
-        
-        return False
-    
-    def initial_inventory_exists() -> bool:
-        """Check if Initial Inventory has been saved."""
-        # Check if initial_inventory.json exists in workspace
-        inv_path = context.output_dir / "initial_inventory.json"
-        if inv_path.is_file():
-            return True
-        # Also check if LDAP config is available in shared services
-        return bool(context.store.shared_services())
+        """Check if a file has been saved in the active environment."""
+        return saved_file(file_path) is not None
     
     def generate_dns_config():
         """Generate dns_config.ezai.yaml based on user selections."""
@@ -1849,18 +1793,9 @@ def dns_manager_form(handle) -> None:
         dns_records = extract_dns_records_from_files()
         config["dns"]["records"] = dns_records if dns_records else []
         
-        # If no records found, add an example
         if not config["dns"]["records"]:
-            config["dns"]["records"] = [
-                {
-                    "hostname": "example-server.example.com",
-                    "ipv4": "192.168.1.1",
-                },
-                {
-                    "hostname": "api.cluster.example.com",
-                    "ipv4": "192.168.1.10",
-                },
-            ]
+            ui.notify("No A records were found in the selected inventory sources. Save the OpenShift install file or "
+                      "add devices to the Initial Inventory, then generate again.", type="warning", multi_line=True)
         
         # Generate YAML
         yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
@@ -1906,6 +1841,19 @@ def dns_manager_form(handle) -> None:
                         ui.label(f"Server: {ldap_data.get('server', 'N/A')}").classes("text-sm")
                         ui.label(f"Domain: {ldap_data.get('domain', 'N/A')}").classes("text-sm")
                         ui.label(f"Bind DN: {ldap_data.get('bind_dn', 'N/A')}").classes("text-sm muted")
+                        try:
+                            vault_values = context.vault.load()
+                        except VaultError:
+                            vault_values = {}
+                        ldap_password_set = context.vault.is_set(vault_values, *intersight_policies.LDAP_SOURCE)
+                        with ui.row().classes("items-center gap-1"):
+                            ui.icon("check_circle" if ldap_password_set else "error_outline",
+                                    color="positive" if ldap_password_set else "warning")
+                            ui.label("Bind password stored in Initial Inventory - Shared services; Validate and "
+                                     "Synchronize use it, so no separate Active Directory password is needed."
+                                     if ldap_password_set else
+                                     "Bind password not set. Store it in Initial Inventory - Shared services, or "
+                                     "enter an Active Directory password under Passwords and secrets.").classes("text-sm")
                         ui.label("You can still override these settings by editing the YAML below.").classes("text-xs muted mt-2")
             else:
                 use_shared_ldap = ui.checkbox("Use LDAP settings from Initial Inventory", value=False)
@@ -1928,14 +1876,14 @@ def dns_manager_form(handle) -> None:
                 
                 import_initial_inventory = ui.checkbox(
                     "Initial Inventory with Shared Services",
-                    value=False,
+                    value=bool(context.store.inventory()),
                     on_change=generate_dns_config
                 )
-                ui.label("Check this box to include devices from initial_inventory.json").classes("text-xs muted ml-6")
+                ui.label("Check this box to include the devices in this environment's Initial Inventory").classes("text-xs muted ml-6")
                 
                 import_everpure = ui.checkbox(
                     "Everpure Storage Inventory (everpure/everpure.ezai.yaml)",
-                    value=False,
+                    value=file_exists("everpure/everpure.ezai.yaml"),
                     on_change=generate_dns_config
                 )
                 ui.label("Check this box to include Everpure storage systems from everpure/everpure.ezai.yaml").classes("text-xs muted ml-6")

@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-11-17
+
+### Fixed
+- DNS Manager now reads the OpenShift install file, Everpure file, and Initial Inventory from the active environment (any environment name) instead of paths that only existed in a development checkout, so Generate Configuration finds the records on an installed appliance.
+- Hostnames without a domain use the OpenShift base domain, then the Active Directory domain from Shared Services; hostnames that are already FQDNs are kept.
+- Generate Configuration no longer inserts `example.com` placeholder records when nothing is found; it warns instead.
+- The Shared Services LDAP bind password is no longer reported as missing: the DNS Manager page shows whether it is stored, and the Active Directory username and password fields are optional and default to the Shared Services bind account.
+- Passwords and secrets lists only the credentials for the provider in the saved DNS configuration.
+
 ## [0.1.17] - 2026-11-17
 
 ### Fixed

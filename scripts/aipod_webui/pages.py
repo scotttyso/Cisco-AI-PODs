@@ -887,27 +887,29 @@ def PHASE2_SECRETS(handle):
 
 
 def dns_manager_secrets(handle: PageHandle) -> list[SecretField]:
-    """Return credential fields based on the selected DNS provider from the saved state."""
-    # Get the saved DNS config to determine which provider is selected
-    state = handle.state()
-    dns_config = state.get("dns") or {}
-    provider = dns_config.get("provider", "").lower() if isinstance(dns_config, dict) else ""
-    
-    # Map providers to their required credentials
-    if provider == "active_directory" or provider == "ad":
-        return [DNS_AD_USERNAME, DNS_AD_PASSWORD]
-    elif provider == "infoblox":
-        return [DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD]
-    elif provider == "bluecat":
-        return [DNS_BLUECAT_USERNAME, DNS_BLUECAT_PASSWORD]
-    elif provider == "efficient_ip" or provider == "efficientip":
-        return [DNS_EFFICIENTIP_USERNAME, DNS_EFFICIENTIP_PASSWORD]
-    elif provider == "bind" or provider == "bind_dns" or provider == "bindns":
-        return [DNS_BINDNS_API_KEY]
-    # Return all possible credentials so users can configure any provider
-    return [DNS_AD_USERNAME, DNS_AD_PASSWORD, DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD,
-            DNS_BLUECAT_USERNAME, DNS_BLUECAT_PASSWORD, DNS_EFFICIENTIP_USERNAME, 
-            DNS_EFFICIENTIP_PASSWORD, DNS_BINDNS_API_KEY]
+    """Credential fields for the provider in the saved DNS configuration (all providers until one is saved)."""
+    config_file = handle.context.host_vars_dir / "dns" / "dns_config.ezai.yaml"
+    try:
+        config = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        config = {}
+    providers = (config.get("dns") or {}).get("providers") or {}
+    selected = {DNS_PROVIDER_ARGS.get(str(entry.get("type", "")))
+                for entry in providers.values() if isinstance(entry, dict)} - {None}
+    # Active Directory uses the Shared Services LDAP bind account unless its own credentials are stored.
+    ad = [dataclasses.replace(DNS_AD_USERNAME, optional=True,
+                              help="Optional. Defaults to the Shared Services LDAP bind DN."),
+          dataclasses.replace(DNS_AD_PASSWORD, optional=True,
+                              help="Optional. Defaults to the Shared Services LDAP bind password.")]
+    by_provider = {
+        "ad": ad,
+        "infoblox": [DNS_INFOBLOX_USERNAME, DNS_INFOBLOX_PASSWORD],
+        "bluecat": [DNS_BLUECAT_USERNAME, DNS_BLUECAT_PASSWORD],
+        "efficientip": [DNS_EFFICIENTIP_USERNAME, DNS_EFFICIENTIP_PASSWORD],
+        "bind": [DNS_BINDNS_API_KEY],
+    }
+    names = [name for name in by_provider if name in selected] or list(by_provider)
+    return [item for name in names for item in by_provider[name]]
 
 
 DNS_PROVIDER_ARGS = {
