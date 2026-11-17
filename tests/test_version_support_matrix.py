@@ -30,8 +30,9 @@ Info: finished in 1 ms
 class SupportTests(unittest.TestCase):
     def test_only_supported_minors_with_well_formed_versions_validate(self):
         self.assertTrue(matrix.is_supported("openshift", "4.20.46")[0])
+        self.assertTrue(matrix.is_supported("openshift", "5.0.1")[0])
         self.assertTrue(matrix.is_supported("cilium", "1.19.9")[0])
-        for kind, version in (("openshift", "4.19.5"), ("cilium", "1.18.15"), ("cilium", "latest"), ("openshift", "4.20")):
+        for kind, version in (("openshift", "4.18.9"), ("cilium", "1.18.15"), ("cilium", "latest"), ("openshift", "4.20")):
             ok, reason = matrix.is_supported(kind, version)
             self.assertFalse(ok, version)
             self.assertTrue(reason)
@@ -57,11 +58,11 @@ class OpenShiftTests(unittest.TestCase):
             self.assertIsNone(matrix.openshift_from_iserver())
 
     def test_versions_are_limited_to_supported_minors_newest_first(self):
-        items = [{"version": "4.19.20", "support_level": "maintenance"}, {"version": "4.20.9", "support_level": "production"},
-                 {"version": "4.20.16", "support_level": "production"}]
+        items = [{"version": "4.18.9", "support_level": "maintenance"}, {"version": "4.20.9", "support_level": "production"},
+                 {"version": "4.20.16", "support_level": "production"}, {"version": "4.19.20", "support_level": "maintenance"}]
         with patch.object(matrix, "openshift_from_iserver", return_value=items):
             versions, source = matrix.openshift_versions()
-        self.assertEqual([item["version"] for item in versions], ["4.20.16", "4.20.9"])
+        self.assertEqual([item["version"] for item in versions], ["4.20.16", "4.20.9", "4.19.20"])
         self.assertIn("iserver", source)
 
     def test_public_graph_is_the_fallback_then_the_matrix(self):
@@ -116,9 +117,9 @@ class FloatingDefaultTests(unittest.TestCase):
         self.assertTrue(ok, message)
 
     def test_unsupported_latest_production_is_rejected_with_the_way_out(self):
-        ok, message = self.check([{"version": "4.21.2", "default": True}])
+        ok, message = self.check([{"version": "4.18.2", "default": True}])
         self.assertFalse(ok)
-        self.assertIn("4.21.2", message)
+        self.assertIn("4.18.2", message)
         self.assertIn("cluster_version", message)
 
     def test_unresolvable_latest_production_passes_with_a_note(self):
@@ -162,10 +163,10 @@ class ChannelTests(unittest.TestCase):
 
     def test_one_row_per_active_channel_newest_first_with_the_supported_one_marked(self):
         rows, source = self.channels()
-        self.assertEqual([row["minor"] for row in rows], ["5.0", "4.20"])
-        self.assertEqual([row["latest"] for row in rows], ["5.0.12", "4.20.12"])
-        self.assertEqual([row["supported"] for row in rows], [False, True])
-        self.assertEqual(rows[1]["until"], "2027-04-21")
+        self.assertEqual([row["minor"] for row in rows], ["5.0", "4.22", "4.21", "4.20", "4.19"])
+        self.assertEqual(rows[0]["latest"], "5.0.12")
+        self.assertEqual([row["supported"] for row in rows], [True] * 5)
+        self.assertEqual(rows[3]["until"], "2027-04-21")
         self.assertIn("life cycle", source)
 
     def test_iserver_releases_win_over_the_public_graph(self):
@@ -193,11 +194,11 @@ class CheckTests(unittest.TestCase):
 
     def test_newer_active_channels_are_noted_but_not_drift(self):
         report = self.report({"4.20": {"support": "Maintenance Support", "until": "2027-04-21"},
-                              "4.21": {"support": "Full Support", "until": "2027-01-01"},
+                              "5.1": {"support": "Full Support", "until": "2027-01-01"},
                               "4.19": {"support": "Maintenance Support", "until": "2026-12-17"}})
         self.assertEqual(report["problems"], [])
         self.assertEqual(len(report["notes"]), 1)
-        self.assertIn("4.21", report["notes"][0])
+        self.assertIn("5.1", report["notes"][0])
 
     def test_newer_cilium_patches_are_drift_and_the_public_index_is_not_compared(self):
         cycle = {"4.20": {"support": "Maintenance Support", "until": ""}}

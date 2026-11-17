@@ -6,6 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.33] - 2026-11-17
+
+### Changed
+- OpenShift 4.19, 4.20, 4.21, 4.22 and 5.0 are all supported, and `cluster_version` accepts 5.x releases.
+- The OpenShift list on Cluster Deployment defaults to **Latest production release** (`the-latest-production-version`) and then offers the latest stable release of each supported channel, newest first. An earlier patch release in a supported channel is marked "older patch" instead of "pinned".
+- The channel table has an **Assisted Installer** column (when the Console Registration login is available), and Apply warns when the chosen release is not offered by the installer.
+
 ## [0.1.32] - 2026-11-17
 
 ### Changed

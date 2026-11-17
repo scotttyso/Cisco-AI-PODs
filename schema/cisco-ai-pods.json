@@ -38821,12 +38821,13 @@
             "default": "the-latest-production-version",
             "description": "The default value is `the-latest-production-version`, which lets iserver install the latest production release of OpenShift that the Red Hat Assisted Installer offers.  Set a version such as `4.20.16` to pin it.  Only releases supported by Cisco AI PODs are accepted (see scripts/version_support_matrix.py).",
             "examples": [
-                "the-latest-production-version",
-                "4.20.16"
+                "5.0.1",
+                "4.20.46",
+                "the-latest-production-version"
             ],
             "maxLength": 29,
             "minLength": 5,
-            "pattern": "^(4\\.[0-9]{1,2}\\.[0-9]{1,2}|the-latest-production-version)$",
+            "pattern": "^([4-9]\\.[0-9]{1,2}\\.[0-9]{1,2}|the-latest-production-version)$",
             "title": "OpenShift Cluster Version",
             "type": "string"
         },
@@ -39867,5 +39868,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.29"
+    "x-schema-version": "v0.1.32"
 }

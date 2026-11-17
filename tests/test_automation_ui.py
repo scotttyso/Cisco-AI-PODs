@@ -249,7 +249,7 @@ class AutomationUiTests(unittest.TestCase):
         options = custom_pages.channel_choices(channels, "4.20.16", "the-latest-production-version", ok)
         self.assertEqual(list(options), ["the-latest-production-version", "4.20.46", "4.20.16"])
         self.assertEqual(options["4.20.46"], "4.20.46 (latest stable 4.20)")
-        self.assertEqual(options["4.20.16"], "4.20.16 (pinned)")
+        self.assertEqual(options["4.20.16"], "4.20.16 (older patch)")
         self.assertEqual(custom_pages.channel_choices(channels, "4.19.5", "", ok)["4.19.5"], "4.19.5 (not supported)")
 
 

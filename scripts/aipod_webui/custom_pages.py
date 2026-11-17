@@ -709,7 +709,7 @@ REGISTRY_HOST = re.compile(r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-
 
 
 def _unlisted(current: str, is_supported) -> str:
-    return f"{current} ({'pinned' if is_supported and is_supported(current) else 'not supported'})"
+    return f"{current} ({'older patch' if is_supported and is_supported(current) else 'not supported'})"
 
 
 def version_choices(versions: list[str], recommended: str, current: str = "", floating: str = "",
@@ -728,7 +728,7 @@ def version_choices(versions: list[str], recommended: str, current: str = "", fl
 def channel_choices(channels: list[dict], current: str = "", floating: str = "", is_supported=None) -> dict[str, str]:
     """OpenShift pick-list: the floating default, then the latest stable release of each supported channel."""
     options = {floating: "Latest production release (default)"} if floating else {}
-    for row in channels:
+    for row in sorted(channels, key=lambda item: [int(part) for part in item["minor"].split(".")], reverse=True):
         if row["supported"]:
             options[row["latest"]] = f"{row['latest']} (latest stable {row['minor']})"
     if current and current not in options:
@@ -917,7 +917,8 @@ def ocp_cluster_form(handle) -> None:
                          {"name": "latest", "label": "Latest stable", "field": "latest", "align": "left"},
                          {"name": "support", "label": "Red Hat support", "field": "support", "align": "left"},
                          {"name": "until", "label": "Phase ends", "field": "until", "align": "left"},
-                         {"name": "supported", "label": "Cisco AI PODs", "field": "supported", "align": "left"}],
+                         {"name": "supported", "label": "Cisco AI PODs", "field": "supported", "align": "left"},
+                         {"name": "installer", "label": "Assisted Installer", "field": "installer", "align": "left"}],
                 rows=[], row_key="channel").props("dense flat").classes("w-full")
             channel_table.set_visibility(False)
             channels: list[dict] = []
@@ -941,7 +942,8 @@ def ocp_cluster_form(handle) -> None:
                 openshift.set_options(channel_choices(rows, openshift.value, support.LATEST_PRODUCTION, openshift_ok),
                                       value=openshift.value)
                 channel_table.rows = [{**row, "supported": "supported" if row["supported"] else "",
-                                       "until": row["until"] or ""} for row in rows]
+                                       "until": row["until"] or "", "installer": row.get("installer", "")}
+                                      for row in rows]
                 channel_table.update()
                 channel_table.set_visibility(bool(rows))
                 openshift_source.set_text(f"Latest stable release of each channel: {source}")
@@ -984,6 +986,10 @@ def ocp_cluster_form(handle) -> None:
                 if problems:
                     ui.notify(" ".join(problems), type="negative", multi_line=True)
                     return
+                if any(row["latest"] == openshift.value and row.get("installer") == "not offered" for row in channels):
+                    ui.notify(f"The Assisted Installer does not offer {openshift.value} yet; the install will fail "
+                              "until it does. Choose another release or the latest production release.",
+                              type="warning", multi_line=True)
                 current = seeds.load(await workbench.content(install_target))
                 bare_metal = seeds.ensure(current, "openshift", "install", "bare_metal")
                 if openshift.value == support.LATEST_PRODUCTION:

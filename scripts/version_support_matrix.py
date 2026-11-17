@@ -48,7 +48,7 @@ import yaml
 # live list is reachable.
 VERSION_SUPPORT = {
     "openshift": {
-        "supported_minors": ["4.20"],
+        "supported_minors": ["4.19", "4.20", "4.21", "4.22", "5.0"],
         "tested": ["4.20.16"],
     },
     "cilium": {
@@ -86,7 +86,7 @@ def recommended(kind: str) -> str:
 def recommendation(kind: str) -> str:
     minors = VERSION_SUPPORT[kind]["supported_minors"]
     if kind == "openshift":
-        return f"the latest stable release of {', '.join(minors)}.x"
+        return f"the latest stable release of the newest channel, {minors[-1]}.x"
     return f"recommended {recommended(kind)}"
 
 
@@ -247,8 +247,12 @@ def openshift_channels(offline: bool = False, today: Optional[datetime.date] = N
             continue
         info = cycle.get(minor, {})
         sources.add(via)
+        installer = ""
+        if from_iserver:
+            installer = "offered" if latest in {item["version"] for item in from_iserver} else "not offered"
         rows.append({"channel": f"stable-{minor}", "minor": minor, "latest": latest, "support": info.get("support", ""),
-                     "phase": info.get("phase", ""), "until": info.get("until", ""), "supported": minor in supported})
+                     "phase": info.get("phase", ""), "until": info.get("until", ""), "supported": minor in supported,
+                     "installer": installer})
     note = "; support phases from Red Hat's life cycle API" if cycle else ""
     return rows, ("; ".join(sorted(sources)) or "matrix (tested versions)") + note
 
@@ -368,10 +372,10 @@ def main() -> int:
             print(json.dumps({"source": source, "channels": rows}, indent=2))
         else:
             print(f"Source: {source}")
-            print(f"{'CHANNEL':<14}{'LATEST':<10}{'SUPPORT':<22}{'UNTIL':<12}CISCO AI PODS")
+            print(f"{'CHANNEL':<14}{'LATEST':<10}{'SUPPORT':<22}{'UNTIL':<12}{'CISCO AI PODS':<15}INSTALLER")
             for row in rows:
                 print(f"{row['channel']:<14}{row['latest']:<10}{row['support']:<22}{row['until']:<12}"
-                      f"{'supported' if row['supported'] else '-'}")
+                      f"{'supported' if row['supported'] else '-':<15}{row['installer'] or '-'}")
         return 0
 
     if args.command == "list":
