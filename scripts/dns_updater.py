@@ -878,7 +878,7 @@ class DNSUpdater:
 
         self.logger.info(f"Changes applied: {created} created or updated, {deleted} deleted, {failed} failed")
         if created:
-            self.logger.info("The DNS service reads AD changes within about a minute; run Validate again to confirm")
+            self.logger.info("The DNS service loads AD changes on its polling interval (about 3 minutes by default); refresh the zone or run Validate again after that")
         if failed:
             sys.exit(1)
 

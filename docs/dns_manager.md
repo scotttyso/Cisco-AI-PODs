@@ -60,7 +60,7 @@ On the OpenShift Cluster Deployment page, **Check DNS records** (Pre-check) reso
 2. Open DNS Manager, pick the provider, tick the sources, and click Generate Configuration. Review the YAML and Save.
 3. Run **Validate** and review the report.
 4. Run **Synchronize** and confirm.
-5. Wait about a minute (the DNS service reads Active Directory changes on a short delay) and run **Validate** again. Every record should now be matching.
+5. Wait about 3 minutes (the DNS service polls Active Directory for changes on that interval) or refresh the zone in the DNS console, then run **Validate** again. Every record should now be matching.
 
 Example Validate report:
 
@@ -108,4 +108,4 @@ Credentials are read from the environment: `ad_username` and `ad_password`, or `
 | "the pywinrm package is not installed" | Update the appliance with the release that includes it, or `pip install pywinrm` |
 | "No AD-integrated DNS zone found for ..." | The hostname's domain is not an AD-integrated zone on that server |
 | Generate Configuration warns that no records were found | Save the OpenShift install file, or add devices to the Initial Inventory |
-| Validate still shows missing records right after Synchronize | Wait about a minute for the DNS service to load the change |
+| Validate still shows missing records right after Synchronize | Records written over LDAP appear after the DNS service polls AD (about 3 minutes by default); refresh the zone or wait |
