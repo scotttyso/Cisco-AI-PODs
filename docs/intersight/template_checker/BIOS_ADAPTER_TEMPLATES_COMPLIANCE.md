@@ -164,7 +164,7 @@ All three template types are **fully compliant** with the latest Intersight SaaS
 
 ## Related Documentation
 
-- [Policy Template Pattern](docs/POLICY_TEMPLATE_PATTERN.md)
+- [Policy Template Pattern](../POLICY_TEMPLATE_PATTERN.md)
 - [Template Difference Checker Quick Start](TEMPLATE_CHECKER_QUICK_START.md)
 - [Template Compliance Guide](TEMPLATE_DIFFERENCE_CHECKER.md)
 
@@ -178,4 +178,4 @@ The user can:
 2. ✅ Publish v0.1.16 or later including this compliance verification
 3. ✅ Begin work on Feature 2 (auto-stripping unsupported attributes for PVA/CVA)
 
-For more information about the broader compliance analysis, see [bios_adapter_compliance_check.md](bios_adapter_compliance_check.md).
+For more information about the broader compliance analysis, see [Template Difference Checker](./TEMPLATE_DIFFERENCE_CHECKER.md).

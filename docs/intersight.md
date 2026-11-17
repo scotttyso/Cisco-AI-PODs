@@ -248,14 +248,14 @@ each certificate's `certificate_file` / `private_key_file`.
 - `roles/intersight_pools/tasks/`: Policies for MAC, UUID, and IP pools
 - `roles/intersight_policies/tasks/`: BIOS, boot, network, and storage policy configurations
 - `roles/intersight_profiles/tasks/`: Server profile templates and deployment profiles
-- `docs/intersight_policy_templates/`: Reference documentation for BIOS, Ethernet, Fibre Channel, and Storage policy templates
-- `docs/intersight_prefix_suffix.md`: Name prefix and suffix decoration guidance
+- `docs/intersight/policy_templates/`: Reference documentation for BIOS, Ethernet, Fibre Channel, and Storage policy templates
+- `docs/intersight/prefix_suffix.md`: Name prefix and suffix decoration guidance
 
 ## Configuration Structure
 
-Intersight configuration is organized by organization, and resources are deployed with optional name prefix/suffix decoration. See [intersight_prefix_suffix.md](intersight_prefix_suffix.md) for details on applying name decoration to pools, policies, profiles, and templates.
+Intersight configuration is organized by organization, and resources are deployed with optional name prefix/suffix decoration. See [intersight_prefix_suffix.md](intersight/prefix_suffix.md) for details on applying name decoration to pools, policies, profiles, and templates.
 
 ## Related Documentation
 
-- [Policy Templates Reference](intersight_policy_templates/): BIOS, Ethernet adapter, Fibre Channel adapter, and storage policy templates
-- [Name Prefix and Suffix Support](intersight_prefix_suffix.md)
+- [Policy Templates Reference](intersight/policy_templates/): BIOS, Ethernet adapter, Fibre Channel adapter, and storage policy templates
+- [Name Prefix and Suffix Support](intersight/prefix_suffix.md)
