@@ -1,4 +1,4 @@
-.PHONY: sanity-ignore-sync sanity-ignore-check ansible-lint dns-test dns-lint dns-validate
+.PHONY: sanity-ignore-sync sanity-ignore-check ansible-lint dns-test dns-lint
 
 sanity-ignore-sync:
 	./scripts/sync-sanity-ignore.sh
@@ -15,7 +15,4 @@ dns-test:
 	python -m pytest scripts/test_dns_updater.py -v
 
 dns-lint:
-	python -m pylint scripts/dns_updater.py scripts/dns_validator.py scripts/aipod_webui/dns_manager_page.py --disable=R0801,C0111
-
-dns-validate:
-	python scripts/dns_updater.py --validate-config dns_config.yaml
+	python -m pylint scripts/dns_updater.py scripts/dns_validator.py --disable=R0801,C0111

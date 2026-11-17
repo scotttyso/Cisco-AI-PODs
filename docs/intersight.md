@@ -259,3 +259,4 @@ Intersight configuration is organized by organization, and resources are deploye
 
 - [Policy Templates Reference](intersight/policy_templates/): BIOS, Ethernet adapter, Fibre Channel adapter, and storage policy templates
 - [Name Prefix and Suffix Support](intersight/prefix_suffix.md)
+- [Template Checker and CVA/PVA Support](intersight/template_checker.md): Maintenance tools that compare the templates with the Intersight API, and selecting SaaS, CVA, or PVA

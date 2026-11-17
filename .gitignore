@@ -98,7 +98,7 @@ db.sqlite3-journal
 # Scrapy stuff:
 .scrapy
 
-# Template checker generated reports (outputs in root; docs are in docs/template_checker/)
+# Template checker generated reports (see docs/intersight/template_checker.md)
 template_differences.*
 bios_adapter_compliance_check.*
 template_objects_diff.*
