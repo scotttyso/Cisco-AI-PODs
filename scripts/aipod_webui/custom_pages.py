@@ -1816,7 +1816,6 @@ def dns_manager_form(handle) -> None:
                 "server": "infoblox.example.com",
                 "api_version": "2.11",
                 "username": "api_user",
-                "password": "${INFOBLOX_PASSWORD}",
                 "use_ssl": True,
                 "verify_ssl": True,
                 "wapi_port": 443,
@@ -1827,7 +1826,6 @@ def dns_manager_form(handle) -> None:
                 "type": "bluecat",
                 "server": "bluecat.example.com",
                 "username": "api_user",
-                "password": "${BLUECAT_PASSWORD}",
                 "timeout": 30,
             }
         elif provider_key == "efficient_ip":
@@ -1835,7 +1833,6 @@ def dns_manager_form(handle) -> None:
                 "type": "efficientip",
                 "server": "efficientip.example.com",
                 "username": "api_user",
-                "password": "${EFFICIENTIP_PASSWORD}",
                 "timeout": 30,
             }
         elif provider_key == "bind":
