@@ -5,6 +5,7 @@ This guide provides comprehensive workflows for deploying and configuring OpenSh
 ## Quick Navigation
 
 - **[Cluster Installation](#cluster-installation)** — Generate manifests and deploy bare-metal OpenShift
+- **[Cilium Registry Access](#cilium-registry-access)** — Register the Isovalent Enterprise (Cilium) registry with iServer
 - **[Authentication](#authentication)** — Configure LDAP/Active Directory
 - **[Certificates](#certificates)** — Manage custom CA, ingress, and API certificates
 - **[GitOps](#gitops)** — Generate content for GitOps repositories
@@ -94,6 +95,21 @@ Generate and deploy bare-metal OpenShift cluster manifests via Cisco iServer and
    ```
 
 For detailed instructions, see [roles/openshift_install/README.md](../roles/openshift_install/README.md).
+
+---
+
+## Cilium Registry Access
+
+Isovalent Enterprise Platform (Cilium) images and manifests are served from a registry that requires authentication. iServer stores the registry host name and an identity token, verifies them, and the OpenShift installer adds the registry to the cluster pull secret. This is a one-time step per token; register again when the token expires (the access tokens iServer creates last 90 days).
+
+In the UI use **OpenShift > Cilium Registry**:
+
+1. Choose the registry. **Isovalent registry (customers)** uses `registry.isovalent.com`. **Other registry** takes any registry host name, for example an internal or mirrored registry (host name only, no `https://` and no path).
+2. Create an identity token for that registry. For the Isovalent registry, sign in to the Isovalent Enterprise documentation and follow *Isovalent Registry Access* ([docs.isovalent.com](https://docs.isovalent.com/iep/latest/platform/registry.html)); other registries have their own procedure.
+3. Store the identity token in the Credentials panel (it is kept in the encrypted vault and masked in job logs).
+4. Click **Save registry**, then **Register Cilium registry**. This runs `iserver set ocp cilium registry --registry <host> --token <identity token>` and verifies access.
+
+**Check Cilium registry** runs `iserver get ocp cilium registry`. When `openshift.operators.cilium` is configured, **Install cluster** on the Cluster Deployment page runs this check first, so an expired token stops the job before any node is touched. Cilium itself is configured in `host_vars/openshift/operators.ezai.yaml`; setting `openshift.operators.cilium.version` lets iServer download the manifests for that version.
 
 ---
 

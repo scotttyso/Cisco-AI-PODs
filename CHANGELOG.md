@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.28] - 2026-11-17
+
+### Added
+- **Cilium Registry** page (OpenShift > Cilium Registry): registers the registry host and identity token with iServer (`iserver set ocp cilium registry`) and verifies them. Choose the Isovalent registry for customers, or enter any other registry host name. The identity token is stored in the vault and masked in job logs.
+- **Install cluster** checks the Cilium registry first when `openshift.operators.cilium` is configured, so an expired token stops the job before any node is touched.
+
+### Changed
+- The Isovalent registry registration moved from the OpenShift GitOps page to the Cilium Registry page (the read-only check stays on the GitOps page).
+
 ## [0.1.27] - 2026-11-17
 
 ### Fixed

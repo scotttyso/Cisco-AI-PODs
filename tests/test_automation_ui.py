@@ -182,6 +182,53 @@ class AutomationUiTests(unittest.TestCase):
         self.assertTrue(fields)
         self.assertTrue(all(item.optional for item in fields))
 
+    def test_cilium_registry_host_validation(self):
+        from aipod_webui import custom_pages
+
+        for good in ("registry.isovalent.com", "registry.example.com:5000", "localhost"):
+            self.assertEqual(custom_pages.registry_host_problem(good), "", good)
+        for bad in ("", "https://registry.example.com", "registry.example.com/path", "bad host", "-bad.example.com"):
+            self.assertTrue(custom_pages.registry_host_problem(bad), bad)
+
+    def test_cilium_registry_command_uses_the_saved_host(self):
+        from types import SimpleNamespace
+        from aipod_webui import pages
+
+        ui = SimpleNamespace(python=lambda: "python", repository=Path("/repo"))
+
+        def command(state):
+            return pages.cilium_registry(SimpleNamespace(ui=ui, state=state))[0]
+
+        default = command({})
+        self.assertEqual(default[default.index("--registry") + 1], "registry.isovalent.com")
+        custom = command({"registry": "registry.example.com"})
+        self.assertEqual(custom[custom.index("--registry") + 1], "registry.example.com")
+        self.assertNotIn("token", " ".join(custom).lower().replace("isovalent", ""))
+        with self.assertRaises(ValueError):
+            command({"registry": "https://registry.example.com"})
+
+    def test_install_checks_the_cilium_registry_first_only_when_cilium_is_configured(self):
+        from types import SimpleNamespace
+        from aipod_webui import pages
+
+        with tempfile.TemporaryDirectory() as folder:
+            host_vars = Path(folder)
+            (host_vars / "openshift").mkdir()
+            ui = SimpleNamespace(python=lambda: "python", repository=Path("/repo"), host_vars_dir=host_vars)
+            rc = SimpleNamespace(ui=ui, state={})
+            install = pages.with_cilium_registry_check(lambda _rc: [["install"]])
+
+            self.assertEqual(install(rc), [["install"]])
+            (host_vars / "openshift/operators.ezai.yaml").write_text(
+                "openshift:\n  operators:\n    nvidia_network_operator:\n      enabled: true\n")
+            self.assertEqual(install(rc), [["install"]])
+            (host_vars / "openshift/operators.ezai.yaml").write_text(
+                "openshift:\n  operators:\n    cilium:\n      version: 1.19.9\n")
+            commands = install(rc)
+            self.assertEqual(len(commands), 2)
+            self.assertIn("isovalent-check", commands[0])
+            self.assertEqual(commands[1], ["install"])
+
 
 if __name__ == "__main__":
     unittest.main()

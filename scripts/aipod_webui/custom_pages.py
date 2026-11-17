@@ -703,6 +703,73 @@ def console_form(handle) -> None:
                 "text-warning text-sm")
 
 
+# ------------------------------------------------------------------------------------------ Cilium registry
+
+ISOVALENT_REGISTRY = "registry.isovalent.com"
+REGISTRY_HOST = re.compile(r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(:\d{1,5})?$")
+
+
+def registry_host_problem(host: str) -> str:
+    """Why a registry host name cannot be used with iserver, or an empty string."""
+    host = (host or "").strip()
+    if not host:
+        return "Enter the registry host name"
+    if "://" in host or "/" in host or " " in host:
+        return "Enter the host name only, without https:// or a path"
+    if not REGISTRY_HOST.match(host):
+        return "Not a valid host name"
+    return ""
+
+
+def cilium_registry_form(handle) -> None:
+    state = handle.state()
+    saved = (state.get("registry") or ISOVALENT_REGISTRY).strip()
+    custom = saved != ISOVALENT_REGISTRY
+    with card("Registry", "Isovalent Enterprise Platform images and manifests come from a registry that requires "
+                          "authentication. iserver stores the registry and a token, and the OpenShift installer adds "
+                          "the registry to the cluster pull secret.", icon="inventory_2"):
+        kind = ui.radio({"isovalent": "Isovalent registry (customers)",
+                         "other": "Other registry (for example an internal or mirrored registry)"},
+                        value="other" if custom else "isovalent").props("dense")
+        host = ui.input("Registry host name", value=saved if custom else ISOVALENT_REGISTRY,
+                        placeholder="registry.example.com", validation={"Host name only": lambda value: not registry_host_problem(value)}
+                        ).props("outlined dense").classes("w-full max-w-xl")
+        host.bind_enabled_from(kind, "value", backward=lambda value: value == "other")
+        ui.label("Host name only, with no https:// and no path.").classes("muted text-xs")
+
+        def choose() -> None:
+            if kind.value == "isovalent":
+                host.set_value(ISOVALENT_REGISTRY)
+
+        kind.on_value_change(choose)
+
+        def save() -> None:
+            value = ISOVALENT_REGISTRY if kind.value == "isovalent" else (host.value or "").strip()
+            problem = registry_host_problem(value)
+            if problem:
+                ui.notify(problem, type="negative")
+                return
+            handle.save_state({"registry": value})
+            ui.notify(f"Registry saved: {value}", type="positive")
+
+        ui.button("Save registry", icon="save", on_click=save).props("outline")
+
+    with card("Get the identity token", icon="vpn_key"):
+        ui.markdown(
+            "**Customers:** sign in to the Isovalent Enterprise documentation and follow *Isovalent Registry Access* "
+            "([docs.isovalent.com](https://docs.isovalent.com/iep/latest/platform/registry.html)) to create an "
+            "identity token.\n\n"
+            "**Other registries:** use that registry's own procedure for an identity token, then select *Other "
+            "registry* above and enter its host name.\n\n"
+            "Store the identity token in the Credentials panel, save the registry, then run **Register Cilium "
+            "registry**. iserver proves the token works by creating and deleting a temporary access token; "
+            "the access tokens it later creates last 90 days, so run it again when the token expires. Only the host "
+            "name is saved here; the token stays in the encrypted vault and is masked in job logs.")
+        if not shutil.which("iserver"):
+            ui.label("iserver is not installed on this server (https://github.com/datacenter/iserver).").classes(
+                "text-warning text-sm")
+
+
 def _ssh_reference(handle) -> int:
     for model in handle.models():
         bare = (((model.get("openshift") or {}).get("install") or {}).get("bare_metal")) or {}

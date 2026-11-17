@@ -872,6 +872,35 @@ def iserver_setup(*arguments: str) -> Callable[[RunContext], list[list[str]]]:
     return lambda rc: [script(rc, "07-openshift-cluster/automation/scripts/iserver_setup.py", *arguments)]
 
 
+def cilium_registry(rc: RunContext) -> list[list[str]]:
+    """Store the registry host and the identity token in iserver, then verify them."""
+    host = str(rc.state.get("registry") or custom_pages.ISOVALENT_REGISTRY).strip()
+    problem = custom_pages.registry_host_problem(host)
+    if problem:
+        raise ValueError(f"Saved registry '{host}': {problem}")
+    return iserver_setup("isovalent", "--registry", host)(rc)
+
+
+def cilium_configured(rc: RunContext) -> bool:
+    """True when the OpenShift operators file configures Cilium, which pulls from the authenticated registry."""
+    try:
+        data = yaml.safe_load((rc.ui.host_vars_dir / OPERATORS_TARGET).read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return False
+    operators = (data.get("openshift") or {}).get("operators") or {}
+    return bool(isinstance(operators, dict) and operators.get("cilium"))
+
+
+def with_cilium_registry_check(build: Callable[[RunContext], list[list[str]]]) -> Callable[[RunContext], list[list[str]]]:
+    """Run the Cilium registry check first when Cilium is configured, so an expired token stops the job early."""
+    def wrapped(rc: RunContext) -> list[list[str]]:
+        commands = build(rc)
+        if cilium_configured(rc):
+            return iserver_setup("isovalent-check")(rc) + commands
+        return commands
+    return wrapped
+
+
 def cluster_status(rc: RunContext) -> list[list[str]]:
     if not ocp_env(rc):
         raise ValueError("Set the kubeconfig path in the cluster settings on the Cluster Deployment page")
@@ -1144,6 +1173,18 @@ SECTIONS = (
                                  group="Post-check", files=False)),
                  secrets=lambda handle: [OCP_CONSOLE_TOKEN, OCP_PULL_SECRET], form=custom_pages.console_form,
                  group="OpenShift"),
+        PageSpec("ocp-cilium-registry", "Cilium Registry", "inventory_2", "07-openshift-cluster",
+                 "Registry access for Isovalent Enterprise Platform (Cilium). Required before installing OpenShift "
+                 "with Cilium; the token must be registered again when it expires.",
+                 actions=(Action("cilium-registry", "Register Cilium registry", "key", cilium_registry,
+                                 secrets=(ISOVALENT_TOKEN.key,), files=False,
+                                 tooltip="Runs iserver set ocp cilium registry with the saved registry host and the "
+                                         "identity token, then verifies access."),
+                          Action("cilium-registry-check", "Check Cilium registry", "verified",
+                                 iserver_setup("isovalent-check"), group="Post-check", files=False,
+                                 tooltip="Verifies the registry access iserver has stored.")),
+                 secrets=lambda handle: [ISOVALENT_TOKEN], form=custom_pages.cilium_registry_form,
+                 group="OpenShift"),
         PageSpec("ocp-cluster", "Cluster Deployment", "rocket_launch", "07-openshift-cluster",
                  "Agent-based bare-metal install settings and node inventory. DNS, NTP, and nodes come from the "
                  "initial inventory; node MACs come from Intersight or the BMC Redfish API.",
@@ -1159,9 +1200,10 @@ SECTIONS = (
                           Action("phase1", "Prepare install (phase 1)", "build", deploy("openshift", "--openshift-only-stage",
                                                                                         "phase1"), secrets=("*",)),
                           Action("iserver", "Install cluster (iserver)", "rocket_launch",
-                                 deploy("openshift", "--openshift-only-stage", "iserver"), secrets=("*",),
+                                 with_cilium_registry_check(deploy("openshift", "--openshift-only-stage", "iserver")),
+                                 secrets=("*",),
                                  confirm="Boots the nodes from the discovery ISO and installs OpenShift. Node disks are "
-                                         "erased."),
+                                         "erased. When Cilium is configured, the Cilium registry is checked first."),
                           Action("status", "Cluster status", "monitor_heart", cluster_status, group="Post-check",
                                  env=ocp_env, files=False),
                           INTERSIGHT_MACS, OCP_REDFISH_MACS),
@@ -1190,13 +1232,12 @@ SECTIONS = (
                  notes=("The URL, base DNs, and bind DN pre-fill from Initial Inventory > Shared services > LDAP. Set the "
                         "cluster admin groups and group mappings here.", OPENSHIFT_UPLOAD_NOTE), group="OpenShift"),
         PageSpec("ocp-gitops", "OpenShift GitOps", "account_tree", "08-mlops",
-                 "OpenShift GitOps (Argo CD) operators: Cilium, NVIDIA AI Enterprise, and more.",
+                 "OpenShift GitOps (Argo CD) operators: Cilium, NVIDIA AI Enterprise, and more. Register the Cilium "
+                 "registry on the Cilium Registry page.",
                  files=(FileSpec("examples/openshift/operators.ezai.yaml", OPERATORS_TARGET,
                                  "ocp_operators"),),
                  actions=(Action("isovalent-check", "Check Isovalent registry", "verified",
                                  iserver_setup("isovalent-check"), group="Pre-check", files=False),
-                          Action("isovalent", "Register Isovalent registry", "key", iserver_setup("isovalent"),
-                                 group="Tools", secrets=(ISOVALENT_TOKEN.key,), files=False),
                           Action("gitops", "Deploy GitOps", "account_tree", phase2("gitea,argocd,gitops"),
                                  secrets=("*",), env=ocp_env,
                                  confirm="Installs Gitea (when enabled) and OpenShift GitOps, and renders the "
@@ -1207,7 +1248,7 @@ SECTIONS = (
                                  confirm="Commits the rendered operator applications in destination_directory and "
                                          "pushes them to the GitOps repository URL."),
                           INTERSIGHT_MACS, REDFISH_MACS),
-                 secrets=lambda handle: PHASE2_SECRETS(handle) + [ISOVALENT_TOKEN, GITOPS_TOKEN],
+                 secrets=lambda handle: PHASE2_SECRETS(handle) + [GITOPS_TOKEN],
                  form=custom_pages.gitops_form, group="OpenShift"),
     )),
     Section("observability", "Splunk Observability", "query_stats", (
