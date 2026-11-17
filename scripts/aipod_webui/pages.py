@@ -934,6 +934,7 @@ def dns_manager_actions(rc: RunContext) -> list[list[str]]:
         "infoblox": "infoblox",
         "bluecat": "bluecat",
         "efficient_ip": "efficient_ip",
+        "bind": "bind_dns",
         "bind_dns": "bind_dns",
     }
     provider_arg = provider_map.get(provider_type, "ad")
@@ -965,6 +966,7 @@ def dns_manager_sync(rc: RunContext) -> list[list[str]]:
         "infoblox": "infoblox",
         "bluecat": "bluecat",
         "efficient_ip": "efficient_ip",
+        "bind": "bind_dns",
         "bind_dns": "bind_dns",
     }
     provider_arg = provider_map.get(provider_type, "ad")

@@ -1729,9 +1729,11 @@ def dns_manager_form(handle) -> None:
                     # Convert DC=rich,DC=ciscolabs,DC=com to rich.ciscolabs.com
                     domain = ".".join([part[3:] for part in base_dn.split(",") if part.startswith("DC=")])
                 
-                # Note: bind_dn from LDAP config is the service account DN (e.g., CN=Network Services,...)
-                # For DNS manager, we need a username, which the user will enter in the credentials section
+                # Extract bind_dn (service account DN, e.g., CN=Network Services,...)
                 bind_dn = ldap.get("bind_dn", "")
+                
+                # Extract password from shared LDAP settings
+                password = ldap.get("password", "")
                 
                 return {
                     "server": server,
@@ -1739,6 +1741,7 @@ def dns_manager_form(handle) -> None:
                     "bind_dn": bind_dn,
                     "ldap_port": port,
                     "use_ssl": use_ssl or ldap.get("secure_ldap", False),
+                    "password": password,  # Include password if available in shared services
                 }
         except Exception:
             pass
@@ -1774,7 +1777,7 @@ def dns_manager_form(handle) -> None:
         # Also check if LDAP config is available in shared services
         return bool(context.store.shared_services())
     
-    def generate_dns_config():
+    async def generate_dns_config():
         """Generate dns_config.ezai.yaml based on user selections."""
         provider_key = selected_provider.value
         if not provider_key:
@@ -1787,6 +1790,11 @@ def dns_manager_form(handle) -> None:
         if provider_key == "active_directory":
             ldap_data = load_ldap_from_inventory()
             if ldap_data and use_shared_ldap.value:
+                # Use password from shared LDAP if available, otherwise prompt for it
+                password = ldap_data.get("password", "")
+                if not password:
+                    password = "${AD_PASSWORD}"
+                
                 config["dns"]["providers"]["ad_primary"] = {
                     "type": "active_directory",
                     "use_shared_ldap": True,
@@ -1796,7 +1804,7 @@ def dns_manager_form(handle) -> None:
                     "ldap_port": ldap_data.get("ldap_port", 389),
                     "secure_ldap_port": 636,
                     "use_ssl": ldap_data.get("use_ssl", False),
-                    "password": "${AD_PASSWORD}",
+                    "password": password,
                     "timeout": 10,
                 }
             else:
@@ -1871,6 +1879,25 @@ def dns_manager_form(handle) -> None:
         yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
         workbench.set_content("dns/dns_config.ezai.yaml", yaml_content, 
                              f"Generated configuration for {provider_name}")
+        
+        # Auto-save the generated configuration
+        try:
+            await workbench.save(quiet=True)
+            ui.notify("DNS configuration generated and saved", type="positive")
+        except Exception as e:
+            ui.notify(f"Configuration generated but save failed: {e}", type="warning")
+    
+    # Async wrapper for event handlers
+    async def on_provider_change():
+        ui.notify(DNS_PROVIDERS[selected_provider.value]["description"])
+        await generate_dns_config()
+    
+    async def on_chip_click(k):
+        selected_provider.set_value(k)
+        await generate_dns_config()
+    
+    async def on_checkbox_change():
+        await generate_dns_config()
     
     # Form controls
     with card("DNS Provider Selection", 
@@ -1883,17 +1910,13 @@ def dns_manager_form(handle) -> None:
             selected_provider = ui.select(
                 {k: v["name"] for k, v in DNS_PROVIDERS.items()},
                 label="DNS Provider",
-                on_change=lambda: (ui.notify(DNS_PROVIDERS[selected_provider.value]["description"]),
-                                 generate_dns_config())
+                on_change=on_provider_change
             ).props("outlined dense").classes("w-full")
             
             ui.label("DNS Provider details").classes("muted text-xs mt-2")
             with ui.row().classes("w-full gap-2"):
                 for key, provider in DNS_PROVIDERS.items():
-                    ui.chip(provider["name"], on_click=lambda k=key: (
-                        selected_provider.set_value(k),
-                        generate_dns_config()
-                    )).props("outline")
+                    ui.chip(provider["name"], on_click=lambda k=key: on_chip_click(k)).props("outline")
             
             ui.separator().classes("my-4")
             
@@ -1904,7 +1927,7 @@ def dns_manager_form(handle) -> None:
                 use_shared_ldap = ui.checkbox(
                     "Use LDAP settings from Initial Inventory's Shared Services",
                     value=True,
-                    on_change=generate_dns_config
+                    on_change=on_checkbox_change
                 )
                 with ui.card().classes("w-full"):
                     with ui.column().classes("w-full gap-2"):
@@ -1927,21 +1950,21 @@ def dns_manager_form(handle) -> None:
                 import_openshift = ui.checkbox(
                     "OpenShift Cluster Deployment (openshift/install.ezai.yaml)",
                     value=file_exists("openshift/install.ezai.yaml"),
-                    on_change=generate_dns_config
+                    on_change=on_checkbox_change
                 )
                 ui.label("Check this box to include OpenShift cluster nodes, API, and ingress from openshift/install.ezai.yaml").classes("text-xs muted ml-6")
                 
                 import_initial_inventory = ui.checkbox(
                     "Initial Inventory with Shared Services",
                     value=False,
-                    on_change=generate_dns_config
+                    on_change=on_checkbox_change
                 )
                 ui.label("Check this box to include devices from initial_inventory.json").classes("text-xs muted ml-6")
                 
                 import_everpure = ui.checkbox(
                     "Everpure Storage Inventory (everpure/everpure.ezai.yaml)",
                     value=False,
-                    on_change=generate_dns_config
+                    on_change=on_checkbox_change
                 )
                 ui.label("Check this box to include Everpure storage systems from everpure/everpure.ezai.yaml").classes("text-xs muted ml-6")
             
