@@ -174,7 +174,12 @@ class ActiveDirectoryProvider(DNSProvider):
                 return connection
             except LDAPException as e:
                 errors.append(f"port {attempt_port}: {e}")
-        raise RuntimeError(f"Cannot bind to {self.server} as {self.username}: " + "; ".join(errors))
+        hint = ""
+        if any('strongerAuthRequired' in error for error in errors):
+            hint = (" The domain controller requires LDAP signing or TLS, so a plain bind on port 389 is refused. "
+                    "Install a certificate on the domain controller so LDAPS (port 636) works, or relax the "
+                    "'Domain controller: LDAP server signing requirements' policy.")
+        raise RuntimeError(f"Cannot bind to {self.server} as {self.username}: " + "; ".join(errors) + "." + hint)
 
     def _load_zones(self):
         """Connect over LDAP and list the AD-integrated DNS zones (needed to write; optional to validate)"""
@@ -555,291 +560,10 @@ class DNSComparator:
         return missing, stale, matching
 
 
-class InventoryParser:
-    """Parse inventory from YAML files"""
-
-    def __init__(self, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
-
-    @staticmethod
-    def load_shared_ldap_config(initial_inventory_path: str) -> Optional[Dict]:
-        """Load LDAP configuration from shared_services in Initial Inventory
-        
-        Args:
-            initial_inventory_path: Path to initial_inventory.ezai.yaml file
-            
-        Returns:
-            Dictionary with ldap config (url, bind_dn, secure_ldap) or None if not found
-        """
-        try:
-            with open(initial_inventory_path, 'r') as f:
-                data = yaml.safe_load(f)
-            
-            if not data or 'shared_services' not in data:
-                return None
-            
-            ldap_config = data['shared_services'].get('ldap', {})
-            if ldap_config:
-                return ldap_config
-            
-            return None
-        except (FileNotFoundError, yaml.YAMLError) as e:
-            logging.warning(f"Could not load shared LDAP config from {initial_inventory_path}: {e}")
-            return None
-
-    def parse_openshift(self, file_path: str) -> Set[DNSRecord]:
-        """Parse OpenShift install.ezai.yaml inventory
-        
-        Extracts DNS records from cluster deployment configuration including:
-        - Host primary interface DNS (hostname.base_dns_domain)
-        - Interface-specific DNS (hostname-interface.base_dns_domain)
-        - Cluster API endpoint (api.cluster_name.base_dns_domain)
-        - Wildcard ingress (*.apps.cluster_name.base_dns_domain)
-        """
-        records = set()
-        try:
-            with open(file_path, 'r') as f:
-                data = yaml.safe_load(f)
-            
-            if not data or 'openshift' not in data:
-                self.logger.warning(f"No OpenShift config found in {file_path}")
-                return records
-            
-            install_config = data['openshift'].get('install', {}).get('bare_metal', {})
-            if not install_config:
-                self.logger.warning(f"No bare_metal config found in {file_path}")
-                return records
-            
-            base_dns_domain = install_config.get('base_dns_domain', 'local')
-            cluster_name = install_config.get('cluster_name', '')
-            
-            # Add cluster API endpoint
-            api_ip = None
-            if 'cluster_networking' in install_config:
-                api_ip = install_config['cluster_networking'].get('api', {}).get('v4')
-            if api_ip and cluster_name:
-                api_hostname = f"api.{cluster_name}.{base_dns_domain}"
-                records.add(DNSRecord(
-                    hostname=api_hostname,
-                    ip_address=api_ip,
-                    zone=base_dns_domain,
-                    description="OpenShift API Endpoint"
-                ))
-                # Also add api-int (internal API)
-                api_int_hostname = f"api-int.{cluster_name}.{base_dns_domain}"
-                records.add(DNSRecord(
-                    hostname=api_int_hostname,
-                    ip_address=api_ip,
-                    zone=base_dns_domain,
-                    description="OpenShift API (Internal)"
-                ))
-            
-            # Add wildcard ingress endpoint
-            ingress_ip = None
-            if 'cluster_networking' in install_config:
-                ingress_ip = install_config['cluster_networking'].get('ingress', {}).get('v4')
-            if ingress_ip and cluster_name:
-                # Store wildcard pattern for later processing
-                wildcard_hostname = f"*.apps.{cluster_name}.{base_dns_domain}"
-                records.add(DNSRecord(
-                    hostname=wildcard_hostname,
-                    ip_address=ingress_ip,
-                    zone=base_dns_domain,
-                    description="OpenShift Wildcard Ingress"
-                ))
-            
-            # Parse individual servers/nodes
-            for server in install_config.get('servers', []):
-                hostname = server.get('hostname')
-                if not hostname:
-                    continue
-                
-                fqdn = f"{hostname}.{base_dns_domain}"
-                
-                # Process network interfaces
-                interfaces = server.get('interfaces', {})
-                ethernet_interfaces = interfaces.get('ethernet', [])
-                
-                for idx, interface in enumerate(ethernet_interfaces):
-                    iface_name = interface.get('name')
-                    ipv4 = interface.get('ipv4')
-                    
-                    if ipv4:
-                        # Extract IP without CIDR notation
-                        ip_address = ipv4.split('/')[0]
-                        
-                        # Primary interface (first one)
-                        if idx == 0:
-                            records.add(DNSRecord(
-                                hostname=fqdn,
-                                ip_address=ip_address,
-                                zone=base_dns_domain,
-                                description=f"OpenShift {server.get('role', 'node')} - {hostname}"
-                            ))
-                        
-                        # Interface-specific DNS entry
-                        if iface_name:
-                            iface_fqdn = f"{hostname}-{iface_name}.{base_dns_domain}"
-                            records.add(DNSRecord(
-                                hostname=iface_fqdn,
-                                ip_address=ip_address,
-                                zone=base_dns_domain,
-                                description=f"OpenShift {hostname} interface {iface_name}"
-                            ))
-            
-            self.logger.info(f"Parsed {len(records)} records from OpenShift inventory ({file_path})")
-        except Exception as e:
-            self.logger.error(f"Failed to parse OpenShift inventory: {e}")
-        
-        return records
-
-    def parse_intersight(self, file_path: str) -> Set[DNSRecord]:
-        """Parse Intersight inventory from shared_services inventory.yaml
-        
-        Extracts DNS records for Intersight-managed infrastructure including:
-        - Server data network interfaces
-        - Management network interfaces
-        - Storage nodes
-        - Network devices
-        """
-        records = set()
-        try:
-            with open(file_path, 'r') as f:
-                data = yaml.safe_load(f)
-            
-            if not data:
-                return records
-            
-            # Determine base DNS domain from configuration or default
-            base_dns_domain = 'local'
-            if 'shared_services' in data:
-                base_dns_domain = data['shared_services'].get('dns_domain', 'local')
-            
-            # Parse compute servers
-            servers = data.get('servers', [])
-            if isinstance(servers, dict):
-                # If servers is a dict, convert to list of values
-                servers = list(servers.values()) if servers else []
-            
-            for server in servers:
-                if isinstance(server, dict):
-                    hostname = server.get('hostname')
-                    # Try different field names for IP
-                    ip = server.get('ip') or server.get('management_ip') or server.get('mgmt_ip')
-                    
-                    if hostname and ip:
-                        fqdn = hostname if '.' in hostname else f"{hostname}.{base_dns_domain}"
-                        zone = self._extract_zone(fqdn)
-                        records.add(DNSRecord(
-                            hostname=fqdn,
-                            ip_address=ip,
-                            zone=zone,
-                            description="Intersight Server"
-                        ))
-            
-            # Parse storage devices
-            storage_devices = data.get('storage', [])
-            if isinstance(storage_devices, dict):
-                storage_devices = list(storage_devices.values()) if storage_devices else []
-            
-            for storage in storage_devices:
-                if isinstance(storage, dict):
-                    hostname = storage.get('hostname')
-                    ip = storage.get('ip') or storage.get('management_ip') or storage.get('mgmt_ip')
-                    
-                    if hostname and ip:
-                        fqdn = hostname if '.' in hostname else f"{hostname}.{base_dns_domain}"
-                        zone = self._extract_zone(fqdn)
-                        records.add(DNSRecord(
-                            hostname=fqdn,
-                            ip_address=ip,
-                            zone=zone,
-                            description="Intersight Storage"
-                        ))
-            
-            # Parse network devices
-            network_devices = data.get('network', [])
-            if isinstance(network_devices, dict):
-                network_devices = list(network_devices.values()) if network_devices else []
-            
-            for network in network_devices:
-                if isinstance(network, dict):
-                    hostname = network.get('hostname')
-                    ip = network.get('management_ip') or network.get('mgmt_ip')
-                    
-                    if hostname and ip:
-                        fqdn = hostname if '.' in hostname else f"{hostname}.{base_dns_domain}"
-                        zone = self._extract_zone(fqdn)
-                        records.add(DNSRecord(
-                            hostname=fqdn,
-                            ip_address=ip,
-                            zone=zone,
-                            description="Intersight Network Device"
-                        ))
-            
-            self.logger.info(f"Parsed {len(records)} records from Intersight inventory ({file_path})")
-        except Exception as e:
-            self.logger.error(f"Failed to parse Intersight inventory: {e}")
-        
-        return records
-
-    def parse_all_sources(self, config: Dict) -> Set[DNSRecord]:
-        """Parse all configured inventory sources
-        
-        Only processes inventory sources where files exist and are configured.
-        Supports multiple formats:
-        - Dictionary of {source_type: file_path}
-        - Dictionary of {source_name: {file: path, enabled: bool}}
-        """
-        all_records = set()
-        
-        for source_key, source_config in config.items():
-            # Handle both config formats
-            if isinstance(source_config, str):
-                # Simple format: source_type -> file_path
-                file_path = source_config
-                source_type = source_key
-            elif isinstance(source_config, dict):
-                # Complex format: source_name -> {file: path, enabled: bool, ...}
-                if not source_config.get('enabled', True):
-                    self.logger.debug(f"Skipping disabled inventory source: {source_key}")
-                    continue
-                
-                file_path = source_config.get('file')
-                # Try to infer source type from source_key if not explicit
-                source_type = source_config.get('type', source_key)
-            else:
-                continue
-            
-            # Check if file exists before parsing
-            if not file_path:
-                self.logger.debug(f"No file path for inventory source: {source_key}")
-                continue
-            
-            if not Path(file_path).exists():
-                self.logger.warning(f"Inventory file not found: {file_path} (skipping {source_key})")
-                continue
-            
-            self.logger.info(f"Processing inventory source: {source_key} from {file_path}")
-            
-            # Parse based on source type
-            if source_type.lower() == 'openshift':
-                all_records.update(self.parse_openshift(file_path))
-            elif source_type.lower() == 'intersight':
-                all_records.update(self.parse_intersight(file_path))
-            else:
-                self.logger.warning(f"Unknown inventory source type: {source_type}")
-        
-        self.logger.info(f"Total records parsed from all sources: {len(all_records)}")
-        return all_records
-
-    @staticmethod
-    def _extract_zone(hostname: str) -> str:
-        """Extract zone from FQDN"""
-        parts = hostname.split('.')
-        if len(parts) > 1:
-            return '.'.join(parts[1:])
-        return 'local'
+def extract_zone(hostname: str) -> str:
+    """Zone guess for a hostname: everything after the first label"""
+    parts = hostname.split('.')
+    return '.'.join(parts[1:]) if len(parts) > 1 else 'local'
 
 
 class DNSUpdater:
@@ -853,8 +577,9 @@ class DNSUpdater:
         'bind': BindDNSProvider,
     }
 
-    def __init__(self, config_file: str, dry_run: bool = True, verbose: bool = False):
+    def __init__(self, config_file: str, dry_run: bool = True, verbose: bool = False, check: bool = False):
         self.config_file = config_file
+        self.check = check
         self.dry_run = dry_run
         self.verbose = verbose
         self.logger = self._setup_logging()
@@ -945,6 +670,9 @@ class DNSUpdater:
             self._apply_changes(provider, missing, stale)
         else:
             self.logger.info("DRY-RUN MODE: No changes applied")
+            if self.check and missing:
+                self.logger.error(f"{len(missing)} records are missing or have a different address")
+                sys.exit(1)
 
     PROVIDER_TYPES = {
         'ad': {'ad', 'active_directory'},
@@ -963,14 +691,12 @@ class DNSUpdater:
         return {}
 
     def _desired_records(self, config: Dict) -> Set[DNSRecord]:
-        """Records listed as hostname/ipv4 pairs, plus any legacy inventory sources"""
+        """Records listed as hostname/ipv4 pairs"""
         records = set()
         for item in config.get('records') or []:
             hostname, ip = str(item.get('hostname', '')).strip().rstrip('.'), str(item.get('ipv4', '')).strip()
             if hostname and ip:
-                records.add(DNSRecord(hostname, ip, InventoryParser._extract_zone(hostname)))
-        if config.get('inventory'):
-            records |= InventoryParser(self.logger).parse_all_sources(config['inventory'])
+                records.add(DNSRecord(hostname, ip, extract_zone(hostname)))
         return records
 
     def _print_report(self, missing: Set[DNSRecord], stale: Set[DNSRecord], matching: Set[DNSRecord]):
@@ -1062,6 +788,11 @@ def main():
         help='Apply changes (disable dry-run mode)'
     )
     parser.add_argument(
+        '--check',
+        action='store_true',
+        help='Dry run that exits with an error when any record is missing or has a different address'
+    )
+    parser.add_argument(
         '--verbose',
         action='store_true',
         help='Enable verbose logging'
@@ -1072,9 +803,14 @@ def main():
     updater = DNSUpdater(
         config_file=args.config,
         dry_run=not args.apply,
-        verbose=args.verbose
+        verbose=args.verbose,
+        check=args.check
     )
-    updater.run(args.provider)
+    try:
+        updater.run(args.provider)
+    except (RuntimeError, ValueError) as e:
+        logging.getLogger(__name__).error(str(e))
+        sys.exit(1)
 
 
 if __name__ == '__main__':

@@ -1493,7 +1493,7 @@
         },
         "dns_manager.dns_manager": {
             "title": "DNS Manager Configuration",
-            "description": "This dictionary provides the DNS Manager configuration for synchronizing DNS records across multiple providers (Active Directory, Infoblox, BlueCat, Efficient IP, BIND DNS).\n\nRequired Attributes:\n  * `providers` - At least one DNS provider must be configured\n\nOptional Attributes:\n  * `vault` - HashiCorp Vault configuration for credential storage\n  * `inventory` - Inventory source configurations (auto-parsed by DNS Manager)\n  * `records` - DNS A records to synchronize (auto-generated from inventory files)\n\nWorkflow:\n  1. Configure at least one DNS provider in the `providers` section\n  2. Select inventory sources (OpenShift, Initial Inventory, Everpure) in the DNS Manager UI\n  3. Click \"Generate Configuration\" to extract A records from inventory files\n  4. Review and edit the generated records in the YAML editor\n  5. Use \"Validate\" (dry-run) to check DNS before applying changes\n  6. Use \"Sync\" to apply the DNS records to the selected provider(s)",
+            "description": "This dictionary provides the DNS Manager configuration for synchronizing DNS records across multiple providers (Active Directory, Infoblox, BlueCat, Efficient IP, BIND DNS).\n\nRequired Attributes:\n  * `providers` - At least one DNS provider must be configured\n\nOptional Attributes:\n  * `vault` - HashiCorp Vault configuration for credential storage\n  * `records` - DNS A records to synchronize (generated from the OpenShift install file and the Initial Inventory)\n\nWorkflow:\n  1. Configure at least one DNS provider in the `providers` section\n  2. Select the OpenShift install file and the Initial Inventory (which includes storage arrays) in the DNS Manager UI\n  3. Click \"Generate Configuration\" to build the A records from those sources\n  4. Review and edit the generated records in the YAML editor\n  5. Use \"Validate\" (dry-run) to check DNS before applying changes\n  6. Use \"Sync\" to apply the DNS records to the selected provider(s)",
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -1523,14 +1523,6 @@
                                 "$ref": "#/definitions/dns_manager.efficientip_provider"
                             }
                         ]
-                    }
-                },
-                "inventory": {
-                    "title": "Inventory Sources",
-                    "description": "Dictionary of inventory source configurations keyed by inventory name.",
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/dns_manager.inventory_source"
                     }
                 },
                 "records": {
@@ -1691,36 +1683,6 @@
                     "type": "integer",
                     "default": 30,
                     "minimum": 1
-                }
-            }
-        },
-        "dns_manager.inventory_source": {
-            "title": "Inventory Source",
-            "description": "Configuration for an inventory data source (OpenShift, Intersight, EveryPure, etc.).",
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "file": {
-                    "title": "Inventory File",
-                    "description": "Path to the inventory file.",
-                    "type": "string",
-                    "minLength": 1
-                },
-                "enabled": {
-                    "title": "Enabled",
-                    "description": "The default value is `true`. Enable this inventory source.",
-                    "type": "boolean",
-                    "default": true
-                },
-                "format": {
-                    "title": "File Format",
-                    "description": "The default value is `yaml`. Format of the inventory file.",
-                    "type": "string",
-                    "enum": [
-                        "yaml",
-                        "json"
-                    ],
-                    "default": "yaml"
                 }
             }
         },
@@ -39995,5 +39957,5 @@
         "url": "https://opensource.org/licenses/MIT"
     },
     "title": "Cisco AI PODs - JSON Schema",
-    "x-schema-version": "v0.1.15"
+    "x-schema-version": "v0.1.21"
 }

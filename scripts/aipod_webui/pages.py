@@ -949,6 +949,11 @@ def dns_manager_actions(rc: RunContext) -> list[list[str]]:
     return dns_manager_command(rc, "--dry-run")
 
 
+def dns_pre_install_check(rc: RunContext) -> list[list[str]]:
+    """Fail unless every record in the saved DNS Manager configuration already resolves to its address."""
+    return dns_manager_command(rc, "--check")
+
+
 def dns_manager_sync(rc: RunContext) -> list[list[str]]:
     """Apply the saved records to the provider."""
     return dns_manager_command(rc, "--apply")
@@ -1132,6 +1137,11 @@ SECTIONS = (
                  actions=(Action("check", "Validate (check mode)", "fact_check",
                                  deploy("openshift", "--openshift-only-stage", "phase1", "--check"), group="Pre-check",
                                  secrets=("*",)),
+                          Action("dns-check", "Check DNS records", "dns", dns_pre_install_check, group="Pre-check",
+                                 files=False,
+                                 tooltip="Fails unless every node, api, and *.apps name in the saved DNS Manager "
+                                         "configuration resolves to its address. Generate and save it on the DNS "
+                                         "Manager page first."),
                           Action("phase1", "Prepare install (phase 1)", "build", deploy("openshift", "--openshift-only-stage",
                                                                                         "phase1"), secrets=("*",)),
                           Action("iserver", "Install cluster (iserver)", "rocket_launch",

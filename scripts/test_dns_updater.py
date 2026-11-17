@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from dns_updater import (
     DNSRecord,
-    InventoryParser,
+    extract_zone,
     DNSComparator,
     ActiveDirectoryProvider,
     InfobloxProvider,
@@ -49,59 +49,12 @@ class TestDNSRecord(unittest.TestCase):
         self.assertEqual(len(record_set), 1)
 
 
-class TestInventoryParser(unittest.TestCase):
-    """Test inventory parsing from various sources"""
-
-    def setUp(self):
-        self.parser = InventoryParser()
+class TestExtractZone(unittest.TestCase):
 
     def test_extract_zone_from_fqdn(self):
-        self.assertEqual(
-            InventoryParser._extract_zone("host.example.com"),
-            "example.com"
-        )
-        self.assertEqual(
-            InventoryParser._extract_zone("host.prod.example.com"),
-            "prod.example.com"
-        )
-        self.assertEqual(
-            InventoryParser._extract_zone("localhost"),
-            "local"
-        )
-
-    @patch('builtins.open')
-    @patch('yaml.safe_load')
-    def test_parse_openshift_inventory(self, mock_yaml, mock_open):
-        mock_yaml.return_value = {'openshift': {'install': {'bare_metal': {
-            'base_dns_domain': 'example.com',
-            'cluster_name': 'ai-pods',
-            'cluster_networking': {'api': {'v4': '10.0.0.9'}, 'ingress': {'v4': '10.0.0.10'}},
-            'servers': [{'hostname': 'node1', 'role': 'master',
-                         'interfaces': {'ethernet': [{'name': 'eno1', 'ipv4': '10.0.0.11/24'}]}}],
-        }}}}
-
-        records = {(r.hostname, r.ip_address) for r in self.parser.parse_openshift("install.ezai.yaml")}
-
-        self.assertEqual(records, {
-            ('api.ai-pods.example.com', '10.0.0.9'),
-            ('api-int.ai-pods.example.com', '10.0.0.9'),
-            ('*.apps.ai-pods.example.com', '10.0.0.10'),
-            ('node1.example.com', '10.0.0.11'),
-            ('node1-eno1.example.com', '10.0.0.11'),
-        })
-
-    @patch('builtins.open')
-    @patch('yaml.safe_load')
-    def test_parse_intersight_inventory(self, mock_yaml, mock_open):
-        mock_yaml.return_value = {
-            'servers': [
-                {'hostname': 'pod-1.example.com', 'management_ip': '192.168.100.1'},
-                {'hostname': 'pod-2.example.com', 'management_ip': '192.168.100.2'},
-            ]
-        }
-        
-        records = self.parser.parse_intersight("intersight.yaml")
-        self.assertEqual(len(records), 2)
+        self.assertEqual(extract_zone("host.example.com"), "example.com")
+        self.assertEqual(extract_zone("host.prod.example.com"), "prod.example.com")
+        self.assertEqual(extract_zone("localhost"), "local")
 
 
 class TestDNSComparator(unittest.TestCase):
@@ -226,48 +179,8 @@ class TestInfobloxProvider(unittest.TestCase):
             self.fail(f"authenticate() raised {e}")
 
 
-class TestIntegration(unittest.TestCase):
-    """Integration tests for complete workflows"""
-
-    @patch('dns_updater.InventoryParser.parse_all_sources')
-    @patch('dns_updater.ActiveDirectoryProvider.get_records')
-    def test_end_to_end_workflow(self, mock_get_records, mock_parse):
-        # Setup mocks
-        mock_parse.return_value = {
-            DNSRecord("test1.example.com", "192.168.1.1", "example.com"),
-            DNSRecord("test2.example.com", "192.168.1.2", "example.com"),
-        }
-        mock_get_records.return_value = {
-            DNSRecord("test1.example.com", "192.168.1.1", "example.com"),
-        }
-        
-        # Execute
-        parser = InventoryParser()
-        desired = parser.parse_all_sources({})
-        
-        provider = ActiveDirectoryProvider({'server': 'dc01.example.com'})
-        actual = provider.get_records("example.com")
-        
-        comparator = DNSComparator()
-        missing, stale, matching = comparator.compare(desired, actual)
-        
-        # Verify
-        self.assertEqual(len(desired), 2)
-        self.assertEqual(len(actual), 1)
-        self.assertEqual(len(missing), 1)
-        self.assertEqual(len(stale), 0)
-        self.assertEqual(len(matching), 1)
-
-
 class TestErrorHandling(unittest.TestCase):
     """Test error handling and edge cases"""
-
-    def test_parse_empty_inventory(self):
-        parser = InventoryParser()
-        with patch('builtins.open'):
-            with patch('yaml.safe_load', return_value=None):
-                records = parser.parse_openshift("empty.yaml")
-                self.assertEqual(len(records), 0)
 
     def test_dns_record_with_special_characters(self):
         record = DNSRecord(
@@ -381,6 +294,36 @@ class TestActiveDirectoryWrites(unittest.TestCase):
         self.assertEqual(provider.connection.calls, [])
 
 
+class TestCheckMode(unittest.TestCase):
+    """--check turns a dry run into a pass/fail gate"""
+
+    def run_check(self, found):
+        import tempfile
+        import yaml
+        from dns_updater import DNSUpdater
+
+        config = {'dns': {'providers': {'ad': {'type': 'active_directory', 'server': 'dc'}},
+                          'records': [{'hostname': 'api.example.com', 'ipv4': '10.0.0.1'}]}}
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml') as handle:
+            yaml.safe_dump(config, handle)
+            handle.flush()
+            with patch('dns_updater.ActiveDirectoryProvider.get_records', return_value=found):
+                updater = DNSUpdater(handle.name, dry_run=True, check=True)
+                updater.run('ad')
+
+    def test_passes_when_every_record_resolves(self):
+        self.run_check({DNSRecord('api.example.com', '10.0.0.1', 'example.com')})
+
+    def test_fails_when_a_record_is_missing(self):
+        with self.assertRaises(SystemExit) as raised:
+            self.run_check(set())
+        self.assertEqual(raised.exception.code, 1)
+
+    def test_fails_when_a_record_has_another_address(self):
+        with self.assertRaises(SystemExit):
+            self.run_check({DNSRecord('api.example.com', '10.9.9.9', 'example.com')})
+
+
 def run_tests():
     """Run all tests with verbose output"""
     loader = unittest.TestLoader()
@@ -388,12 +331,12 @@ def run_tests():
     
     # Add all test cases
     suite.addTests(loader.loadTestsFromTestCase(TestDNSRecord))
-    suite.addTests(loader.loadTestsFromTestCase(TestInventoryParser))
+    suite.addTests(loader.loadTestsFromTestCase(TestExtractZone))
     suite.addTests(loader.loadTestsFromTestCase(TestDNSComparator))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestActiveDirectoryWrites))
+    suite.addTests(loader.loadTestsFromTestCase(TestCheckMode))
     suite.addTests(loader.loadTestsFromTestCase(TestInfobloxProvider))
-    suite.addTests(loader.loadTestsFromTestCase(TestIntegration))
     suite.addTests(loader.loadTestsFromTestCase(TestErrorHandling))
     
     runner = unittest.TextTestRunner(verbosity=2)

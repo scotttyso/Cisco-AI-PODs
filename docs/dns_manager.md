@@ -50,6 +50,10 @@ Passwords are never written to the YAML. They are stored in the vault and passed
 - **Active Directory with `use_shared_ldap: true`:** the server, domain, and bind DN come from Initial Inventory > Shared services > LDAP, and the bind password saved there is used. The DNS Manager page shows whether it is stored.
 - **Active Directory without shared LDAP, and the other providers:** enter the username and password under Passwords and secrets on the DNS Manager page. Only the fields for the provider in the saved file are listed.
 
+## Checking DNS before the OpenShift install
+
+On the OpenShift Cluster Deployment page, **Check DNS records** (Pre-check) resolves every record in the saved DNS Manager configuration against the DNS server: each node, `api.<cluster>.<domain>`, and `*.apps.<cluster>.<domain>`. It fails when any record is missing or resolves to a different address, so run it before **Install cluster**. Generate and save the DNS Manager configuration first.
+
 ## Typical run
 
 1. Save the OpenShift install file and the Initial Inventory (devices, storage arrays, and the LDAP shared service with its bind password).
@@ -71,9 +75,11 @@ Example Validate report:
 
 ## How Active Directory records are written
 
+**Validate** only asks the DNS server (port 53) for each name, so it works without an LDAP bind. **Synchronize** writes through LDAP and needs a working bind.
+
 Synchronize binds to the domain controller over LDAP with the bind account, finds the AD-integrated DNS zones, and writes each A record into the zone with the longest matching name. The bind account needs permission to create and modify DNS records in those zones.
 
-- If the domain controller refuses simple binds on cleartext LDAP, the updater retries over LDAPS and then StartTLS. In that case the domain controller certificate is not verified, and a warning is logged.
+- Current domain controllers refuse simple binds on cleartext LDAP (port 389, `strongerAuthRequired`). The updater then retries over LDAPS (636) and StartTLS, without verifying the domain controller certificate, and logs a warning. This only works when the domain controller has a server certificate installed. If every attempt fails, install a certificate on the domain controller (for example from AD Certificate Services) so LDAPS answers on 636, or relax the "Domain controller: LDAP server signing requirements" policy for a lab.
 - A hostname that is not inside any AD-integrated zone is reported as failed, and the run exits with an error.
 - Existing records are changed only for names in your `records` list.
 
@@ -83,6 +89,7 @@ The page runs `scripts/dns_updater.py`. To run it by hand:
 
 ```bash
 python scripts/dns_updater.py --config <environment>/host_vars/dns/dns_config.ezai.yaml --provider ad            # validate
+python scripts/dns_updater.py --config <environment>/host_vars/dns/dns_config.ezai.yaml --provider ad --check    # validate; exit 1 if anything is missing
 python scripts/dns_updater.py --config <environment>/host_vars/dns/dns_config.ezai.yaml --provider ad --apply    # synchronize
 ```
 
@@ -94,7 +101,8 @@ Credentials are read from the environment: `ad_username` and `ad_password`, or `
 |---|---|
 | "Save the DNS Manager configuration first" | No `dns/dns_config.ezai.yaml` saved in the active environment |
 | "Active Directory credentials are not set" | The bind password is not stored in Shared services, or the AD password is not stored on the DNS Manager page |
-| "Cannot bind to ..." | The bind DN or password is wrong, or the domain controller is unreachable on the LDAP ports |
+| "Cannot bind to ..." with `strongerAuthRequired` and a failed 636 or StartTLS | The domain controller requires signing or TLS and has no LDAPS certificate; see above |
+| "Cannot bind to ..." (other) | The bind DN or password is wrong, or the domain controller is unreachable on the LDAP ports |
 | "No AD-integrated DNS zone found for ..." | The hostname's domain is not an AD-integrated zone on that server |
 | Generate Configuration warns that no records were found | Save the OpenShift install file, or add devices to the Initial Inventory |
 | Validate still shows missing records right after Synchronize | Wait about a minute for the DNS service to load the change |

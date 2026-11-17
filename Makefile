@@ -15,4 +15,4 @@ dns-test:
 	python -m pytest scripts/test_dns_updater.py -v
 
 dns-lint:
-	python -m pylint scripts/dns_updater.py scripts/dns_validator.py --disable=R0801,C0111
+	python -m pylint scripts/dns_updater.py --disable=R0801,C0111
