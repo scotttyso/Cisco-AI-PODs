@@ -240,6 +240,18 @@ class AutomationUiTests(unittest.TestCase):
         self.assertEqual(options["4.19.5"], "4.19.5 (not supported)")
         self.assertEqual(custom_pages.version_choices(["1.19.7"], "1.19.7"), {"1.19.7": "1.19.7 (recommended)"})
 
+    def test_channel_choices_offer_the_latest_stable_of_supported_channels_only(self):
+        from aipod_webui import custom_pages
+
+        channels = [{"minor": "4.21", "latest": "4.21.42", "supported": False},
+                    {"minor": "4.20", "latest": "4.20.46", "supported": True}]
+        ok = lambda version: version.startswith("4.20.")  # noqa: E731
+        options = custom_pages.channel_choices(channels, "4.20.16", "the-latest-production-version", ok)
+        self.assertEqual(list(options), ["the-latest-production-version", "4.20.46", "4.20.16"])
+        self.assertEqual(options["4.20.46"], "4.20.46 (latest stable 4.20)")
+        self.assertEqual(options["4.20.16"], "4.20.16 (pinned)")
+        self.assertEqual(custom_pages.channel_choices(channels, "4.19.5", "", ok)["4.19.5"], "4.19.5 (not supported)")
+
 
 if __name__ == "__main__":
     unittest.main()

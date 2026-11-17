@@ -708,7 +708,12 @@ ISOVALENT_REGISTRY = "registry.isovalent.com"
 REGISTRY_HOST = re.compile(r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(:\d{1,5})?$")
 
 
-def version_choices(versions: list[str], recommended: str, current: str = "", floating: str = "") -> dict[str, str]:
+def _unlisted(current: str, is_supported) -> str:
+    return f"{current} ({'pinned' if is_supported and is_supported(current) else 'not supported'})"
+
+
+def version_choices(versions: list[str], recommended: str, current: str = "", floating: str = "",
+                    is_supported=None) -> dict[str, str]:
     """Pick-list options: the floating default first, then supported versions with the recommended one marked.
 
     A current value outside the list stays selectable (marked) so the form can show what the YAML holds."""
@@ -716,7 +721,18 @@ def version_choices(versions: list[str], recommended: str, current: str = "", fl
     for version in versions:
         options[version] = version + (" (recommended)" if version == recommended else "")
     if current and current not in options:
-        options[current] = f"{current} (not supported)"
+        options[current] = _unlisted(current, is_supported)
+    return options
+
+
+def channel_choices(channels: list[dict], current: str = "", floating: str = "", is_supported=None) -> dict[str, str]:
+    """OpenShift pick-list: the floating default, then the latest stable release of each supported channel."""
+    options = {floating: "Latest production release (default)"} if floating else {}
+    for row in channels:
+        if row["supported"]:
+            options[row["latest"]] = f"{row['latest']} (latest stable {row['minor']})"
+    if current and current not in options:
+        options[current] = _unlisted(current, is_supported)
     return options
 
 
@@ -876,26 +892,63 @@ def ocp_cluster_form(handle) -> None:
         current_openshift = str(install.get("cluster_version") or support.LATEST_PRODUCTION)
         current_cni = networking.get("container_network_interface") or "OVNKubernetes"
         current_cilium = str(networking.get("container_network_version") or support.recommended("cilium"))
-        openshift_choices = version_choices([item["version"] for item in support.openshift_versions(offline=True)[0]],
-                                            support.recommended("openshift"), current_openshift, support.LATEST_PRODUCTION)
+
+        def openshift_ok(version: str) -> bool:
+            return support.is_supported("openshift", version)[0]
+
+        def cilium_ok(version: str) -> bool:
+            return support.is_supported("cilium", version)[0]
+
+        openshift_choices = channel_choices(support.openshift_channels(offline=True)[0], current_openshift,
+                                            support.LATEST_PRODUCTION, openshift_ok)
         cilium_choices = version_choices(support.cilium_versions(offline=True)[0], support.recommended("cilium"),
-                                         current_cilium if current_cni == "Cilium" else "")
+                                         current_cilium if current_cni == "Cilium" else "", is_supported=cilium_ok)
         with card("Versions and container network", "Only releases that Cisco AI PODs supports can be chosen. The "
                                                      "latest production release is the default; pin a version to "
                                                      "stay on it.", icon="hub"):
             with ui.row().classes("w-full items-center gap-3"):
                 openshift = ui.select(openshift_choices, label="OpenShift version", value=current_openshift
-                                      ).props("outlined dense").style("width:320px")
-                openshift_source = ui.label("Supported list (refresh for the live list)").classes("muted text-xs")
+                                      ).props("outlined dense").style("width:360px")
+                openshift_source = ui.label("Loading the latest stable release of each channel...").classes(
+                    "muted text-xs")
+            openshift_status = ui.label("").classes("text-sm")
+            channel_table = ui.table(
+                columns=[{"name": "channel", "label": "Channel", "field": "channel", "align": "left"},
+                         {"name": "latest", "label": "Latest stable", "field": "latest", "align": "left"},
+                         {"name": "support", "label": "Red Hat support", "field": "support", "align": "left"},
+                         {"name": "until", "label": "Phase ends", "field": "until", "align": "left"},
+                         {"name": "supported", "label": "Cisco AI PODs", "field": "supported", "align": "left"}],
+                rows=[], row_key="channel").props("dense flat").classes("w-full")
+            channel_table.set_visibility(False)
+            channels: list[dict] = []
 
-                async def refresh_openshift() -> None:
-                    items, source = await run.io_bound(support.openshift_versions)
-                    openshift.set_options(version_choices([item["version"] for item in items],
-                                                          support.recommended("openshift"), openshift.value,
-                                                          support.LATEST_PRODUCTION), value=openshift.value)
-                    openshift_source.set_text(f"{len(items)} supported releases from {source}")
+            def describe_openshift(*_) -> None:
+                value = openshift.value or ""
+                row = next((item for item in channels if value.startswith(item["minor"] + ".")), None)
+                if value == support.LATEST_PRODUCTION:
+                    text = "iserver installs the latest production release the Assisted Installer offers."
+                elif row and value != row["latest"]:
+                    text = f"{value} is pinned; the latest stable {row['minor']} release is {row['latest']}."
+                else:
+                    text = ""
+                openshift_status.set_text(text)
 
-                ui.button("Refresh", icon="refresh", on_click=refresh_openshift).props("flat dense")
+            openshift.on_value_change(describe_openshift)
+
+            async def refresh_openshift() -> None:
+                rows, source = await run.io_bound(support.openshift_channels)
+                channels[:] = rows
+                openshift.set_options(channel_choices(rows, openshift.value, support.LATEST_PRODUCTION, openshift_ok),
+                                      value=openshift.value)
+                channel_table.rows = [{**row, "supported": "supported" if row["supported"] else "",
+                                       "until": row["until"] or ""} for row in rows]
+                channel_table.update()
+                channel_table.set_visibility(bool(rows))
+                openshift_source.set_text(f"Latest stable release of each channel: {source}")
+                describe_openshift()
+
+            ui.button("Refresh", icon="refresh", on_click=refresh_openshift).props("flat dense")
+            ui.timer(0.2, refresh_openshift, once=True)
 
             with ui.row().classes("w-full items-center gap-3"):
                 cni = ui.select(["OVNKubernetes", "Cilium"], label="CNI", value=current_cni
@@ -914,8 +967,8 @@ def ocp_cluster_form(handle) -> None:
                         token = ""
                     versions, source = await run.io_bound(
                         support.cilium_versions, str(registry_state.get("catalog_url") or ""), token)
-                    cilium.set_options(version_choices(versions, support.recommended("cilium"), cilium.value),
-                                       value=cilium.value)
+                    cilium.set_options(version_choices(versions, support.recommended("cilium"), cilium.value,
+                                                       is_supported=cilium_ok), value=cilium.value)
                     cilium_source.set_text(f"{len(versions)} supported releases from {source}")
 
                 refresh_button = ui.button("Refresh", icon="refresh", on_click=refresh_cilium).props("flat dense")

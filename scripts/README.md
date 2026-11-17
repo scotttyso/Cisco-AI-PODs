@@ -616,7 +616,10 @@ python3 scripts/check_schema_refs.py
 Holds the OpenShift and Cilium (Isovalent Enterprise) versions Cisco AI PODs supports and lists what is currently available. Edit `VERSION_SUPPORT` in the script to change the policy: the supported minor releases, the recommended patch release, and the tested versions offered when no live list can be reached.
 
 ```bash
-# OpenShift: iserver (Assisted Installer, needs the Console Registration token), else Red Hat's public update graph
+# Latest stable release of each OpenShift channel with its Red Hat support phase (public sources; iserver when available)
+python3 scripts/version_support_matrix.py channels
+
+# OpenShift releases of the supported channels
 python3 scripts/version_support_matrix.py list openshift
 
 # Cilium: the Helm index of your registry (identity token sent as a bearer token), else the supported list
@@ -626,7 +629,7 @@ CILIUM_VERSION_INDEX_URL=https://registry.example.com/.../index.yaml isovalent_r
 # Accept or reject a version (the OpenShift value the-latest-production-version is checked against what it resolves to)
 python3 scripts/version_support_matrix.py validate openshift 4.20.16
 
-# Drift check for cron or CI: exits 1 when a newer patch release exists or the recommended one disappeared
+# Drift check for cron or CI: exits 1 when a supported OpenShift channel reaches end of life or the Cilium recommendation is stale
 python3 scripts/version_support_matrix.py check
 ```
 

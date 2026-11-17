@@ -115,14 +115,16 @@ In the UI use **OpenShift > Cilium Registry**:
 
 `cluster_version` is optional and defaults to `the-latest-production-version`, which lets iServer install the latest production release the Red Hat Assisted Installer offers. Set a version such as `4.20.16` to pin it. Only supported releases are accepted: the supported minor releases and the recommended patch are kept in `VERSION_SUPPORT` in `scripts/version_support_matrix.py`, and Prepare install stops with the reason when a pinned OpenShift or Cilium version is outside them. For the default, it looks up what the latest production release currently is (needs the Console Registration login) and stops if that release is not supported yet, so pin a supported one.
 
-On the Cluster Deployment page, **Versions and container network** offers only supported versions, with the recommended one marked. **Refresh** loads the live list: OpenShift from iServer (the versions the Assisted Installer accepts, with the Console Registration token), falling back to Red Hat's public update graph; Cilium from the registry's Helm index when you enter its URL as **Version catalog URL** on the Cilium Registry page, otherwise the supported list. Without a live list, the tested versions in the matrix are offered.
+On the Cluster Deployment page, **Versions and container network** shows the latest stable release of each active OpenShift channel, like [console.redhat.com/openshift/releases](https://console.redhat.com/openshift/releases): the channel, its latest stable release, Red Hat's support phase and when it ends, and whether Cisco AI PODs supports it. Releases come from iServer (the versions the Assisted Installer accepts; uses the Console Registration login) or, without it, Red Hat's public update graph; support phases come from Red Hat's public [product life cycle API](https://access.redhat.com/product-life-cycles/api/v2/products?name=Red+Hat+OpenShift+Container+Platform). Neither public source needs a login or token. The list offers only the latest stable release of a supported channel, and a version you pinned earlier stays selectable. For Cilium, **Refresh** reads the registry's Helm index when you enter its URL as **Version catalog URL** on the Cilium Registry page, otherwise the tested versions in the matrix are offered. Without network access the tested versions in the matrix are used.
 
-Keep the matrix current with the drift check, which exits 1 when a newer patch release exists in a supported minor or the recommended version is no longer offered. A weekly GitHub Actions job runs it against the public sources. To include your registry's Cilium index, run it from cron where the token is available:
+Keep the matrix current with the drift check, which exits 1 when a supported OpenShift channel reaches end of life, or (with your registry's index) a Cilium release newer than the recommended one exists or the recommended one disappears. It also notes newer OpenShift channels that are generally available but not in the matrix. A weekly GitHub Actions job runs it against the public sources. To include your registry's Cilium index, run it from cron where the token is available:
 
 ```bash
 0 13 * * 1  CILIUM_VERSION_INDEX_URL=https://registry.example.com/.../index.yaml isovalent_registry_token=... \
             python3 /path/to/Cisco-AI-PODs/scripts/version_support_matrix.py check
 ```
+
+`python3 scripts/version_support_matrix.py channels` prints the same channel table.
 
 ### Selecting Cilium
 

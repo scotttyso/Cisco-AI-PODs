@@ -6,6 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.32] - 2026-11-17
+
+### Changed
+- **Versions and container network** shows the latest stable release of each active OpenShift channel with Red Hat's support phase and its end date, and whether Cisco AI PODs supports the channel (like console.redhat.com/openshift/releases). It loads when the page opens. The OpenShift list offers only the latest stable release of a supported channel instead of every patch release. Releases come from iserver (Assisted Installer) or Red Hat's public update graph, support phases from Red Hat's public product life cycle API; no token is needed for the public sources.
+- The drift check (`version_support_matrix.py check`) now reports policy drift: a supported OpenShift channel reaching end of life, and newer channels that are generally available. OpenShift no longer has a pinned "recommended" patch; it is always the latest stable release of a supported channel.
+- New `version_support_matrix.py channels` command prints the channel table.
+
 ## [0.1.31] - 2026-11-17
 
 ### Changed

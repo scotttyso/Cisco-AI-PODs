@@ -132,26 +132,78 @@ class FloatingDefaultTests(unittest.TestCase):
         self.assertFalse(matrix.check_version("cilium", matrix.LATEST_PRODUCTION)[0])
 
 
+LIFECYCLE = json.dumps({"data": [{"name": "Red Hat OpenShift Container Platform", "versions": [
+    {"name": "5.0", "type": "Full Support", "phases": [
+        {"name": "Full support", "start_date": "2026-11-03T00:00:00.000Z", "end_date": "2027-11-30T00:00:00.000Z"}]},
+    {"name": "4.20", "type": "Maintenance Support", "phases": [
+        {"name": "Full support", "start_date": "2025-10-21T00:00:00.000Z", "end_date": "2026-05-03T00:00:00.000Z"},
+        {"name": "Maintenance support", "start_date": "2026-05-04T00:00:00.000Z", "end_date": "2027-04-21T00:00:00.000Z"},
+        {"name": "Extended update support", "start_date": "N/A", "end_date": "N/A"}]},
+    {"name": "4.17", "type": "End of life", "phases": []},
+    {"name": "not-a-version", "type": "x", "phases": []}]}]}).encode()
+TODAY = matrix.datetime.date(2026, 11, 17)
+
+
+class ChannelTests(unittest.TestCase):
+    def test_lifecycle_reports_the_current_phase_and_its_end(self):
+        with patch.object(matrix, "_get", return_value=LIFECYCLE):
+            cycle = matrix.lifecycle(TODAY)
+        self.assertEqual(cycle["4.20"], {"support": "Maintenance Support", "phase": "Maintenance support",
+                                         "until": "2027-04-21"})
+        self.assertEqual(cycle["4.17"]["support"], "End of life")
+        self.assertNotIn("not-a-version", cycle)
+
+    def channels(self, iserver=None, public=None):
+        with patch.object(matrix, "_get", return_value=LIFECYCLE), \
+                patch.object(matrix, "openshift_from_iserver", return_value=iserver), \
+                patch.object(matrix, "openshift_from_public", side_effect=public or (lambda minors: [
+                    {"version": f"{minors[0]}.7"}, {"version": f"{minors[0]}.12"}])):
+            return matrix.openshift_channels(today=TODAY)
+
+    def test_one_row_per_active_channel_newest_first_with_the_supported_one_marked(self):
+        rows, source = self.channels()
+        self.assertEqual([row["minor"] for row in rows], ["5.0", "4.20"])
+        self.assertEqual([row["latest"] for row in rows], ["5.0.12", "4.20.12"])
+        self.assertEqual([row["supported"] for row in rows], [False, True])
+        self.assertEqual(rows[1]["until"], "2027-04-21")
+        self.assertIn("life cycle", source)
+
+    def test_iserver_releases_win_over_the_public_graph(self):
+        rows, source = self.channels(iserver=[{"version": "4.20.9", "default": False},
+                                              {"version": "4.20.3", "default": False}])
+        self.assertEqual(next(row["latest"] for row in rows if row["minor"] == "4.20"), "4.20.9")
+        self.assertIn("iserver", source)
+
+    def test_offline_falls_back_to_the_tested_versions(self):
+        rows, source = matrix.openshift_channels(offline=True)
+        self.assertEqual([(row["minor"], row["latest"]) for row in rows], [("4.20", "4.20.16")])
+        self.assertTrue(source.startswith("matrix"))
+
+
 class CheckTests(unittest.TestCase):
-    def report(self, openshift, cilium, cilium_source="registry index"):
-        with patch.object(matrix, "openshift_versions", return_value=([{"version": v} for v in openshift], "iserver")), \
-                patch.object(matrix, "cilium_versions", return_value=(cilium, cilium_source)):
+    def report(self, cycle, cilium=("1.19.7",), cilium_source="registry index"):
+        with patch.object(matrix, "lifecycle", return_value=cycle), \
+                patch.object(matrix, "openshift_channels", return_value=([{"minor": "4.20", "latest": "4.20.46"}], "x")), \
+                patch.object(matrix, "cilium_versions", return_value=(list(cilium), cilium_source)):
             return matrix.check()
 
-    def test_newer_patch_releases_are_reported_as_drift(self):
-        report = self.report(["4.20.46", "4.20.16"], ["1.19.9", "1.19.7"])
-        self.assertEqual(len(report["problems"]), 2)
+    def test_a_supported_channel_reaching_end_of_life_is_drift(self):
+        report = self.report({"4.20": {"support": "End of life", "until": ""}})
+        self.assertTrue(any("end of life" in problem for problem in report["problems"]))
 
-    def test_no_drift_when_the_recommended_versions_are_newest(self):
-        report = self.report(["4.20.16"], ["1.19.7"])
+    def test_newer_active_channels_are_noted_but_not_drift(self):
+        report = self.report({"4.20": {"support": "Maintenance Support", "until": "2027-04-21"},
+                              "4.21": {"support": "Full Support", "until": "2027-01-01"},
+                              "4.19": {"support": "Maintenance Support", "until": "2026-12-17"}})
         self.assertEqual(report["problems"], [])
+        self.assertEqual(len(report["notes"]), 1)
+        self.assertIn("4.21", report["notes"][0])
 
-    def test_a_recommended_version_the_source_no_longer_offers_is_reported(self):
-        report = self.report(["4.20.17"], ["1.19.7"])
-        self.assertTrue(any("not offered" in problem for problem in report["problems"]))
-
-    def test_public_only_cilium_data_is_not_compared(self):
-        report = self.report(["4.20.16"], ["1.19.9"], "Isovalent public index (releases up to 1.18)")
+    def test_newer_cilium_patches_are_drift_and_the_public_index_is_not_compared(self):
+        cycle = {"4.20": {"support": "Maintenance Support", "until": ""}}
+        self.assertEqual(len(self.report(cycle, ("1.19.9", "1.19.7"))["problems"]), 1)
+        self.assertTrue(any("not offered" in p for p in self.report(cycle, ("1.19.9",))["problems"]))
+        report = self.report(cycle, ("1.19.9",), "Isovalent public index (releases up to 1.18)")
         self.assertEqual(report["problems"], [])
         self.assertTrue(report["notes"])
 
