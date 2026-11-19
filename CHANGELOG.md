@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.41] - 2026-11-19
+
+### Fixed
+- Intersight bulk updates (PATCH) failed with `The property 'macpool.Pool:pmoid' does not exist`: the internal `pmoid` key was removed from the working copy but still sent in the request body. It is now removed from the body.
+
 ## [0.1.40] - 2026-11-19
 
 ### Fixed

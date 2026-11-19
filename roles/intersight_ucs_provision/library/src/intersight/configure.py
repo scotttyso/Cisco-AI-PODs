@@ -1093,6 +1093,8 @@ class configure:
                 except Exception:
                     pass  # If filtering fails for this item, use original body
             
+            # pmoid selects PATCH vs POST and is not an API property, so it must not be sent in the body.
+            body.pop('pmoid', None)
             if e.get('pmoid'):
                 tmoid = e['pmoid']
                 e.pop('pmoid')

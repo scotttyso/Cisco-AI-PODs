@@ -1011,6 +1011,30 @@ def test_vnic_api_results_use_connectivity_parent_not_optional_relationships(bul
     assert set(parents) == {"RoCE", "lan-moid"}
 
 
+def test_bulk_patch_requests_do_not_send_pmoid_in_the_body(monkeypatch):
+    sent = []
+
+    class Api:
+        def __init__(self, **_):
+            pass
+
+        def calls(self, state):
+            sent.append(state.api_body["Requests"])
+            return state
+
+    monkeypatch.setattr(module, "api", Api)
+    kwargs = configuration(check=False)
+    kwargs.uri = "macpool/Pools"
+    kwargs.bulk_list = [{"Name": "existing", "pmoid": "moid-1"}, {"Name": "new"}]
+
+    module.configure(category="pools", type="mac").create_bulk_request(kwargs)
+
+    patch, post = sent
+    assert patch[0]["Verb"] == "PATCH" and patch[0]["TargetMoid"] == "moid-1"
+    assert "pmoid" not in patch[0]["Body"]
+    assert post[0]["Verb"] == "POST" and "pmoid" not in post[0]["Body"]
+
+
 @pytest.mark.parametrize("parent", [None, {}, {"Moid": "unknown-moid"}])
 def test_vnic_api_results_report_unresolved_parent_explicitly(parent):
     kwargs = configuration(check=False)
