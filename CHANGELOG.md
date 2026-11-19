@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.40] - 2026-11-19
+
+### Fixed
+- Intersight Validate/Deploy stopped with `Vault file not found: ~/.config/cisco-ai-pods/vault.yaml` on appliances without that legacy per-user file. The environment check now uses the Intersight credentials the job exports from the selected environment's vault (`intersight_api_key_id`, `intersight_secret_key`) and reports a clear message when they are missing. The legacy vault is still used when the file exists.
+
 ## [0.1.39] - 2026-11-19
 
 ### Fixed

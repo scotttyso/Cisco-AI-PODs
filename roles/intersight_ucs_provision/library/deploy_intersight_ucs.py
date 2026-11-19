@@ -153,9 +153,15 @@ def main() -> int:
         # Store environment in kwargs for later use
         kwargs.intersight_environment = intersight_env
         
-        # Validate credentials exist for target environment
+        # Validate credentials exist for target environment. Without the legacy per-user vault the credentials
+        # come from the environment (deploy_ai_pod.py exports them from the selected environment's vault).
         try:
-            detector.validate_credentials(intersight_env)
+            if vault.vault_path.exists():
+                detector.validate_credentials(intersight_env)
+            elif not (kwargs.args.intersight_api_key_id and kwargs.args.intersight_secret_key):
+                raise ValueError(
+                    'No Intersight credentials: set intersight_api_key_id and intersight_secret_key '
+                    f'(or create {vault.vault_path})')
             pcolor.Cyan(f'  ✅ Using {intersight_env.upper()} environment')
         except ValueError as e:
             pcolor.Red(f'  ❌ {e}')
