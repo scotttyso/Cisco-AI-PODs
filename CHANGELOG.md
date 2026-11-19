@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.42] - 2026-11-19
+
+### Fixed
+- The bundled schema's `x-schema-version` was left at v0.1.36, so the `Publish release` workflow rejected every tag after it. The schema is regenerated for this release, and a test now fails when `VERSION` and the bundled schema stamp differ.
+
 ## [0.1.41] - 2026-11-19
 
 ### Fixed
