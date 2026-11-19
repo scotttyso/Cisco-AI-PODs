@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.39] - 2026-11-19
+
+### Fixed
+- `iso_web_server.image_base_url` and `image_upload_directory` are written without a trailing `/` (the trailing slash added in 0.1.38 broke the install script). The `/os-images` Nginx redirect is unchanged.
+
+### Changed
+- Prepare install no longer generates `manifests/ciliumconfig.yaml` (the current iserver version fails with it). The task is commented out in `roles/openshift_install/tasks/main.yaml` and `cilium-config.yaml.j2` is kept. `enable_hubble_metrics` and `enable_kube_proxy_replacement` are accepted but have no effect until it is re-enabled.
+
 ## [0.1.38] - 2026-11-17
 
 ### Fixed

@@ -37,8 +37,8 @@
 # Cilium CNI
 ##########################################################
 # With cilium.version in cluster.json, iserver downloads the Isovalent manifests and applies its automated fixups
-# (cluster pool CIDR and mask, operator replicas). The CiliumConfig is rendered from cilium-config.yaml.j2 so the
-# Hubble metrics and kube-proxy replacement settings are part of the install.
+# (cluster pool CIDR and mask, operator replicas). The CiliumConfig template (cilium-config.yaml.j2) is not rendered
+# for now; see the commented task above.
 - name: Require a Cilium version when Cilium is the CNI
   ansible.builtin.assert:
     that:
@@ -103,13 +103,14 @@
 ##########################################################
 # Cilium CiliumConfig
 ##########################################################
-# Same file name iserver uses for the CiliumConfig it unpacks from the Isovalent manifests.
-- name: Manifests for Assisted Installer - Cilium Config if Cilium is the CNI
-  ansible.builtin.copy:
-    content: "{{ lookup('template', 'cilium-config.yaml.j2') }}"
-    dest: "{{ assisted_installer_directory }}/manifests/ciliumconfig.yaml"
-    mode: '0644'
-  when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
+# Disabled for now: the current iserver version does not work with a generated ciliumconfig.yaml. The template
+# (templates/cilium-config.yaml.j2) is kept so this can be turned back on.
+# - name: Manifests for Assisted Installer - Cilium Config if Cilium is the CNI
+#   ansible.builtin.copy:
+#     content: "{{ lookup('template', 'cilium-config.yaml.j2') }}"
+#     dest: "{{ assisted_installer_directory }}/manifests/ciliumconfig.yaml"
+#     mode: '0644'
+#   when: (openshift_install.cluster_networking.container_network_interface | default('OVNKubernetes')) == 'Cilium'
 
 ##########################################################
 # Machine Configuration Tasks

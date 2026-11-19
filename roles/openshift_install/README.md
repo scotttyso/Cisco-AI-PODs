@@ -7,7 +7,7 @@ Generates and validates manifests for bare-metal OpenShift cluster deployment vi
 ## Role Tasks
 
 - `main.yaml` — Loads merged YAML, validates required keys, runs schema validation
-- Renders `manifests/ciliumconfig.yaml` from `templates/cilium-config.yaml.j2` when the CNI is Cilium
+- `templates/cilium-config.yaml.j2` — CiliumConfig template; its task in `main.yaml` is commented out for now
 - `persistent_net_rules.yaml` — Renders NVIDIA Network Operator udev rules (conditional)
 - `proxy.yaml` — Renders HTTP/HTTPS proxy manifests (conditional)
 
