@@ -135,23 +135,47 @@ def load_vault_sections(vault_file: Path, password_file: Path) -> dict[str, dict
     return sections
 
 
+# iserver asks questions such as "Continue with manual mount and boot from iso [Y/N]?". A job has no keyboard, so
+# every prompt is answered N: iserver then stops with its own message instead of an EOFError traceback, and it never
+# waits for a manual mount and boot that nobody will perform.
+PROMPT_ANSWERS = "N\n" * 20
+VMEDIA_HINT = ("Virtual media could not be mapped. Run scripts/vmedia_diagnose.py inspect|mount to see what the "
+               "blade's CIMC reports (docs/openshift.md, Virtual media diagnostics).")
+
+
+def is_iserver(command: list[str]) -> bool:
+    return Path(command[0]).name == "iserver"
+
+
 def run_command(command: list[str], env: dict[str, str], cwd: Path = REPO_ROOT) -> None:
     """Run a child process without buffering its combined terminal output."""
     print(f"\n==> {' '.join(command)}", flush=True)
+    answering = is_iserver(command)
     process = subprocess.Popen(
         command,
         cwd=cwd,
         env=env,
+        stdin=subprocess.PIPE if answering else subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
     )
+    if answering and process.stdin is not None:
+        try:
+            process.stdin.write(PROMPT_ANSWERS)
+            process.stdin.close()
+        except BrokenPipeError:
+            pass
     assert process.stdout is not None
+    vmedia_failed = False
     for line in process.stdout:
+        vmedia_failed = vmedia_failed or "vmedia mapping failed" in line
         print(line, end="", flush=True)
     return_code = process.wait()
     if return_code:
+        if vmedia_failed:
+            print(f"\n{VMEDIA_HINT}", flush=True)
         raise DeploymentError(f"command failed with exit code {return_code}")
 
 

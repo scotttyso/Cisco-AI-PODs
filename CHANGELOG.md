@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.48] - 2026-11-20
+
+### Fixed
+- `test_vnic_api_results_report_unresolved_parent_explicitly[None]` failed since 0.1.x: a child resource such as a vNIC whose parent relationship was null was filed as a top-level object instead of raising "Unable to resolve ... parent". Null parent relationships on child resources are reported again; the organization Parent that every object carries is still ignored.
+
+### Changed
+- Install cluster answers every iServer prompt with N, so a failed virtual media mount ends with iServer's own message instead of an `EOFError` traceback, and prints a pointer to `scripts/vmedia_diagnose.py`.
+
 ## [0.1.47] - 2026-11-20
 
 ### Fixed

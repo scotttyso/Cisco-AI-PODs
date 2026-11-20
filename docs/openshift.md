@@ -346,6 +346,8 @@ For detailed instructions, see [roles/openshift_gitea/README.md](../roles/opensh
 - **All roles are idempotent — safe to re-run:** Fix the issue and run again
 - **"Redfish vmedia mapping failed" / "Mount failed" on Install cluster:** run `scripts/vmedia_diagnose.py` (below) to see what the blade's CIMC reports.
 
+When iServer asks a question during Install cluster, such as "Continue with manual mount and boot from iso [Y/N]?", the job answers **N** so iServer stops with its own message instead of crashing on a missing keyboard. A virtual media failure also prints a pointer to the diagnostics below.
+
 ### Virtual media diagnostics
 
 `scripts/vmedia_diagnose.py` talks Redfish to the Fabric Interconnect directly (not through iServer), so every CIMC answer is visible. It uses the FI attached servers in `assisted-installer/server.json` (or `--fi IP --vault-file ...`), and `web.json` for the web server settings. On the appliance run it as root so it can read the Nginx log:

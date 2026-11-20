@@ -81,6 +81,17 @@ class api:
                 kwargs.rsg_moids[i.Name] = DotMap(moid=i.Moid, tags=i.Tags)
                 kwargs.rsg_names[i.Moid] = i.Name
             return kwargs
+        def has_parent_relationship(i, key, kwargs):
+            """True when ``key`` is a parent relationship of a child resource.
+
+            The organization Parent that every object carries is not one. A null relationship only counts for
+            resources mapped as parent.child (for example vnic.EthIf), so that an unresolved parent is reported
+            instead of the child being filed as a top-level object."""
+            value = i.get(key)
+            if isinstance(value, dict):
+                return value.get('ObjectType') != 'organization.Organization'
+            return value is None and '.' in str(kwargs.intersight_object_map.get(i.ObjectType, ''))
+
         if not kwargs.build_skip and api_results.get('Results'):
             def check_for_dotmap_key(kwargs):
                 if not kwargs.get('intersight_api'):
@@ -121,8 +132,8 @@ class api:
                 elif 'organization.Organization' == i.ObjectType:
                     kwargs = function_org_moids(i, kwargs)
                     continue
-                elif ((any(re.search(parent_regex, e) for e in ikeys 
-                       if isinstance(i.get(e), dict) and i.get(e, {}).get('ObjectType') != 'organization.Organization') 
+                elif ((any(re.search(parent_regex, e) for e in ikeys
+                           if has_parent_relationship(i, e, kwargs))
                        and isinstance(kwargs.org, str)) or pool_match):
                     if pool_match:
                         child_type = pool_match.group(3).replace(
