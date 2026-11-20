@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.46] - 2026-11-20
+
+### Changed
+- `vmedia_diagnose.py mount` prints the exact InsertMedia request body and the state and messages of the Redfish task the insert starts.
+
 ## [0.1.45] - 2026-11-20
 
 ### Changed

@@ -108,6 +108,20 @@ class CaptureStartTests(unittest.TestCase):
             self.assertIn("tcp-syn", popen.call_args.args[0][-1])
 
 
+class TaskTextTests(unittest.TestCase):
+    def test_insert_task_state_and_messages_are_shown(self):
+        task = {"TaskState": "Completed", "TaskStatus": "Warning", "Messages": [{"Message": "Mount failed"}]}
+
+        class Fi:
+            def get(self, _blade, uri):
+                return 200, task
+
+        text = tool.task_text(Fi(), "b", json.dumps({"@odata.id": "/redfish/v1/TaskService/Tasks/16"}))
+        self.assertEqual(text, "task 16: TaskState=Completed TaskStatus=Warning message='Mount failed'")
+        self.assertIn("no task", tool.task_text(Fi(), "b", json.dumps({})))
+        self.assertIn("not JSON", tool.task_text(Fi(), "b", "oops"))
+
+
 class MountTests(unittest.TestCase):
     def run_mount(self, states, timeout=3):
         args = tool.parse_args(["mount", "--fi", "x", "--url", "https://h/os-images/a.iso", "--access-log", "/nonexistent",

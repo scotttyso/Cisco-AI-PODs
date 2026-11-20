@@ -291,6 +291,25 @@ def summarize_requests(lines: list[str]) -> str:
     return ", ".join(f"{client} {method} {status} x{count}" for (client, method, status), count in sorted(counts.items()))
 
 
+def task_text(fi: Fi, blade: str, response_text: str) -> str:
+    """What the Redfish task started by InsertMedia says (state, status and messages), or an explanation."""
+    try:
+        location = json.loads(response_text).get("@odata.id", "")
+    except ValueError:
+        return "the insert response was not JSON"
+    if "/Tasks/" not in location:
+        return "the insert response named no task"
+    code, task = fi.get(blade, location.replace("/redfish/v1", ""))
+    if code != 200 or not isinstance(task, dict):
+        return f"task {location} -> HTTP {code}"
+    parts = [f"{key}={task[key]}" for key in ("TaskState", "TaskStatus") if key in task]
+    for message in task.get("Messages", []) or []:
+        parts.append(f"message={message.get('Message') or message.get('MessageId')!r}")
+    if task.get("Oem"):
+        parts.append(f"oem={json.dumps(task['Oem'])[:300]}")
+    return f"task {location.rsplit('/', 1)[-1]}: " + (" ".join(parts) or json.dumps(task)[:300])
+
+
 def cimc_addresses(fi: Fi, blade: str) -> list[str]:
     code, interfaces = fi.get(blade, "/Managers/CIMC/EthernetInterfaces")
     found = []
@@ -381,7 +400,8 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
         body = {"Image": url, "WriteProtected": True, "TransferProtocolType": urlsplit(url).scheme.upper(),
                 "TransferMethod": "Stream", "Inserted": True}
         code, text = fi.post(blade, f"{slot_uri}/Actions/VirtualMedia.InsertMedia", body)
-        out.line(f"   [{time.strftime('%H:%M:%S')}] InsertMedia -> HTTP {code} {text.strip()[:160]}")
+        out.line(f"   [{time.strftime('%H:%M:%S')}] InsertMedia -> HTTP {code}")
+        out.line(f"   [{time.strftime('%H:%M:%S')}] request body sent: {json.dumps(body)}")
         last, deadline, ok = None, time.time() + args.timeout, False
         while time.time() < deadline:
             slot = slot_summary(fi.get(blade, slot_uri)[1])
@@ -395,6 +415,7 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
                 ok = True
                 break
             time.sleep(args.interval)
+        out.line(f"   [{time.strftime('%H:%M:%S')}] {task_text(fi, blade, text)}")
         if not ok and "error" not in slot:
             if slot["message"]:
                 out.line(f"   meaning: {hint_for(slot['message']) or 'no built-in explanation for this message'}")
