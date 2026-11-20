@@ -95,6 +95,19 @@ class CaptureTests(unittest.TestCase):
         self.assertIn("TLS handshake", self.verdict(text))
 
 
+class CaptureStartTests(unittest.TestCase):
+    def test_capture_filter_uses_cimc_addresses_or_falls_back_to_connection_setup(self):
+        with patch.object(tool.shutil, "which", return_value="/usr/sbin/tcpdump"), \
+                patch.object(tool.subprocess, "Popen") as popen, patch.object(tool.time, "sleep", lambda _s: None):
+            popen.return_value.poll.return_value = None
+            _, note = tool.start_capture(["10.0.0.213", "10.0.0.214"], 443)
+            self.assertEqual(note, "")
+            self.assertIn("host 10.0.0.213 or host 10.0.0.214", popen.call_args.args[0][-1])
+            _, note = tool.start_capture([], 443)
+            self.assertIn("--cimc-ip", note)
+            self.assertIn("tcp-syn", popen.call_args.args[0][-1])
+
+
 class MountTests(unittest.TestCase):
     def run_mount(self, states, timeout=3):
         args = tool.parse_args(["mount", "--fi", "x", "--url", "https://h/os-images/a.iso", "--access-log", "/nonexistent",

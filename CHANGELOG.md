@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-11-20
+
+### Changed
+- `vmedia_diagnose.py mount --capture` accepts `--cimc-ip` and, when no CIMC address is known, records connection setup (SYN/RST) from every client on the web server port instead of skipping the capture.
+
 ## [0.1.44] - 2026-11-20
 
 ### Added

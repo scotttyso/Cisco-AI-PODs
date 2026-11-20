@@ -302,18 +302,24 @@ def cimc_addresses(fi: Fi, blade: str) -> list[str]:
 
 
 def start_capture(addresses: list[str], port: int):
-    """tcpdump of the CIMC's TCP traffic to the web server port; needs root."""
-    if not addresses:
-        return None, "no CIMC address known; capture skipped"
+    """tcpdump of TCP traffic on the web server port; needs root.
+
+    With CIMC addresses it records everything those hosts send; without them it records only connection setup
+    and teardown (SYN/RST) from every client, so the sources show which CIMCs reach this host at all."""
     if not shutil.which("tcpdump"):
         return None, "tcpdump is not installed (dnf install tcpdump); capture skipped"
-    hosts = " or ".join(f"host {address}" for address in addresses)
-    process = subprocess.Popen(["tcpdump", "-nn", "-tt", "-l", "-i", "any", f"tcp port {port} and ({hosts})"],
+    if addresses:
+        expression = f"tcp port {port} and (" + " or ".join(f"host {address}" for address in addresses) + ")"
+        note = ""
+    else:
+        expression = f"tcp port {port} and tcp[tcpflags] & (tcp-syn|tcp-rst) != 0"
+        note = "no CIMC address known (use --cimc-ip); recording connection setup from every client"
+    process = subprocess.Popen(["tcpdump", "-nn", "-tt", "-l", "-i", "any", expression],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     time.sleep(1)
     if process.poll() is not None:
         return None, f"tcpdump could not start (run as root): {process.stderr.read().strip()[:120]}"
-    return process, ""
+    return process, note
 
 
 def summarize_capture(text: str, port: int) -> list[str]:
@@ -367,7 +373,8 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
         fi.post(blade, f"{slot_uri}/Actions/VirtualMedia.EjectMedia", {})
         time.sleep(2)
         if args.capture:
-            capture, note = start_capture(cimc_addresses(fi, blade), port)
+            addresses = args.cimc_ip or cimc_addresses(fi, blade)
+            capture, note = start_capture(addresses, port)
             if note:
                 out.line(f"   capture: {note}")
         out.line(f"   [{time.strftime('%H:%M:%S')}] before: {slot_text(slot_summary(fi.get(blade, slot_uri)[1]))}")
@@ -495,6 +502,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--url-base", default="", help="web server base URL (default: image_base_url in web.json)")
     parser.add_argument("--upload-dir", type=Path, help="web server directory (default: image_upload_directory in web.json)")
     parser.add_argument("--access-log", type=Path, default=DEFAULT_ACCESS_LOG)
+    parser.add_argument("--cimc-ip", action="append", default=[],
+                        help="mount --capture: CIMC in-band address to record (repeatable); default: read from the FI")
     parser.add_argument("--capture", action="store_true",
                         help="mount: record the CIMC's TCP traffic to the web server with tcpdump (run as root)")
     parser.add_argument("--timeout", type=int, default=90, help="mount: seconds to watch the slot")
