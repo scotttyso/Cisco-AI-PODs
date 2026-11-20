@@ -20,7 +20,7 @@ import argparse
 import datetime
 import json
 import os
-import socket
+import shutil
 import ssl
 import subprocess
 import sys
@@ -291,6 +291,55 @@ def summarize_requests(lines: list[str]) -> str:
     return ", ".join(f"{client} {method} {status} x{count}" for (client, method, status), count in sorted(counts.items()))
 
 
+def cimc_addresses(fi: Fi, blade: str) -> list[str]:
+    code, interfaces = fi.get(blade, "/Managers/CIMC/EthernetInterfaces")
+    found = []
+    for member in (interfaces.get("Members", []) if code == 200 and isinstance(interfaces, dict) else []):
+        code, interface = fi.get(blade, member["@odata.id"].replace("/redfish/v1", ""))
+        if code == 200 and isinstance(interface, dict) and interface.get("InterfaceEnabled"):
+            found += [item["Address"] for item in interface.get("IPv4Addresses", []) if item.get("Address")]
+    return found
+
+
+def start_capture(addresses: list[str], port: int):
+    """tcpdump of the CIMC's TCP traffic to the web server port; needs root."""
+    if not addresses:
+        return None, "no CIMC address known; capture skipped"
+    if not shutil.which("tcpdump"):
+        return None, "tcpdump is not installed (dnf install tcpdump); capture skipped"
+    hosts = " or ".join(f"host {address}" for address in addresses)
+    process = subprocess.Popen(["tcpdump", "-nn", "-tt", "-l", "-i", "any", f"tcp port {port} and ({hosts})"],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    time.sleep(1)
+    if process.poll() is not None:
+        return None, f"tcpdump could not start (run as root): {process.stderr.read().strip()[:120]}"
+    return process, ""
+
+
+def summarize_capture(text: str, port: int) -> list[str]:
+    """What the packets between the CIMC and the web server say about where the connection fails."""
+    packets = [line for line in text.splitlines() if "Flags [" in line]
+    flags = [line.split("Flags [", 1)[1].split("]", 1)[0] for line in packets]
+    syn = sum(1 for item in flags if item == "S")
+    syn_ack = sum(1 for item in flags if item == "S.")
+    reset = sum(1 for item in flags if "R" in item)
+    data = sum(1 for line in packets if "length" in line and not line.rstrip().endswith("length 0"))
+    verdict = f"{len(packets)} packets: SYN={syn} SYN-ACK={syn_ack} RST={reset} with-data={data}"
+    if not packets:
+        meaning = f"No packet from the CIMC reached this host on port {port}: the path (route, VLAN, firewall) is the problem."
+    elif syn and not syn_ack:
+        meaning = "The CIMC's SYN arrived but this host never answered: a host firewall or listener is dropping it."
+    elif syn_ack and not data and not reset:
+        meaning = "TCP connected but the CIMC sent no TLS data and closed: it gave up right after connecting."
+    elif reset and not data:
+        meaning = "The connection was reset before any data: refused by the listener or a firewall."
+    elif reset:
+        meaning = "Connected and exchanged data, then reset: look at the TLS handshake (protocol or cipher mismatch) and the Nginx error log."
+    else:
+        meaning = "The CIMC connected and exchanged data; see the web server requests below."
+    return [verdict, f"meaning: {meaning}", *("   " + line for line in packets[:30])]
+
+
 def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool:
     slot_uri = f"/Managers/CIMC/VirtualMedia/{args.slot}"
     created = None
@@ -312,9 +361,15 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
     out.line(f"== {blade}: mounting {url}")
     out.line(f"   from this host: {head_request(url)}")
     started = datetime.datetime.now().astimezone().replace(microsecond=0)
+    capture = None
+    port = urlsplit(url).port or (443 if url.startswith("https") else 80)
     try:
         fi.post(blade, f"{slot_uri}/Actions/VirtualMedia.EjectMedia", {})
         time.sleep(2)
+        if args.capture:
+            capture, note = start_capture(cimc_addresses(fi, blade), port)
+            if note:
+                out.line(f"   capture: {note}")
         out.line(f"   [{time.strftime('%H:%M:%S')}] before: {slot_text(slot_summary(fi.get(blade, slot_uri)[1]))}")
         body = {"Image": url, "WriteProtected": True, "TransferProtocolType": urlsplit(url).scheme.upper(),
                 "TransferMethod": "Stream", "Inserted": True}
@@ -341,6 +396,17 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
                          "reach the web server at all (traffic dropped) stays in Updating; check routing, VLAN and "
                          "firewalls between the CIMC in-band address and the web server.")
         time.sleep(2)
+        if capture:
+            capture.terminate()
+            try:
+                packets, _ = capture.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                capture.kill()
+                packets, _ = capture.communicate()
+            capture = None
+            out.line("   packet capture (CIMC <-> web server):")
+            for line in summarize_capture(packets or "", port):
+                out.line("   " + line)
         requests_seen = web_requests(args.access_log, name, started) if name else None
         if requests_seen is None:
             out.line(f"   web server: access log {args.access_log} not readable here")
@@ -351,6 +417,8 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
                      "or the request failed before HTTP: route, VLAN, firewall or TLS)")
         return ok
     finally:
+        if capture:
+            capture.kill()
         fi.post(blade, f"{slot_uri}/Actions/VirtualMedia.EjectMedia", {})
         out.line(f"   ejected; slot after: {slot_text(slot_summary(fi.get(blade, slot_uri)[1]))}\n")
         if created:
@@ -427,6 +495,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--url-base", default="", help="web server base URL (default: image_base_url in web.json)")
     parser.add_argument("--upload-dir", type=Path, help="web server directory (default: image_upload_directory in web.json)")
     parser.add_argument("--access-log", type=Path, default=DEFAULT_ACCESS_LOG)
+    parser.add_argument("--capture", action="store_true",
+                        help="mount: record the CIMC's TCP traffic to the web server with tcpdump (run as root)")
     parser.add_argument("--timeout", type=int, default=90, help="mount: seconds to watch the slot")
     parser.add_argument("--interval", type=float, default=2.0, help="mount: seconds between slot reads")
     args = parser.parse_args(argv)

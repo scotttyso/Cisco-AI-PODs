@@ -72,6 +72,29 @@ class HelperTests(unittest.TestCase):
             self.assertEqual(printed, ["login ******** ok"])
 
 
+class CaptureTests(unittest.TestCase):
+    def verdict(self, text):
+        return "\n".join(tool.summarize_capture(text, 443))
+
+    def test_no_packets_means_the_path_is_the_problem(self):
+        self.assertIn("path (route, VLAN, firewall)", self.verdict(""))
+
+    def test_syn_without_answer_means_a_dropping_firewall_or_listener(self):
+        self.assertIn("never answered", self.verdict("1.0 IP 10.0.0.2.5555 > 10.0.0.1.443: Flags [S], seq 1, length 0"))
+
+    def test_connect_then_silence_and_a_bare_reset_are_told_apart(self):
+        connected = ("1.0 IP 10.0.0.2.5555 > 10.0.0.1.443: Flags [S], seq 1, length 0\n"
+                     "1.0 IP 10.0.0.1.443 > 10.0.0.2.5555: Flags [S.], seq 2, ack 2, length 0")
+        self.assertIn("gave up right after connecting", self.verdict(connected))
+        refused = "1.0 IP 10.0.0.1.443 > 10.0.0.2.5555: Flags [R.], seq 0, ack 2, length 0"
+        self.assertIn("reset before any data", self.verdict(refused))
+
+    def test_reset_after_data_points_at_tls(self):
+        text = ("1.0 IP 10.0.0.2.5555 > 10.0.0.1.443: Flags [P.], seq 1:200, ack 1, length 199\n"
+                "1.1 IP 10.0.0.1.443 > 10.0.0.2.5555: Flags [R.], seq 1, length 0")
+        self.assertIn("TLS handshake", self.verdict(text))
+
+
 class MountTests(unittest.TestCase):
     def run_mount(self, states, timeout=3):
         args = tool.parse_args(["mount", "--fi", "x", "--url", "https://h/os-images/a.iso", "--access-log", "/nonexistent",

@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.44] - 2026-11-20
+
+### Added
+- `vmedia_diagnose.py mount --capture` records the CIMC's TCP traffic to the web server with tcpdump (root) and reports where the connection fails.
+
 ## [0.1.43] - 2026-11-20
 
 ### Added
