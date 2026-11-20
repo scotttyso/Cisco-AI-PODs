@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-11-20
+
+### Added
+- `scripts/vmedia_diagnose.py` (`inspect`, `mount`) diagnoses virtual media mount failures on FI attached blades by talking Redfish to the Fabric Interconnect directly: CIMC firmware, clock and network, every virtual media slot with the CIMC's own message, the web server certificate, a timestamped mount timeline, and the requests the CIMC makes to Nginx. See docs/openshift.md.
+
 ## [0.1.42] - 2026-11-19
 
 ### Fixed

@@ -92,6 +92,10 @@ python3 scripts/deploy_ai_pod.py \
 | `--openshift-stage {phase1,iserver,phase2}` | Start the OpenShift role at this stage and continue through the rest. Defaults to `phase1`. |
 | `--openshift-only-stage {phase1,iserver,phase2}` | Run a single OpenShift stage and stop. |
 
+### Virtual media diagnostics
+
+`scripts/vmedia_diagnose.py inspect|mount` troubleshoots ISO mounts on Fabric Interconnect attached blades by talking Redfish to the FI directly. See [Virtual media diagnostics](../docs/openshift.md#virtual-media-diagnostics).
+
 ### OpenShift stages
 
 The OpenShift role runs three stages in order:

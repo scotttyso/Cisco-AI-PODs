@@ -344,6 +344,22 @@ For detailed instructions, see [roles/openshift_gitea/README.md](../roles/opensh
 - **"Unauthorized":** Verify environment variables and get fresh token (they expire after 24 hours)
 - **"Could not reach API":** Check cluster endpoint is reachable: `curl -k https://api.<cluster>.<domain>:6443`
 - **All roles are idempotent — safe to re-run:** Fix the issue and run again
+- **"Redfish vmedia mapping failed" / "Mount failed" on Install cluster:** run `scripts/vmedia_diagnose.py` (below) to see what the blade's CIMC reports.
+
+### Virtual media diagnostics
+
+`scripts/vmedia_diagnose.py` talks Redfish to the Fabric Interconnect directly (not through iServer), so every CIMC answer is visible. It uses the FI attached servers in `assisted-installer/server.json` (or `--fi IP --vault-file ...`), and `web.json` for the web server settings. On the appliance run it as root so it can read the Nginx log:
+
+```bash
+cd /home/automation-ui/Cisco-AI-PODs
+sudo .venv/bin/python3 scripts/vmedia_diagnose.py inspect --url https://<appliance>/os-images/<file>.iso
+sudo .venv/bin/python3 scripts/vmedia_diagnose.py mount --blade <inventory-id> --image <file>.iso
+```
+
+- `inspect` (read-only) shows per blade the CIMC firmware and clock (compared with this host), CIMC IP, gateway, VLAN and DNS, every virtual media slot with the CIMC's message, the CIMC log, the web server certificate, and whether the image URL answers from this host.
+- `mount` ejects slot 3, inserts the image (a generated 1 MB test image unless `--url` or `--image` is given), prints a timestamped timeline of the slot, shows which requests the CIMC made to Nginx, then ejects and removes the test image. Use `--image` with the real OpenShift ISO to test it exactly as the install does.
+
+What the CIMC's answer means (verified on a lab X-Series blade): a CIMC that can reach the server mounts within seconds and requests the file (`HEAD`, a 64-byte `GET`, `HEAD`); `Image file not found on server` means it reached Nginx but the file is missing or unreadable; an immediate `Mount failed` with no request in the Nginx log means the connection itself was refused or reset; a slot that stays `Updating` means traffic from the CIMC is being dropped. The CIMC does not validate the web server's certificate.
 
 ---
 
