@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.47] - 2026-11-20
+
+### Fixed
+- `vmedia_diagnose.py mount` recognises Nginx log lines for image URLs that carry a query string such as `?noauto`.
+
 ## [0.1.46] - 2026-11-20
 
 ### Changed

@@ -270,7 +270,7 @@ def web_requests(access_log: Path, name: str, since: datetime.datetime) -> list[
         return None
     found = []
     for line in lines:
-        if f"/{name} " not in line:
+        if f"/{name} " not in line and f"/{name}?" not in line:
             continue
         try:
             stamp = datetime.datetime.strptime(line.split("[", 1)[1].split("]", 1)[0], "%d/%b/%Y:%H:%M:%S %z")

@@ -51,9 +51,10 @@ class HelperTests(unittest.TestCase):
                 f'10.0.0.1 - - [{old}] "GET /os-images/a.iso HTTP/1.1" 206 64 "-" "x" "-"\n'
                 f'10.0.0.2 - - [{new}] "GET /os-images/a.iso HTTP/1.1" 206 64 "-" "x" "-"\n'
                 f'10.0.0.2 - - [{new}] "HEAD /os-images/a.iso HTTP/1.1" 200 0 "-" "x" "-"\n'
-                f'10.0.0.3 - - [{new}] "GET /os-images/b.iso HTTP/1.1" 200 1 "-" "x" "-"\n')
+                f'10.0.0.3 - - [{new}] "GET /os-images/b.iso HTTP/1.1" 200 1 "-" "x" "-"\n'
+                f'10.0.0.4 - - [{new}] "GET /os-images/a.iso?noauto HTTP/1.1" 206 64 "-" "x" "-"\n')
             found = tool.web_requests(log, "a.iso", now - datetime.timedelta(minutes=1))
-            self.assertEqual(tool.summarize_requests(found), "10.0.0.2 GET 206 x1, 10.0.0.2 HEAD 200 x1")
+            self.assertEqual(tool.summarize_requests(found), "10.0.0.2 GET 206 x1, 10.0.0.2 HEAD 200 x1, 10.0.0.4 GET 206 x1")
             self.assertIsNone(tool.web_requests(Path(folder) / "missing.log", "a.iso", now))
 
     def test_server_json_selects_only_fi_servers_and_masks_the_password(self):
