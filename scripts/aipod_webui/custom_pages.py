@@ -4,6 +4,7 @@ write into the YAML, key and CSR generation, and summaries of data collected by 
 from __future__ import annotations
 
 import datetime
+import json
 import os
 import re
 import shutil
@@ -11,7 +12,7 @@ from pathlib import Path
 
 from nicegui import run, ui
 
-from . import intersight_policies, seeds
+from . import intersight_policies, ocp_access, seeds
 from .panels import CredentialsPanel, write_text
 from .vault import VaultError
 
@@ -815,21 +816,78 @@ def _ssh_reference(handle) -> int:
 def ocp_cluster_form(handle) -> None:
     context = handle.context
     state = handle.state("ocp-cluster")
-    with card("Cluster access", "Kubeconfig written by the installer; used by the post-checks and every later OpenShift, "
-                                "GitOps, and Splunk page.", icon="admin_panel_settings"):
-        with ui.row().classes("w-full items-center gap-3"):
-            kubeconfig = ui.input("Kubeconfig path", value=state.get("kubeconfig", ""),
-                                  placeholder=str(context.repository / "assisted-installer/<cluster>/auth/kubeconfig")
-                                  ).props("outlined dense").classes("grow")
+    with card("Cluster access", "Captured from the installer's output when Install cluster finishes. The kubeadmin password "
+                                "and the kubeconfig are hidden in the job log and stored in the encrypted vault; the "
+                                "post-checks and every later OpenShift, GitOps, and Splunk page use the kubeconfig "
+                                "automatically.", icon="admin_panel_settings"):
+        info = ocp_access.load_info(context.host_vars_dir)
+        if info:
+            ui.label(f"Cluster {info.get('cluster') or '?'}, captured {info.get('captured_at', '')}. "
+                     f"Console: {info.get('console_url') or '?'} (user {info.get('username') or 'kubeadmin'}).").classes("text-sm")
+        else:
+            ui.label("Nothing captured yet. Run Install cluster; the access details are saved when it finishes."
+                     ).classes("text-sm muted")
 
-            def save() -> None:
-                path = (kubeconfig.value or "").strip()
-                if path and not Path(path).expanduser().is_file():
-                    ui.notify(f"{path} does not exist yet; saved anyway", type="warning")
-                handle.save_state({"kubeconfig": str(Path(path).expanduser()) if path else ""}, "ocp-cluster")
-                ui.notify("Saved", type="positive")
+        async def stored(key: str, label: str) -> str:
+            try:
+                data = await run.io_bound(context.vault.load)
+            except Exception as error:  # an unreadable vault is reported, not raised
+                ui.notify(f"Vault: {error}", type="negative")
+                return ""
+            value = str((data.get("openshift") or {}).get(key) or "")
+            if not value:
+                ui.notify(f"No {label} is stored yet; it is saved when Install cluster finishes", type="warning")
+            return value
 
-            ui.button("Save", icon="save", on_click=save).props("outline")
+        async def copy(key: str, label: str) -> None:
+            value = await stored(key, label)
+            if value:
+                ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(value)})")
+                ui.notify(f"{label.capitalize()} copied to the clipboard", type="positive")
+
+        async def show_password() -> None:
+            value = await stored(ocp_access.VAULT_PASSWORD_KEY, "kubeadmin password")
+            if not value:
+                return
+            with ui.dialog() as dialog, ui.card().classes("gap-2"):
+                ui.label("kubeadmin password").classes("text-subtitle1")
+                ui.input(value=value).props("readonly outlined dense").classes("w-80")
+                with ui.row():
+                    ui.button("Copy", icon="content_copy", on_click=lambda: (
+                        ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(value)})"),
+                        ui.notify("Copied", type="positive"))).props("outline")
+                    ui.button("Close", on_click=dialog.close).props("flat")
+            dialog.open()
+
+        async def download_kubeconfig() -> None:
+            value = await stored(ocp_access.VAULT_KUBECONFIG_KEY, "kubeconfig")
+            if value:
+                ui.download.content(value, "kubeconfig")
+
+        with ui.row().classes("gap-2"):
+            ui.button("Show kubeadmin password", icon="visibility", on_click=show_password).props("outline")
+            ui.button("Copy password", icon="content_copy",
+                      on_click=lambda: copy(ocp_access.VAULT_PASSWORD_KEY, "kubeadmin password")).props("flat")
+            ui.button("Copy kubeconfig", icon="content_copy",
+                      on_click=lambda: copy(ocp_access.VAULT_KUBECONFIG_KEY, "kubeconfig")).props("flat")
+            ui.button("Download kubeconfig", icon="download", on_click=download_kubeconfig).props("flat")
+
+        with ui.expansion("Use a different kubeconfig file", icon="folder_open").classes("w-full"):
+            ui.label("Only needed for a cluster that was not installed here. A path saved here is used instead of the "
+                     "captured kubeconfig; clear it and Save to go back.").classes("muted text-xs")
+            with ui.row().classes("w-full items-center gap-3"):
+                kubeconfig = ui.input("Kubeconfig path", value=state.get("kubeconfig", ""),
+                                      placeholder=str(ocp_access.kubeconfig_path(context.host_vars_dir))
+                                      ).props("outlined dense").classes("grow")
+
+                def save() -> None:
+                    path = (kubeconfig.value or "").strip()
+                    if path and not Path(path).expanduser().is_file():
+                        ui.notify(f"{path} does not exist yet; saved anyway", type="warning")
+                    handle.save_state({"kubeconfig": str(Path(path).expanduser()) if path else ""}, "ocp-cluster")
+                    ui.notify("Saved", type="positive")
+
+                ui.button("Save", icon="save", on_click=save).props("outline")
 
     with card("Node MAC addresses", "Run Collect MACs from Intersight (domain and standalone servers) and Collect MACs "
                                     "from BMC Redfish (HGX C880A / C885A) in Tools, then Refresh from inventory.", icon="settings_ethernet"):

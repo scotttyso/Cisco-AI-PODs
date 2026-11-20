@@ -348,6 +348,19 @@ For detailed instructions, see [roles/openshift_gitea/README.md](../roles/opensh
 
 When iServer asks a question during Install cluster, such as "Continue with manual mount and boot from iso [Y/N]?", the job answers **N** so iServer stops with its own message instead of crashing on a missing keyboard. A virtual media failure also prints a pointer to the diagnostics below.
 
+### Cluster access (kubeadmin password and kubeconfig)
+
+When Install cluster finishes, iServer prints the console URL, the `kubeadmin` password and the whole kubeconfig. The job captures them from the output and **hides them in the job log** (the console URL and user name stay visible). It then saves:
+
+- the kubeconfig as `<environment>/auth/kubeconfig` (mode 0600, in a 0700 folder that the environment's `.gitignore` already excludes), plus `cluster-access.json` with the cluster name and console URL;
+- the `kubeadmin` password and the kubeconfig in the encrypted vault, in the `openshift` section as `kubeadmin_password` and `ocp_kubeconfig`.
+
+This happens even when a later iServer step fails (for example the SSH check), because the install itself already succeeded. Every later OpenShift, GitOps and Splunk page uses the captured kubeconfig automatically; you no longer enter a path. If the file is removed it is restored from the vault.
+
+On **Cluster Deployment > Cluster access** you can show or copy the kubeadmin password, copy the kubeconfig, and download it. A different kubeconfig can still be chosen under "Use a different kubeconfig file" for a cluster that was not installed here.
+
+iServer also writes its own logs under `/tmp/iserver/<id>/`, and those still contain the console output. They are outside this job's control; remove them if the server is shared. Remove the `kubeadmin` account once your identity provider is configured.
+
 ### Virtual media diagnostics
 
 `scripts/vmedia_diagnose.py` talks Redfish to the Fabric Interconnect directly (not through iServer), so every CIMC answer is visible. It uses the FI attached servers in `assisted-installer/server.json` (or `--fi IP --vault-file ...`), and `web.json` for the web server settings. On the appliance run it as root so it can read the Nginx log:

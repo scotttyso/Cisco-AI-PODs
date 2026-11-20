@@ -18,7 +18,7 @@ from uuid import uuid4
 import yaml
 from nicegui import run, ui
 
-from . import custom_pages, intersight_policies, seeds, stage_inventory
+from . import custom_pages, intersight_policies, ocp_access, seeds, stage_inventory
 from .dhcp_model import build_dhcp_model, default_gateway, host_interfaces, suggest_network
 from .panels import (Action, CredentialsPanel, FileSpec, JobConsole, RunContext, UiContext, Workbench, Workbenches,
                      collapsible,
@@ -178,8 +178,18 @@ def apply_certificates(rc: RunContext) -> list[list[str]]:
     return phase2("certificates")(rc)
 
 
+def ocp_kubeconfig(rc: RunContext) -> str:
+    """The kubeconfig path saved on Cluster Deployment, else the one captured from the installer's output
+    (restored from the vault if the file was removed)."""
+    saved = rc.ui.store.page_state("ocp-cluster").get("kubeconfig", "")
+    if saved:
+        return saved
+    path = ocp_access.ensure_kubeconfig_file(rc.ui.host_vars_dir, rc.ui.vault)
+    return str(path) if path else ""
+
+
 def ocp_env(rc: RunContext) -> dict[str, str]:
-    kubeconfig = rc.ui.store.page_state("ocp-cluster").get("kubeconfig", "")
+    kubeconfig = ocp_kubeconfig(rc)
     return {"KUBECONFIG": kubeconfig, "K8S_AUTH_KUBECONFIG": kubeconfig} if kubeconfig else {}
 
 
@@ -904,7 +914,8 @@ def with_cilium_registry_check(build: Callable[[RunContext], list[list[str]]]) -
 
 def cluster_status(rc: RunContext) -> list[list[str]]:
     if not ocp_env(rc):
-        raise ValueError("Set the kubeconfig path in the cluster settings on the Cluster Deployment page")
+        raise ValueError("No kubeconfig yet: run Install cluster (it is captured from the installer's output), or set a "
+                         "kubeconfig path under Cluster access on the Cluster Deployment page")
     return [["bash", "-c", "oc get clusterversion && oc get nodes -o wide && oc get co"]]
 
 

@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.50] - 2026-11-20
+
+### Added
+- Install cluster captures the cluster access details iServer prints (console URL, kubeadmin password and the whole kubeconfig). The password and kubeconfig are hidden in the job log and saved: the kubeconfig as `<environment>/auth/kubeconfig` (0600), and the password and kubeconfig in the vault (`openshift.kubeadmin_password`, `openshift.ocp_kubeconfig`). Capture happens even if a later iServer step fails.
+- Cluster Deployment > Cluster access shows the captured cluster, lets you show or copy the kubeadmin password, copy the kubeconfig, and download it. The kubeconfig path no longer has to be entered: later OpenShift, GitOps and Splunk pages use the captured file (restored from the vault if removed). Entering a path remains available as an override.
+
 ## [0.1.49] - 2026-11-20
 
 ### Fixed

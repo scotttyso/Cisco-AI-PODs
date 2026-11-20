@@ -18,6 +18,9 @@ from typing import Any
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from aipod_webui.ocp_access import AccessCapture, save_access  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HOST_VARS = REPO_ROOT / "host_vars"
 PYTHON = sys.executable
@@ -147,8 +150,11 @@ def is_iserver(command: list[str]) -> bool:
     return Path(command[0]).name == "iserver"
 
 
-def run_command(command: list[str], env: dict[str, str], cwd: Path = REPO_ROOT) -> None:
-    """Run a child process without buffering its combined terminal output."""
+def run_command(command: list[str], env: dict[str, str], cwd: Path = REPO_ROOT, access_sink=None) -> None:
+    """Run a child process without buffering its combined terminal output.
+
+    iServer prints the kubeadmin password and the kubeconfig when an install finishes. Those lines are hidden from
+    the output and handed to ``access_sink`` (called with the AccessCapture, returns notes to print)."""
     print(f"\n==> {' '.join(command)}", flush=True)
     answering = is_iserver(command)
     process = subprocess.Popen(
@@ -169,10 +175,15 @@ def run_command(command: list[str], env: dict[str, str], cwd: Path = REPO_ROOT) 
             pass
     assert process.stdout is not None
     vmedia_failed = False
+    capture = AccessCapture() if answering else None
     for line in process.stdout:
         vmedia_failed = vmedia_failed or "vmedia mapping failed" in line
-        print(line, end="", flush=True)
+        for shown in (capture.feed(line) if capture else [line.rstrip("\n")]):
+            print(shown, flush=True)
     return_code = process.wait()
+    if capture is not None and capture.captured and access_sink is not None:
+        for note in access_sink(capture):
+            print(f"==> {note}", flush=True)
     if return_code:
         if vmedia_failed:
             print(f"\n{VMEDIA_HINT}", flush=True)
@@ -384,6 +395,10 @@ def main(argv: list[str] | None = None) -> int:
             env["PYTHONUNBUFFERED"] = "1"
             return env
 
+        def access_sink(capture: AccessCapture) -> list[str]:
+            from aipod_webui.vault import VaultStore
+            return save_access(capture, host_vars_dir, VaultStore(vault_file, vault_password_file))
+
         sections = {"splunk_observability" if role == "observability" else role for role in args.roles}
         for section in sorted(sections & models.keys()):
             validate_models({section: models[section]}, role_env(section))
@@ -397,7 +412,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\n==> Starting {role}", flush=True)
             if role == "openshift":
                 for command, cwd in openshift_commands(models, args.check, args.openshift_stages, host_vars_dir):
-                    run_command(command, env, cwd)
+                    run_command(command, env, cwd, access_sink)
             elif role == "intersight" and args.intersight_scope != "all":
                 with tempfile.TemporaryDirectory(prefix=f"aipod-intersight-{args.intersight_scope}-") as folder:
                     scoped = scoped_intersight_dir(host_vars_dir, args.intersight_scope, Path(folder),
