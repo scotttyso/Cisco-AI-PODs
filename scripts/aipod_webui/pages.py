@@ -766,7 +766,7 @@ def intersight_actions(scope: str, label: str) -> tuple[Action, ...]:
         def build(rc: RunContext) -> list[list[str]]:
             command = rc.ui.deploy_args() + ["--role", "intersight", "--intersight-scope", scope]
             debug_level = rc.state.get("debug_level", 0)
-            if type(debug_level) is not int or debug_level not in range(8):
+            if isinstance(debug_level, bool) or not isinstance(debug_level, int) or debug_level not in range(8):
                 raise ValueError("Intersight API debug level must be an integer from 0 to 7")
             if debug_level:
                 command += ["--debug-level", str(debug_level)]
@@ -1008,8 +1008,11 @@ DNS_MANAGER_ACTIONS = (
            dns_manager_actions, group="Pre-check", files=False,
            tooltip="Check DNS records against the provider without making changes."),
     Action("sync", "Synchronize DNS records", "cloud_upload",
-           dns_manager_sync, files=False, 
-           confirm="Create the missing A records in Active Directory DNS and replace the address of records that exist with a different one. Other records and other record types are left unchanged and nothing is deleted. Run Validate first. The job then waits up to about 4 minutes to confirm the records resolve."),
+           dns_manager_sync, files=False,
+           confirm=("Create the missing A records in Active Directory DNS and replace the address of records that "
+                    "exist with a different one. Other records and other record types are left unchanged and "
+                    "nothing is deleted. Run Validate first. The job then waits up to about 4 minutes to confirm "
+                    "the records resolve.")),
 )
 
 

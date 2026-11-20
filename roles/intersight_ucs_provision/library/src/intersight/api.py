@@ -81,6 +81,7 @@ class api:
                 kwargs.rsg_moids[i.Name] = DotMap(moid=i.Moid, tags=i.Tags)
                 kwargs.rsg_names[i.Moid] = i.Name
             return kwargs
+
         def has_parent_relationship(i, key, kwargs):
             """True when ``key`` is a parent relationship of a child resource.
 

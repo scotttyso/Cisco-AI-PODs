@@ -68,7 +68,7 @@ class HelperTests(unittest.TestCase):
             clients, secrets = tool.build_clients(args)
             self.assertEqual([(fi.ip, blades) for fi, blades in clients], [("10.0.0.5", ["r1-1-1"])])
             printed = []
-            with patch("builtins.print", lambda text, **_: printed.append(text)):
+            with patch("builtins.print", lambda text, **kwargs: printed.append(text)):
                 tool.Output(secrets).line("login Sup3r! ok")
             self.assertEqual(printed, ["login ******** ok"])
 
@@ -101,10 +101,10 @@ class CaptureStartTests(unittest.TestCase):
         with patch.object(tool.shutil, "which", return_value="/usr/sbin/tcpdump"), \
                 patch.object(tool.subprocess, "Popen") as popen, patch.object(tool.time, "sleep", lambda _s: None):
             popen.return_value.poll.return_value = None
-            _, note = tool.start_capture(["10.0.0.213", "10.0.0.214"], 443)
+            note = tool.start_capture(["10.0.0.213", "10.0.0.214"], 443)[1]
             self.assertEqual(note, "")
             self.assertIn("host 10.0.0.213 or host 10.0.0.214", popen.call_args.args[0][-1])
-            _, note = tool.start_capture([], 443)
+            note = tool.start_capture([], 443)[1]
             self.assertIn("--cimc-ip", note)
             self.assertIn("tcp-syn", popen.call_args.args[0][-1])
 
@@ -136,21 +136,21 @@ class MountTests(unittest.TestCase):
 
     def test_successful_mount_is_reported_and_ejected_afterwards(self):
         ok, text, fi = self.run_mount([slot_doc(), slot_doc("Updating"), slot_doc("Enabled", inserted=True,
-                                                                                 image="https://h/os-images/a.iso")])
+                                                                                  image="https://h/os-images/a.iso")])
         self.assertTrue(ok)
-        self.assertEqual([name for name, _ in fi.posts], ["VirtualMedia.EjectMedia", "VirtualMedia.InsertMedia",
-                                                           "VirtualMedia.EjectMedia"])
+        self.assertEqual([item[0] for item in fi.posts], ["VirtualMedia.EjectMedia", "VirtualMedia.InsertMedia",
+                                                          "VirtualMedia.EjectMedia"])
         self.assertEqual(fi.posts[1][1]["TransferProtocolType"], "HTTPS")
 
     def test_failed_mount_shows_the_cimc_message_and_its_meaning(self):
-        ok, text, _ = self.run_mount([slot_doc(), slot_doc(), slot_doc("UnavailableOffline", "Critical", message="Mount failed")])
+        ok, text = self.run_mount([slot_doc(), slot_doc(), slot_doc("UnavailableOffline", "Critical", message="Mount failed")])[:2]
         self.assertFalse(ok)
         self.assertIn("message='Mount failed'", text)
         self.assertIn("meaning:", text)
 
     def test_slot_that_never_resolves_is_called_out(self):
         with patch.object(tool.time, "time", side_effect=[0, 0, 1, 99, 99, 99, 99, 99]):
-            ok, text, _ = self.run_mount([slot_doc(), slot_doc(), slot_doc("Updating")], timeout=5)
+            ok, text = self.run_mount([slot_doc(), slot_doc(), slot_doc("Updating")], timeout=5)[:2]
         self.assertFalse(ok)
         self.assertIn("no result after", text)
 

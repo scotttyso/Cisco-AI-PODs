@@ -30,6 +30,11 @@ Current sanity ignore entries are intentionally minimal:
     files (yamllint reports parser syntax errors with the `error` code), without skipping the test or excluding
     ordinary YAML elsewhere in the repository.
 
+- Three legacy files with `pylint:logging-fstring-interpolation`
+  (`check_bios_adapter_templates.py`, `check_template_differences.py`, `scripts/dns_updater.py`)
+  - These log with f-strings in about 80 places. New code should use lazy `%` formatting
+    (`logger.info("x %s", value)`); do not add more files to this list.
+
 Important:
 
 - `yamllint!skip` entries are not permitted by ansible sanity (`sanity[cannot-ignore]`).

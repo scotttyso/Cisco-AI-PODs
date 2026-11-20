@@ -902,8 +902,8 @@ def ocp_cluster_form(handle) -> None:
         cilium_choices = version_choices(support.cilium_versions(offline=True)[0], support.recommended("cilium"),
                                          current_cilium if current_cni == "Cilium" else "", is_supported=cilium_ok)
         with card("Versions and container network", "Only releases that Cisco AI PODs supports can be chosen. The "
-                                                     "latest production release is the default; pin a version to "
-                                                     "stay on it.", icon="hub"):
+                  "latest production release is the default; pin a version to "
+                  "stay on it.", icon="hub"):
             with ui.row().classes("w-full items-center gap-3"):
                 openshift = ui.select(openshift_choices, label="OpenShift version", value=current_openshift
                                       ).props("outlined dense").style("width:360px")
@@ -1739,14 +1739,13 @@ def gitops_form(handle) -> None:
 
 def dns_manager_form(handle) -> None:
     """DNS Manager provider selection and inventory source configuration."""
-    import json
     import yaml
     from pathlib import Path
-    
+
     context = handle.context
     workbench = handle.workbench
     state = handle.state
-    
+
     # DNS provider options
     # DNS provider options (in alphabetical order)
     DNS_PROVIDERS = {
@@ -1771,7 +1770,7 @@ def dns_manager_form(handle) -> None:
             "description": "Enterprise DNS/IPAM platform",
         },
     }
-    
+
     def saved_file(relative: str) -> Path | None:
         """A page file saved in the active environment (any environment name), whose folder is context.output_dir."""
         for folder in (context.host_vars_dir, context.output_dir):
@@ -1795,22 +1794,22 @@ def dns_manager_form(handle) -> None:
                 if openshift_path:
                     with open(openshift_path) as f:
                         ocp_data = yaml.safe_load(f)
-                    
+
                     if ocp_data and 'openshift' in ocp_data:
                         ocp_install = ocp_data['openshift']['install']['bare_metal']
                         base_domain = ocp_install.get('base_dns_domain', 'example.com')
                         cluster_name = ocp_install.get('cluster_name', 'cluster')
-                        
+
                         # Extract server hostnames and IPs
                         for server in ocp_install.get('servers', []):
                             hostname = server.get('hostname', '')
                             if not hostname:
                                 continue
-                            
+
                             # Get first IP from interfaces
                             ip_addr = None
                             interfaces = server.get('interfaces', {})
-                            
+
                             # Try bond interfaces first
                             if 'bond' in interfaces and interfaces['bond']:
                                 for bond in interfaces['bond']:
@@ -1818,7 +1817,7 @@ def dns_manager_form(handle) -> None:
                                     if ipv4:
                                         ip_addr = ipv4
                                         break
-                            
+
                             # Fall back to ethernet
                             if not ip_addr and 'ethernet' in interfaces:
                                 for eth in interfaces['ethernet']:
@@ -1826,31 +1825,31 @@ def dns_manager_form(handle) -> None:
                                     if ipv4:
                                         ip_addr = ipv4
                                         break
-                            
+
                             if ip_addr:
                                 fqdn = f"{hostname}.{base_domain}"
                                 records.append({
                                     "hostname": fqdn,
                                     "ipv4": ip_addr,
                                 })
-                        
+
                         # Add API and ingress VIPs
                         cluster_net = ocp_install.get('cluster_networking', {})
                         api_ip = cluster_net.get('api', {}).get('v4')
                         ingress_ip = cluster_net.get('ingress', {}).get('v4')
-                        
+
                         if api_ip:
                             records.append({
                                 "hostname": f"api.{cluster_name}.{base_domain}",
                                 "ipv4": api_ip,
                             })
-                        
+
                         if ingress_ip:
                             records.append({
                                 "hostname": f"*.apps.{cluster_name}.{base_domain}",
                                 "ipv4": ingress_ip,
                             })
-            
+
             # Extract from the environment's Initial Inventory (workspace)
             if import_initial_inventory.value:
                 for device in context.store.inventory():
@@ -1861,14 +1860,14 @@ def dns_manager_form(handle) -> None:
                             "hostname": hostname if "." in hostname or not base_domain else f"{hostname}.{base_domain}",
                             "ipv4": ip,
                         })
-        
+
         except Exception as e:
             print(f"Error extracting DNS records: {e}")
             import traceback
             traceback.print_exc()
-        
+
         return records
-    
+
     def load_ldap_from_inventory():
         """Load LDAP settings from initial_inventory.ezai.yaml shared_services."""
         try:
@@ -1880,7 +1879,7 @@ def dns_manager_form(handle) -> None:
                 server = ""
                 port = 389
                 use_ssl = False
-                
+
                 if url:
                     # Parse ldap://server:port or ldaps://server:port
                     if url.startswith("ldaps://"):
@@ -1888,7 +1887,7 @@ def dns_manager_form(handle) -> None:
                         url = url[8:]
                     elif url.startswith("ldap://"):
                         url = url[7:]
-                    
+
                     # Split server and port
                     if ":" in url:
                         server, port_str = url.rsplit(":", 1)
@@ -1898,18 +1897,18 @@ def dns_manager_form(handle) -> None:
                             pass
                     else:
                         server = url.rstrip("/")
-                
+
                 # Extract domain from base_dn (e.g., DC=rich,DC=ciscolabs,DC=com -> rich.ciscolabs.com)
                 base_dn = ldap.get("base_dn", "")
                 domain = ""
                 if base_dn:
                     # Convert DC=rich,DC=ciscolabs,DC=com to rich.ciscolabs.com
                     domain = ".".join([part[3:] for part in base_dn.split(",") if part.startswith("DC=")])
-                
+
                 # Note: bind_dn from LDAP config is the service account DN (e.g., CN=Network Services,...)
                 # For DNS manager, we need a username, which the user will enter in the credentials section
                 bind_dn = ldap.get("bind_dn", "")
-                
+
                 return {
                     "server": server,
                     "domain": domain,
@@ -1920,20 +1919,20 @@ def dns_manager_form(handle) -> None:
         except Exception:
             pass
         return None
-    
+
     def file_exists(file_path: str) -> bool:
         """Check if a file has been saved in the active environment."""
         return saved_file(file_path) is not None
-    
+
     def generate_dns_config():
         """Generate dns_config.ezai.yaml based on user selections."""
         provider_key = selected_provider.value
         if not provider_key:
             return
-        
+
         config = {"dns": {"providers": {}}}
         provider_name = DNS_PROVIDERS[provider_key]["name"]
-        
+
         # Add selected provider configuration
         if provider_key == "active_directory":
             ldap_data = load_ldap_from_inventory()
@@ -1995,25 +1994,25 @@ def dns_manager_form(handle) -> None:
                 "tsig_keyfile": "/etc/named.keys/update.key",
                 "timeout": 10,
             }
-        
+
         # Add extracted DNS records from selected inventory sources
         dns_records = extract_dns_records_from_files()
         config["dns"]["records"] = dns_records if dns_records else []
-        
+
         if not config["dns"]["records"]:
             ui.notify("No A records were found in the selected inventory sources. Save the OpenShift install file or "
                       "add devices to the Initial Inventory, then generate again.", type="warning", multi_line=True)
-        
+
         # Generate YAML
         yaml_content = yaml.dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True)
-        workbench.set_content("dns/dns_config.ezai.yaml", yaml_content, 
-                             f"Generated configuration for {provider_name}")
-    
+        workbench.set_content("dns/dns_config.ezai.yaml", yaml_content,
+                              f"Generated configuration for {provider_name}")
+
     # Form controls
-    with card("DNS Provider Selection", 
-              "Choose your DNS provider and select which inventory sources to import", 
+    with card("DNS Provider Selection",
+              "Choose your DNS provider and select which inventory sources to import",
               icon="dns"):
-        
+
         with ui.column().classes("w-full gap-4"):
             # Provider selection
             ui.label("Select DNS Provider").classes("text-base font-semibold")
@@ -2021,9 +2020,9 @@ def dns_manager_form(handle) -> None:
                 {k: v["name"] for k, v in DNS_PROVIDERS.items()},
                 label="DNS Provider",
                 on_change=lambda: (ui.notify(DNS_PROVIDERS[selected_provider.value]["description"]),
-                                 generate_dns_config())
+                                   generate_dns_config())
             ).props("outlined dense").classes("w-full")
-            
+
             ui.label("DNS Provider details").classes("muted text-xs mt-2")
             with ui.row().classes("w-full gap-2"):
                 for key, provider in DNS_PROVIDERS.items():
@@ -2031,9 +2030,9 @@ def dns_manager_form(handle) -> None:
                         selected_provider.set_value(k),
                         generate_dns_config()
                     )).props("outline")
-            
+
             ui.separator().classes("my-4")
-            
+
             # LDAP auto-import for Active Directory
             ldap_data = load_ldap_from_inventory()
             if ldap_data:
@@ -2066,13 +2065,13 @@ def dns_manager_form(handle) -> None:
                 use_shared_ldap = ui.checkbox("Use LDAP settings from Initial Inventory", value=False)
                 use_shared_ldap.enabled = False
                 ui.label("No LDAP configuration found in Initial Inventory").classes("muted text-sm")
-            
+
             ui.separator().classes("my-4")
-            
+
             # Inventory source selection
             ui.label("Import Inventory Sources").classes("text-base font-semibold mt-4")
             ui.label("Select which inventory files to include in the DNS configuration").classes("muted text-sm mb-2")
-            
+
             with ui.column().classes("w-full gap-2"):
                 import_openshift = ui.checkbox(
                     "OpenShift Cluster Deployment (openshift/install.ezai.yaml)",
@@ -2080,7 +2079,7 @@ def dns_manager_form(handle) -> None:
                     on_change=generate_dns_config
                 )
                 ui.label("Check this box to include OpenShift cluster nodes, API, and ingress from openshift/install.ezai.yaml").classes("text-xs muted ml-6")
-                
+
                 import_initial_inventory = ui.checkbox(
                     "Initial Inventory devices, including storage arrays",
                     value=bool(context.store.inventory()),
@@ -2088,11 +2087,11 @@ def dns_manager_form(handle) -> None:
                 )
                 ui.label("Includes every device with a hostname and IP in this environment's Initial Inventory. Add Everpure, NetApp, "
                          "VAST, or other storage arrays there with the Storage array role").classes("text-xs muted ml-6")
-            
+
             ui.separator().classes("my-4")
-            
+
             # Generate button
-            ui.button("Generate Configuration", icon="auto_fix_high", 
-                     on_click=generate_dns_config).props("unelevated")
+            ui.button("Generate Configuration", icon="auto_fix_high",
+                      on_click=generate_dns_config).props("unelevated")
             ui.label("Click to generate dns_config.ezai.yaml with the inventory sources checked above. "
-                    "The script will automatically find and parse your inventory files to extract A records.").classes("text-xs muted")
+                     "The script will automatically find and parse your inventory files to extract A records.").classes("text-xs muted")

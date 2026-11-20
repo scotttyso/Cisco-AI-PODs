@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Supported OpenShift and Cilium (Isovalent Enterprise) versions for Cisco AI PODs.
 
 ``VERSION_SUPPORT`` is the maintained policy: which minor releases this stack supports and which patch release is

@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.49] - 2026-11-20
+
+### Fixed
+- The nightly **Run collection certification checks** workflow failed every day since Nov 11. `changelogs/config.yaml` lacked `changes_format: combined`, which made the `changelog` sanity test crash and hid every other result; the old DNS Manager changelog fragment used invalid sections. With that fixed, the real findings were cleaned up: trailing whitespace and indentation (pycodestyle), unused imports, f-strings without placeholders, a missing `check=` on `subprocess.run`, the disallowed `_` name, and interpreter lines on five scripts. A copy-pasted duplicate of the tests at the end of `roles/intersight_ucs_provision/tests/test_feature2_standalone.py` was removed.
+- Eighty-odd legacy f-string log calls in three Intersight/DNS files are listed in `tests/sanity/ignore-*.txt` (new code should use lazy `%` logging).
+
+### Added
+- `scripts/run_sanity.sh` runs the same ansible-test sanity checks locally against the committed files (any ansible-core ref and Python), and `tests/test_sanity_hygiene.py` catches the common causes in seconds. The release workflow runs the hygiene test, the certification workflow also runs on pushes to `main`, and `docs/releasing.md` has a pre-tag checklist.
+
 ## [0.1.48] - 2026-11-20
 
 ### Fixed

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 DNS Updater - Integration and Unit Tests
 Tests the DNS updater functionality with various providers and inventory sources
@@ -6,9 +5,8 @@ Tests the DNS updater functionality with various providers and inventory sources
 
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import sys
-import os
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -69,9 +67,9 @@ class TestDNSComparator(unittest.TestCase):
             DNSRecord("test2.example.com", "192.168.1.2", "example.com"),
         }
         actual = desired.copy()
-        
+
         missing, stale, matching = self.comparator.compare(desired, actual)
-        
+
         self.assertEqual(len(missing), 0)
         self.assertEqual(len(stale), 0)
         self.assertEqual(len(matching), 2)
@@ -84,9 +82,9 @@ class TestDNSComparator(unittest.TestCase):
         actual = {
             DNSRecord("test1.example.com", "192.168.1.1", "example.com"),
         }
-        
+
         missing, stale, matching = self.comparator.compare(desired, actual)
-        
+
         self.assertEqual(len(missing), 1)
         self.assertEqual(len(stale), 0)
         self.assertEqual(len(matching), 1)
@@ -99,9 +97,9 @@ class TestDNSComparator(unittest.TestCase):
             DNSRecord("test1.example.com", "192.168.1.1", "example.com"),
             DNSRecord("old.example.com", "192.168.1.99", "example.com"),
         }
-        
+
         missing, stale, matching = self.comparator.compare(desired, actual)
-        
+
         self.assertEqual(len(missing), 0)
         self.assertEqual(len(stale), 1)
         self.assertEqual(len(matching), 1)
@@ -117,9 +115,9 @@ class TestDNSComparator(unittest.TestCase):
             DNSRecord("test2.example.com", "192.168.1.99", "example.com"),  # Different IP
             DNSRecord("old.example.com", "192.168.1.50", "example.com"),
         }
-        
+
         missing, stale, matching = self.comparator.compare(desired, actual)
-        
+
         # A record whose address differs is both missing (desired) and stale (current), so apply replaces it
         self.assertEqual({r.hostname for r in missing}, {"test2.example.com", "test3.example.com"})
         self.assertEqual({r.hostname for r in stale}, {"test2.example.com", "old.example.com"})
@@ -466,7 +464,7 @@ def run_tests():
     """Run all tests with verbose output"""
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    
+
     # Add all test cases
     suite.addTests(loader.loadTestsFromTestCase(TestDNSRecord))
     suite.addTests(loader.loadTestsFromTestCase(TestExtractZone))
@@ -478,10 +476,10 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestCheckMode))
     suite.addTests(loader.loadTestsFromTestCase(TestInfobloxProvider))
     suite.addTests(loader.loadTestsFromTestCase(TestErrorHandling))
-    
+
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     return 0 if result.wasSuccessful() else 1
 
 

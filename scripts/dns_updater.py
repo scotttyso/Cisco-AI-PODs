@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 DNS Updater - Synchronize DNS records across multiple providers
 Supports: Active Directory, Infoblox, BlueCat, Efficient IP, BindDNS
@@ -19,8 +18,7 @@ import struct
 import sys
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
 import yaml
@@ -43,8 +41,8 @@ class DNSRecord:
     def __eq__(self, other):
         if not isinstance(other, DNSRecord):
             return False
-        return (self.hostname == other.hostname and 
-                self.ip_address == other.ip_address and 
+        return (self.hostname == other.hostname and
+                self.ip_address == other.ip_address and
                 self.zone == other.zone)
 
 
@@ -72,33 +70,28 @@ class DNSProvider(ABC):
     @abstractmethod
     def authenticate(self):
         """Authenticate with the DNS provider"""
-        pass
 
     @abstractmethod
     def get_records(self, zone: str) -> Set[DNSRecord]:
         """Retrieve all DNS records from a zone"""
-        pass
 
     @abstractmethod
     def create_record(self, record: DNSRecord) -> bool:
         """Create a new DNS record"""
-        pass
 
     @abstractmethod
     def update_record(self, record: DNSRecord) -> bool:
         """Update an existing DNS record"""
-        pass
 
     @abstractmethod
     def delete_record(self, record: DNSRecord) -> bool:
         """Delete a DNS record"""
-        pass
 
     def get_credentials(self, secret_path: str) -> Dict:
         """Retrieve credentials from Vault"""
         if not self.vault_client:
             raise RuntimeError("Vault client not initialized")
-        
+
         try:
             secret = self.vault_client.secrets.kv.read_secret_version(path=secret_path)
             return secret['data']['data']
@@ -673,7 +666,7 @@ class DNSComparator:
     def compare(self, desired: Set[DNSRecord], actual: Set[DNSRecord]) -> Tuple[Set[DNSRecord], Set[DNSRecord], Set[DNSRecord]]:
         """
         Compare desired vs actual records.
-        
+
         Returns:
             (missing_records, stale_records, matching_records)
         """
@@ -681,7 +674,7 @@ class DNSComparator:
         stale = actual - desired
         matching = desired & actual
 
-        self.logger.info(f"Comparison results:")
+        self.logger.info("Comparison results:")
         self.logger.info(f"  Matching records: {len(matching)}")
         self.logger.info(f"  Missing records: {len(missing)}")
         self.logger.info(f"  Stale records: {len(stale)}")
@@ -834,9 +827,9 @@ class DNSUpdater:
 
     def _print_report(self, missing: Set[DNSRecord], stale: Set[DNSRecord], matching: Set[DNSRecord]):
         """Print comparison report"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("DNS UPDATE REPORT")
-        print("="*80)
+        print("=" * 80)
 
         if matching:
             print(f"\n✓ MATCHING ({len(matching)} records):")
@@ -866,9 +859,9 @@ class DNSUpdater:
             for record in sorted(stale_only, key=lambda r: r.hostname):
                 print(f"  {record.hostname:40} -> {record.ip_address}")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"Summary: {len(matching)} matching, {len(new)} missing, {len(changed)} changed, {len(stale_only)} stale")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
     def _apply_changes(self, provider: DNSProvider, missing: Set[DNSRecord], stale: Set[DNSRecord]):
         """Apply DNS changes to the provider"""

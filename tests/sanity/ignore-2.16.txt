@@ -13,3 +13,6 @@ roles/openshift_gitops/helm/redhat-ods-operator/templates/configs/operator-deplo
 roles/openshift_gitops/helm/redhat-ods-operator/templates/configs/operator-deployment.yaml yamllint:unparsable-with-libyaml
 roles/openshift_gitops/helm/redhat-ods-operator/templates/operators/subscription.yaml yamllint:error
 roles/openshift_gitops/helm/redhat-ods-operator/templates/operators/subscription.yaml yamllint:unparsable-with-libyaml
+roles/intersight_ucs_provision/library/src/intersight/check_bios_adapter_templates.py pylint:logging-fstring-interpolation
+roles/intersight_ucs_provision/library/src/intersight/check_template_differences.py pylint:logging-fstring-interpolation
+scripts/dns_updater.py pylint:logging-fstring-interpolation

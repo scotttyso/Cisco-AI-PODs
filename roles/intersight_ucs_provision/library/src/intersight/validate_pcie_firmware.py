@@ -9,12 +9,12 @@ Typical usage:
         validate_pcie_connectivity_firmware,
         format_pcie_validation_report
     )
-    
+
     is_compatible, incompatible_servers = validate_pcie_connectivity_firmware(
         ["PCIe-Connectivity"],
         servers_data
     )
-    
+
     report = format_pcie_validation_report(
         is_compatible,
         incompatible_servers,

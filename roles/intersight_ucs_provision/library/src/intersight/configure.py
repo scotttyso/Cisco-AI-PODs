@@ -1059,7 +1059,7 @@ class configure:
             else:
                 kwargs = post_to_api(kwargs)
             return kwargs
-        
+
         # =====================================================================
         # Initialize payload filtering for CVA/PVA environments
         # =====================================================================
@@ -1072,7 +1072,7 @@ class configure:
                     payload_filter = filtering.payload_filter
             except Exception:
                 pass  # If filtering initialization fails, proceed without it
-        
+
         # =====================================================================
         # Create API Body for Bulk Request
         # =====================================================================
@@ -1081,7 +1081,7 @@ class configure:
         for e in kwargs.bulk_list:
             if e.get('Parent'):
                 e.pop('Parent')
-            
+
             # Apply payload filtering if enabled
             body = deepcopy(e)
             if payload_filter:
@@ -1092,7 +1092,7 @@ class configure:
                         pass  # Logging handled by payload_filter.generate_warning_message()
                 except Exception:
                     pass  # If filtering fails for this item, use original body
-            
+
             # pmoid selects PATCH vs POST and is not an API property, so it must not be sent in the body.
             body.pop('pmoid', None)
             if e.get('pmoid'):

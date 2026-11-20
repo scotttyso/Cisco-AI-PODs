@@ -2,6 +2,12 @@
 release_summary: |
   DNS Manager v0.1.16 - Production-ready DNS record management with multi-provider support and schema compliance.
 
+  For detailed deployment instructions and configuration examples, see RELEASE_v0.1.16.md.
+
+  This production release includes a complete DNS Manager implementation with 5 provider types, automatic record
+  extraction from 3 inventory sources, robust LDAP auto-configuration, production-grade schema validation, and
+  comprehensive error handling and troubleshooting guides.
+
 major_changes:
   - |
     **DNS Manager Framework**: Complete DNS record synchronization system supporting 5 DNS providers
@@ -16,7 +22,7 @@ major_changes:
     **Schema Documentation**: Comprehensive JSON Schema with Required/Optional attribute descriptions
     following intersight.json format for API clarity.
 
-features:
+minor_changes:
   - |
     Multi-provider DNS support with unified configuration model for AD, Infoblox, BlueCat, EfficientIP, BIND.
   - |
@@ -69,7 +75,7 @@ known_issues:
   - |
     Everpure inventory expected in YAML format with systems array; JSON format support planned for future.
 
-documentation:
+trivial:
   - |
     Comprehensive release notes with provider configuration examples and security best practices.
   - |
@@ -78,16 +84,3 @@ documentation:
     Schema descriptions for all 5 DNS providers with Required/Optional attributes.
   - |
     Workflow documentation explaining multi-step DNS Manager process.
-
-release_notes: |
-  **For detailed deployment instructions and configuration examples, see RELEASE_v0.1.16.md**
-
-  This production release includes:
-  - Complete DNS Manager implementation with 5 provider types
-  - Automatic record extraction from 3 inventory sources
-  - Robust LDAP auto-configuration
-  - Production-grade schema validation
-  - Comprehensive error handling and troubleshooting guides
-
-  Customers can now automate DNS record management as part of their Cisco AI PODs deployment
-  workflow, eliminating manual DNS changes and ensuring consistency across multiple DNS providers.

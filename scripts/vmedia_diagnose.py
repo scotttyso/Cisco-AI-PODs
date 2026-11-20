@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Diagnose virtual media mounts on Fabric Interconnect attached blades, talking Redfish to the FI directly.
 
 Nothing here goes through iserver, so every request and CIMC answer is visible.
@@ -73,7 +72,7 @@ class Fi:
             raise FiError(f"login to {self.ip} failed ({response.status_code}): {response.text.strip()[:120]}")
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *exc_info):
         try:
             self.session.post(f"https://{self.ip}/Logout", headers=self.csrf(), timeout=10)
         except requests.RequestException:
@@ -97,7 +96,7 @@ class Fi:
 
     def post(self, blade: str, uri: str, body: dict) -> tuple[int, str]:
         response = self.session.post(f"https://{self.ip}{REDFISH}{uri}", json=body, timeout=60,
-                                    headers={"Inventory-Type": "Server", "Inventory-Id": blade, **self.csrf()})
+                                     headers={"Inventory-Type": "Server", "Inventory-Id": blade, **self.csrf()})
         return response.status_code, response.text[:300]
 
 
@@ -246,7 +245,7 @@ def command_inspect(clients: list[tuple[Fi, list[str]]], args: argparse.Namespac
             for slot in read_slots(fi, blade):
                 out.line(f"  slot {slot.get('id', '?')}: {slot_text(slot)}")
                 if "error" not in slot and slot["id"] == str(args.slot) and (slot["health"] != "OK"
-                                                                              or slot["state"] == "UnavailableOffline"):
+                                                                             or slot["state"] == "UnavailableOffline"):
                     findings.append(f"{blade}: slot {args.slot} is {slot['state']}/{slot['health']} "
                                     f"({slot['message'] or 'no message'})")
             code, log = fi.get(blade, "/Managers/CIMC/LogServices/CIMC/Entries")
@@ -427,10 +426,10 @@ def mount_one(fi: Fi, blade: str, args: argparse.Namespace, out: Output) -> bool
         if capture:
             capture.terminate()
             try:
-                packets, _ = capture.communicate(timeout=10)
+                packets = capture.communicate(timeout=10)[0]
             except subprocess.TimeoutExpired:
                 capture.kill()
-                packets, _ = capture.communicate()
+                packets = capture.communicate()[0]
             capture = None
             out.line("   packet capture (CIMC <-> web server):")
             for line in summarize_capture(packets or "", port):

@@ -12,6 +12,20 @@ then publishes a GitHub release with
 generated notes. Tags with a suffix are published as pre-releases and are not
 offered by the WebUI update check.
 
+Before tagging, run the checks the nightly **Run collection certification checks** workflow runs, so a failure
+shows up on your machine and not the next morning:
+
+```bash
+python -m pytest tests/test_sanity_hygiene.py tests/test_release_metadata.py   # seconds: whitespace, shebangs, changelog, schema stamp
+git commit -am "..."                                                         # the sanity run checks committed files
+scripts/run_sanity.sh                                                        # full ansible-test sanity, stable-2.20 on Python 3.12
+scripts/run_sanity.sh stable-2.16 3.12                                       # the older core the workflow also tests
+```
+
+`scripts/run_sanity.sh` exports `HEAD` into a scratch `ansible_collections` tree and creates its own virtual
+environment, so it needs network access the first time. The certification workflow also runs on every push to
+`main`, not only nightly.
+
 After changing VERSION, regenerate the bundled schema with
 `python scripts/merge_schemas.py` and commit it with the release changes.
 The bundler reads VERSION for `x-schema-version`; runtime Intersight release tags read VERSION directly.

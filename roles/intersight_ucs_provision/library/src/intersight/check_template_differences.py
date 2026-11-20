@@ -20,7 +20,7 @@ import sys
 import time
 import requests
 import yaml
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Any, Optional
 from collections import defaultdict
@@ -52,17 +52,17 @@ CATEGORIES = {
 COMMON_ATTRIBUTES = {
     # Identifiers and system metadata
     'Moid', 'ObjectType', 'ClassId', 'AccountMoid', 'AccountMoidList',
-    
+
     # Timestamps
     'CreateTime', 'ModTime', 'UpdateTime', 'LastModifiedTime',
-    
+
     # Hierarchy and relationships
     'Ancestors', 'DomainGroupMoid', 'Owners', 'PermissionResources',
     'Parent', 'Organization',
-    
+
     # Sharing and versioning
     'Shared', 'SharedScope', 'VersionContext', 'Tags',
-    
+
     # Other read-only fields
     'Description', 'Name'
 }
@@ -109,10 +109,10 @@ class TemplateAnalyzer:
 
     def extract_variables(self, template_content: str) -> Set[str]:
         """Extract all variable names from a Jinja2 template.
-        
+
         Args:
             template_content: Raw Jinja2 template content
-            
+
         Returns:
             Set of variable names found in template
         """
@@ -125,50 +125,50 @@ class TemplateAnalyzer:
 
     def extract_json_attributes(self, template_content: str) -> Set[str]:
         """Extract TOP-LEVEL JSON attribute names from template.
-        
+
         This method extracts only the top-level JSON keys (those at depth 1),
         ignoring nested object attributes like Moid, ObjectType, Key, etc.
-        
+
         Args:
             template_content: Raw Jinja2 template content
-            
+
         Returns:
             Set of top-level JSON attribute names
         """
         attributes = set()
-        
+
         # Find the main JSON object opening brace
         match = re.search(r'\{', template_content)
         if not match:
             return attributes
-        
+
         start = match.start()
         depth = 0
         in_string = False
         escape = False
         i = start
-        
+
         # Iterate through template to find top-level keys
         while i < len(template_content):
             char = template_content[i]
-            
+
             # Handle escape sequences
             if escape:
                 escape = False
                 i += 1
                 continue
-            
+
             if char == '\\':
                 escape = True
                 i += 1
                 continue
-            
+
             # Track string boundaries
             if char == '"' and not escape:
                 in_string = not in_string
                 i += 1
                 continue
-            
+
             # Only process braces outside of strings
             if not in_string:
                 if char == '{':
@@ -183,42 +183,42 @@ class TemplateAnalyzer:
                     j = i - 1
                     while j >= 0 and template_content[j] in ' \t\n\r':
                         j -= 1
-                    
+
                     if j >= 0 and template_content[j] == '"':
                         # Found closing quote, now find opening quote
                         k = j - 1
                         while k >= 0 and template_content[k] != '"':
                             k -= 1
-                        
+
                         if k >= 0:
                             key = template_content[k + 1:j]
                             # Only add valid attribute names (skip Jinja2 keywords)
                             if key and key not in {'if', 'for', 'else', 'elif', 'endif', 'endfor'}:
                                 attributes.add(key)
-            
+
             i += 1
-        
+
         return attributes
 
     def analyze_template_file(self, file_path: Path) -> Tuple[Set[str], Set[str]]:
         """Analyze a single template file.
-        
+
         Args:
             file_path: Path to template file
-            
+
         Returns:
             Tuple of (variables, json_attributes)
         """
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
-            
+
             variables = self.extract_variables(content)
             attributes = self.extract_json_attributes(content)
-            
+
             self.templates_analyzed += 1
             self.logger.debug(f"Analyzed {file_path.name}: {len(variables)} vars, {len(attributes)} attrs")
-            
+
             return variables, attributes
         except Exception as e:
             self.logger.error(f"Error analyzing {file_path}: {e}")
@@ -226,25 +226,25 @@ class TemplateAnalyzer:
 
     def analyze_category(self, category: str) -> Dict[str, Tuple[Set[str], Set[str]]]:
         """Analyze all templates in a category.
-        
+
         Args:
             category: Category name (policies, pools, profiles, templates, system)
-            
+
         Returns:
             Dict mapping template name to (variables, attributes)
         """
         category_path = TEMPLATE_DIR / category
         results = {}
-        
+
         if not category_path.exists():
             self.logger.warning(f"Category path does not exist: {category_path}")
             return results
-        
+
         for template_file in category_path.rglob('*.j2'):
             template_name = template_file.stem.replace('.json', '')
             variables, attributes = self.analyze_template_file(template_file)
             results[template_name] = (variables, attributes)
-        
+
         return results
 
 
@@ -257,7 +257,7 @@ class IntersightAPIClient:
 
     def __init__(self, api_key_id: str, secret_key: str, api_url: str, logger: logging.Logger):
         """Initialize Intersight API client.
-        
+
         Args:
             api_key_id: Intersight API key ID
             secret_key: Intersight secret key (content or file path)
@@ -275,7 +275,7 @@ class IntersightAPIClient:
         """Initialize IntersightAuth for API authentication."""
         try:
             from intersight_auth import IntersightAuth, repair_pem
-            
+
             # Determine if secret_key is a file or string
             if os.path.isfile(self.secret_key):
                 self.auth = IntersightAuth(
@@ -304,25 +304,25 @@ class IntersightAPIClient:
 
     def query_policy_schema(self, policy_type: str) -> Dict[str, Any]:
         """Query Intersight API to get policy schema attributes.
-        
+
         Args:
             policy_type: Policy type (e.g., 'compute.BiosPolicy', 'fabric.Vlan')
-            
+
         Returns:
             Dictionary with policy attributes or empty dict if query fails
         """
         if not self.auth:
             self.logger.warning(f"Cannot query policy {policy_type}: authentication not initialized")
             return {}
-        
+
         try:
             # Construct API endpoint URL
             # For schema queries, we request example data which includes all attributes
             endpoint = f"/api/v1/{policy_type}?$top=1"
             url = f"{self.api_url}{endpoint}"
-            
+
             self.logger.debug(f"Querying: {url}")
-            
+
             # Make authenticated request
             response = requests.get(
                 url,
@@ -330,7 +330,7 @@ class IntersightAPIClient:
                 verify=False,
                 timeout=30
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 if 'Results' in data and len(data['Results']) > 0:
@@ -351,7 +351,7 @@ class APISchemaAnalyzer:
 
     def __init__(self, logger: logging.Logger, api_client: Optional[IntersightAPIClient] = None):
         """Initialize API schema analyzer.
-        
+
         Args:
             logger: Logger instance
             api_client: Optional IntersightAPIClient for live queries
@@ -376,7 +376,7 @@ class APISchemaAnalyzer:
         """Get cache file path for a policy type."""
         if not self.cache_dir:
             return None
-        
+
         # Sanitize policy type for filename
         safe_name = policy_type.replace('/', '_').replace('.', '_')
         return self.cache_dir / f"{safe_name}.json"
@@ -386,13 +386,13 @@ class APISchemaAnalyzer:
         try:
             if not cache_file.exists():
                 return False
-            
+
             age = time.time() - cache_file.stat().st_mtime
             is_valid = age < self.cache_ttl
-            
+
             if not is_valid:
                 self.logger.debug(f"Cache expired for {cache_file.name}")
-            
+
             return is_valid
         except Exception as e:
             self.logger.warning(f"Error checking cache validity: {e}")
@@ -422,31 +422,31 @@ class APISchemaAnalyzer:
 
     def fetch_schema(self, policy_type: str, force_refresh: bool = False) -> Dict[str, Any]:
         """Fetch schema for a policy type (with caching).
-        
+
         Args:
             policy_type: Policy type to fetch schema for
             force_refresh: Force fresh API query (bypass cache)
-            
+
         Returns:
             Dictionary containing policy schema
         """
         cache_file = self._get_cache_file(policy_type)
-        
+
         # Check cache first (unless force_refresh)
         if cache_file and not force_refresh:
             if self._is_cache_valid(cache_file):
                 schema = self._load_from_cache(cache_file)
                 if schema:
                     return schema
-        
+
         # Query API if cache miss or force_refresh
         if self.api_client:
             schema = self.api_client.query_policy_schema(policy_type)
-            
+
             # Cache the result
             if schema and cache_file:
                 self._save_to_cache(cache_file, schema)
-            
+
             return schema
         else:
             self.logger.warning(f"No API client available to query {policy_type}")
@@ -454,27 +454,27 @@ class APISchemaAnalyzer:
 
     def extract_schema_attributes(self, schema: Dict[str, Any]) -> Set[str]:
         """Extract top-level attributes from API schema.
-        
+
         Args:
             schema: API schema dictionary (from live Intersight API)
-            
+
         Returns:
             Set of attribute names
         """
         if not isinstance(schema, dict):
             return set()
-        
+
         attributes = set()
         for key in schema.keys():
             # Include all top-level keys as potential API attributes
             if not key.startswith('_'):
                 attributes.add(key)
-        
+
         return attributes
 
     def store_schema(self, object_type: str, attributes: Set[str]):
         """Store schema attributes for an object type.
-        
+
         Args:
             object_type: Intersight object type (e.g., 'compute.BiosPolicy')
             attributes: Set of supported attributes
@@ -492,7 +492,7 @@ class TemplateDifferenceAnalyzer:
 
     def __init__(self, logger: logging.Logger, exclusion_config: Optional[Dict[str, Set[str]]] = None):
         """Initialize difference analyzer.
-        
+
         Args:
             logger: Logger instance
             exclusion_config: Optional config with 'global' and policy-type exclusion sets
@@ -507,16 +507,16 @@ class TemplateDifferenceAnalyzer:
 
     def _get_exclusions_for_template(self, template_name: str) -> Set[str]:
         """Get all exclusions (global + policy-specific) for a template.
-        
+
         Args:
             template_name: Template name (e.g., 'policies/vlan')
-            
+
         Returns:
             Set of attribute names to exclude
         """
         # Start with global exclusions
         exclusions = set(self.exclusion_config.get('global', set(COMMON_ATTRIBUTES)))
-        
+
         # Add policy-specific exclusions
         # Extract policy type from template name (e.g., 'policies/vlan' -> 'vlan')
         parts = template_name.split('/')
@@ -524,31 +524,31 @@ class TemplateDifferenceAnalyzer:
             policy_type = parts[1].split('.')[0]  # Handle names like 'vlan.vlans'
             policy_exclusions = self.exclusion_config.get('policies', {}).get(policy_type, set())
             exclusions.update(policy_exclusions)
-        
+
         return exclusions
 
     def compare(self, template_name: str, template_attrs: Set[str],
                 api_attrs: Set[str]) -> Dict[str, Any]:
         """Compare template attributes with API schema.
-        
+
         Args:
             template_name: Name of template being analyzed
             template_attrs: Attributes found in template
             api_attrs: Attributes supported by API
-            
+
         Returns:
             Dictionary containing comparison results
         """
         # Get exclusions for this template
         exclusions = self._get_exclusions_for_template(template_name)
-        
+
         # Remove excluded attributes from comparison
         template_attrs_filtered = template_attrs - exclusions
         api_attrs_filtered = api_attrs - exclusions
-        
+
         missing_in_api = template_attrs_filtered - api_attrs_filtered
         missing_in_template = api_attrs_filtered - template_attrs_filtered
-        
+
         result = {
             'template': template_name,
             'template_attributes': len(template_attrs_filtered),
@@ -557,24 +557,24 @@ class TemplateDifferenceAnalyzer:
             'missing_in_template': sorted(missing_in_template),
             'match_ratio': len(template_attrs_filtered & api_attrs_filtered) / max(len(template_attrs_filtered), len(api_attrs_filtered), 1)
         }
-        
+
         self.differences[template_name] = {
             'missing_in_api': set(result['missing_in_api']),
             'missing_in_template': set(result['missing_in_template']),
             'warnings': []
         }
-        
+
         # Add warnings for significant gaps
         if result['missing_in_api']:
             warning = f"Template uses {len(result['missing_in_api'])} attributes not in current API"
             self.differences[template_name]['warnings'].append(warning)
             self.logger.warning(f"{template_name}: {warning}")
-        
+
         if result['missing_in_template'] and len(result['missing_in_template']) > 5:
             warning = f"API supports {len(result['missing_in_template'])} attributes not in template"
             self.differences[template_name]['warnings'].append(warning)
             self.logger.info(f"{template_name}: {warning}")
-        
+
         return result
 
 
@@ -591,9 +591,9 @@ class DifferenceReportGenerator:
         self.timestamp = datetime.now().isoformat()
 
     def generate_json_report(self, comparisons: List[Dict[str, Any]],
-                            output_file: Path) -> None:
+                             output_file: Path) -> None:
         """Generate JSON format report.
-        
+
         Args:
             comparisons: List of comparison results
             output_file: Path to output file
@@ -603,22 +603,22 @@ class DifferenceReportGenerator:
             'total_templates': len(comparisons),
             'comparisons': comparisons
         }
-        
+
         with open(output_file, 'w') as f:
             json.dump(report, f, indent=2, default=str)
-        
+
         self.logger.info(f"JSON report written to {output_file}")
 
     def generate_csv_report(self, comparisons: List[Dict[str, Any]],
-                           output_file: Path) -> None:
+                            output_file: Path) -> None:
         """Generate CSV format report.
-        
+
         Args:
             comparisons: List of comparison results
             output_file: Path to output file
         """
         import csv
-        
+
         with open(output_file, 'w', newline='') as f:
             writer = csv.DictWriter(
                 f,
@@ -628,7 +628,7 @@ class DifferenceReportGenerator:
                 ]
             )
             writer.writeheader()
-            
+
             for comp in comparisons:
                 writer.writerow({
                     'Template': comp['template'],
@@ -638,13 +638,13 @@ class DifferenceReportGenerator:
                     'Missing in Template (Count)': len(comp['missing_in_template']),
                     'Match Ratio': f"{comp['match_ratio']:.2%}"
                 })
-        
+
         self.logger.info(f"CSV report written to {output_file}")
 
     def generate_markdown_report(self, comparisons: List[Dict[str, Any]],
-                                output_file: Path, details: bool = False) -> None:
+                                 output_file: Path, details: bool = False) -> None:
         """Generate Markdown format report with optional details.
-        
+
         Args:
             comparisons: List of comparison results
             output_file: Path to output file
@@ -653,23 +653,23 @@ class DifferenceReportGenerator:
         with open(output_file, 'w') as f:
             f.write("# Template Difference Analysis Report\n\n")
             f.write(f"Generated: {self.timestamp}\n\n")
-            
+
             # Summary section
             f.write("## Summary\n\n")
             total_templates = len(comparisons)
             templates_with_gaps = len([c for c in comparisons if c['missing_in_api'] or c['missing_in_template']])
             f.write(f"- **Total Templates Analyzed**: {total_templates}\n")
             f.write(f"- **Templates with Gaps**: {templates_with_gaps}\n\n")
-            
+
             # Detailed findings
             f.write("## Detailed Findings\n\n")
-            
+
             for comp in sorted(comparisons, key=lambda x: len(x['missing_in_api']), reverse=True):
                 f.write(f"### {comp['template']}\n\n")
                 f.write(f"- **Template Attributes**: {comp['template_attributes']}\n")
                 f.write(f"- **API Attributes**: {comp['api_attributes']}\n")
                 f.write(f"- **Match Ratio**: {comp['match_ratio']:.2%}\n")
-                
+
                 if comp['missing_in_api']:
                     f.write(f"\n#### Missing in API ({len(comp['missing_in_api'])})\n\n")
                     if details:
@@ -682,7 +682,7 @@ class DifferenceReportGenerator:
                         if remaining > 0:
                             f.write(f", and {remaining} more...")
                         f.write("\n")
-                
+
                 if comp['missing_in_template']:
                     f.write(f"\n#### Missing in Template ({len(comp['missing_in_template'])})\n\n")
                     if details:
@@ -691,27 +691,27 @@ class DifferenceReportGenerator:
                         remaining = len(comp['missing_in_template']) - 10
                         if remaining > 0:
                             f.write(f"- *and {remaining} more attributes*\n")
-                
+
                 f.write("\n")
-        
+
         self.logger.info(f"Markdown report written to {output_file}")
 
     def generate_console_summary(self, comparisons: List[Dict[str, Any]]) -> None:
         """Print summary to console.
-        
+
         Args:
             comparisons: List of comparison results
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEMPLATE DIFFERENCE ANALYSIS SUMMARY")
-        print("="*80 + "\n")
-        
+        print("=" * 80 + "\n")
+
         print(f"Total Templates Analyzed: {len(comparisons)}")
-        
+
         templates_with_gaps = [c for c in comparisons if c['missing_in_api'] or c['missing_in_template']]
         if templates_with_gaps:
             print(f"Templates with Attribute Gaps: {len(templates_with_gaps)}\n")
-            
+
             print("Top Issues (sorted by missing API attributes):\n")
             for comp in sorted(templates_with_gaps, key=lambda x: len(x['missing_in_api']), reverse=True)[:10]:
                 print(f"  {comp['template']}")
@@ -722,8 +722,8 @@ class DifferenceReportGenerator:
                 print()
         else:
             print("No attribute gaps found - all templates align with API!\n")
-        
-        print("="*80 + "\n")
+
+        print("=" * 80 + "\n")
 
 
 # =============================================================================
@@ -732,7 +732,7 @@ class DifferenceReportGenerator:
 
 def load_exclusion_config(config_file: Optional[Path] = None) -> Dict[str, Set[str]]:
     """Load attribute exclusion configuration from YAML file.
-    
+
     Config file format:
     ```yaml
     # Global exclusions apply to all policies
@@ -740,7 +740,7 @@ def load_exclusion_config(config_file: Optional[Path] = None) -> Dict[str, Set[s
       - Moid
       - CreateTime
       - ModTime
-    
+
     # Per-policy-type exclusions
     policy_exclusions:
       vlan:
@@ -749,10 +749,10 @@ def load_exclusion_config(config_file: Optional[Path] = None) -> Dict[str, Set[s
       storage:
         - SomeReadOnlyField
     ```
-    
+
     Args:
         config_file: Path to YAML config file
-        
+
     Returns:
         Dictionary with 'global' and policy-type keys
     """
@@ -760,30 +760,30 @@ def load_exclusion_config(config_file: Optional[Path] = None) -> Dict[str, Set[s
         'global': set(COMMON_ATTRIBUTES),  # Start with defaults
         'policies': {}
     }
-    
+
     if not config_file:
         return exclusions
-    
+
     config_file = Path(config_file)
     if not config_file.exists():
         return exclusions
-    
+
     try:
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
-        
+
         if not config:
             return exclusions
-        
+
         # Load global exclusions
         if 'global_exclusions' in config:
             exclusions['global'].update(config['global_exclusions'])
-        
+
         # Load per-policy exclusions
         if 'policy_exclusions' in config:
             for policy_type, excluded_attrs in config['policy_exclusions'].items():
                 exclusions['policies'][policy_type] = set(excluded_attrs or [])
-        
+
         return exclusions
     except Exception as e:
         print(f"Warning: Failed to load exclusion config: {e}", file=sys.stderr)
@@ -794,32 +794,32 @@ def load_exclusion_config(config_file: Optional[Path] = None) -> Dict[str, Set[s
 # Main Script
 # =============================================================================
 
-def load_vault_credentials(vault_path: Optional[str] = None, 
-                         vault_password_path: Optional[str] = None) -> Dict[str, Any]:
+def load_vault_credentials(vault_path: Optional[str] = None,
+                           vault_password_path: Optional[str] = None) -> Dict[str, Any]:
     """Load credentials from ansible-vault encrypted file.
-    
+
     Args:
         vault_path: Path to vault file (default: ~/.config/cisco-ai-pods/vault.yaml)
         vault_password_path: Path to vault password file (default: ~/.config/cisco-ai-pods/vault-password)
-        
+
     Returns:
         Dictionary with intersight credentials
     """
     import subprocess
-    
+
     if not vault_path:
         vault_path = Path.home() / '.config' / 'cisco-ai-pods' / 'vault.yaml'
     if not vault_password_path:
         vault_password_path = Path.home() / '.config' / 'cisco-ai-pods' / 'vault-password'
-    
+
     vault_path = Path(vault_path)
     vault_password_path = Path(vault_password_path)
-    
+
     if not vault_path.exists():
         raise FileNotFoundError(f"Vault file not found: {vault_path}")
     if not vault_password_path.exists():
         raise FileNotFoundError(f"Vault password file not found: {vault_password_path}")
-    
+
     try:
         # Use ansible-vault to decrypt
         result = subprocess.run(
@@ -828,7 +828,7 @@ def load_vault_credentials(vault_path: Optional[str] = None,
             text=True,
             check=True
         )
-        
+
         vault_data = yaml.safe_load(result.stdout)
         return vault_data.get('intersight', {})
     except subprocess.CalledProcessError as e:
@@ -905,49 +905,49 @@ def main():
         action='store_true',
         help='Enable verbose logging'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Setup logging
     logger = setup_logging(args.verbose)
     logger.info("Starting Template Difference Analysis (Live Intersight SaaS API)")
-    
+
     # Load exclusion config
     exclusion_config = load_exclusion_config(args.config)
     logger.debug(f"Loaded {len(exclusion_config.get('global', set()))} global exclusions")
-    
+
     # Load credentials
     api_key_id = args.api_key_id
     api_secret_key = args.api_secret_key
-    
+
     if not api_key_id or not api_secret_key:
         logger.info("Loading credentials from vault...")
         try:
             creds = load_vault_credentials(args.vault, args.vault_password)
             api_key_id = api_key_id or creds.get('intersight_api_key_id')
-            
+
             # Secret key can be a file path or content
             secret_key_file = creds.get('intersight_secret_key_file')
             secret_key_content = creds.get('intersight_secret_key')
-            
+
             if secret_key_file:
                 api_secret_key = api_secret_key or secret_key_file
             elif secret_key_content:
                 api_secret_key = api_secret_key or secret_key_content
-            
+
             if not api_key_id:
                 logger.error("API key ID not found in vault or arguments")
                 sys.exit(1)
             if not api_secret_key:
                 logger.error("Secret key not found in vault or arguments")
                 sys.exit(1)
-            
+
             logger.info("✓ Credentials loaded from vault")
         except Exception as e:
             logger.error(f"Failed to load credentials: {e}")
             logger.info("Use --api-key-id and --api-secret-key arguments, or set up vault at ~/.config/cisco-ai-pods/vault.yaml")
             sys.exit(1)
-    
+
     # Initialize API client and schema analyzer
     logger.info("Initializing Intersight API client...")
     try:
@@ -957,18 +957,18 @@ def main():
             api_url='https://intersight.com',
             logger=logger
         )
-        
+
         schema_analyzer = APISchemaAnalyzer(logger, api_client=api_client)
         logger.info("✓ API client initialized")
     except Exception as e:
         logger.error(f"Failed to initialize API client: {e}")
         sys.exit(1)
-    
+
     # Initialize other analyzers
     template_analyzer = TemplateAnalyzer(logger)
     difference_analyzer = TemplateDifferenceAnalyzer(logger, exclusion_config)
     report_generator = DifferenceReportGenerator(logger)
-    
+
     # Policy type mappings (template name -> Intersight API type)
     policy_type_map = {
         # Mapping template names to Intersight API endpoints
@@ -1036,42 +1036,42 @@ def main():
         'iqn': 'iqnpool/IqnPools',
         'uuid': 'uuidpool/UuidPools',
     }
-    
+
     # Analyze templates
     categories_to_analyze = [args.category] if args.category != 'all' else list(CATEGORIES.keys())
     all_comparisons = []
-    
+
     for category in categories_to_analyze:
         logger.info(f"\nAnalyzing {category} templates...")
         category_results = template_analyzer.analyze_category(category)
-        
+
         for template_name, (variables, attributes) in category_results.items():
             # Get API policy type
             api_policy_type = policy_type_map.get(template_name)
-            
+
             if api_policy_type:
                 logger.debug(f"Querying API for {api_policy_type}...")
                 api_schema = schema_analyzer.fetch_schema(api_policy_type, force_refresh=args.no_cache)
                 api_attrs = schema_analyzer.extract_schema_attributes(api_schema)
-                
+
                 if not api_attrs:
                     logger.warning(f"No attributes retrieved for {api_policy_type}, using template as baseline")
                     api_attrs = attributes
             else:
                 logger.debug(f"No API mapping for {template_name}, comparing against template")
                 api_attrs = attributes
-            
+
             comparison = difference_analyzer.compare(
                 f"{category}/{template_name}",
                 attributes,
                 api_attrs
             )
             all_comparisons.append(comparison)
-    
+
     # Generate reports
     output_base = Path(args.output)
     output_formats = [args.formats] if args.formats != 'all' else ['json', 'csv', 'markdown']
-    
+
     logger.info("\nGenerating reports...")
     if 'json' in output_formats:
         report_generator.generate_json_report(all_comparisons, output_base.with_suffix('.json'))
@@ -1079,14 +1079,13 @@ def main():
         report_generator.generate_csv_report(all_comparisons, output_base.with_suffix('.csv'))
     if 'markdown' in output_formats:
         report_generator.generate_markdown_report(all_comparisons, output_base.with_suffix('.md'), args.details)
-    
+
     # Print console summary
     report_generator.generate_console_summary(all_comparisons)
-    
+
     logger.info(f"Analysis complete. Analyzed {template_analyzer.templates_analyzed} templates.")
     logger.info(f"Reports written to: {output_base}.*")
 
 
 if __name__ == '__main__':
     main()
-

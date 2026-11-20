@@ -3,6 +3,7 @@ add_plugin_period: false
 changes_file: changelog.yaml
 changelog_filename_template: ../CHANGELOG.md
 changelog_filename_version_depth: 2
+changes_format: combined
 notesdir: fragments
 prelude_section_name: release_summary
 title: Cisco AI PODs

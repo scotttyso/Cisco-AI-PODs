@@ -131,7 +131,7 @@ def main() -> int:
     pcolor.Cyan(
         f'\n{"-" * 108}\n\n  Starting -> Deploy Intersight/UCS CLI!\n\n{"-" * 108}\n')
     kwargs = cli_arguments()
-    
+
     # =========================================================================
     # Feature 2: Initialize multi-environment support
     # =========================================================================
@@ -139,20 +139,20 @@ def main() -> int:
         from src.intersight.intersight_environment import (
             MultiEnvironmentVault, EnvironmentDetector, SchemaCache
         )
-        
+
         # Initialize vault and environment detector
         vault = MultiEnvironmentVault()
         detector = EnvironmentDetector(vault)
-        
+
         # Detect target environment (priority: CLI arg > env var > endpoint pattern > default)
         intersight_env = detector.get_target_environment(
             env_var=kwargs.args.intersight_environment,
             endpoint=kwargs.args.intersight_fqdn
         )
-        
+
         # Store environment in kwargs for later use
         kwargs.intersight_environment = intersight_env
-        
+
         # Validate credentials exist for target environment. Without the legacy per-user vault the credentials
         # come from the environment (deploy_ai_pod.py exports them from the selected environment's vault).
         try:
@@ -166,10 +166,10 @@ def main() -> int:
         except ValueError as e:
             pcolor.Red(f'  ❌ {e}')
             return 1
-        
+
         # Initialize schema cache for filtering
         kwargs.schema_cache = SchemaCache()
-        
+
     except ImportError:
         # Feature 2 modules not available, default to SaaS
         kwargs.intersight_environment = 'saas'
@@ -177,7 +177,7 @@ def main() -> int:
     except Exception as e:
         pcolor.Red(f'  ❌ Error during environment initialization: {e}')
         return 1
-    
+
     kwargs = shared_functions.base_script_settings(kwargs)
     kwargs = shared_functions.load_configurations(kwargs)
     kwargs = shared_functions.intersight_config(kwargs)

@@ -65,7 +65,7 @@ def test_invalid_model_input(values):
 
 
 @pytest.mark.parametrize("entry", ["not-an-image", {}, {"Version": "6.0", "SupportedModels": "PID"},
-                                  {"Version": "6.0", "SupportedModels": [None]}])
+                                   {"Version": "6.0", "SupportedModels": [None]}])
 def test_invalid_catalog_fails(entry):
     client = Mock()
     client.get.return_value.json.return_value = {"Results": [entry]}
@@ -76,7 +76,7 @@ def test_invalid_catalog_fails(entry):
 def test_cli_persists_report_and_failure_preserves_previous_result(tmp_path, monkeypatch, capsys):
     output = tmp_path / "firmware/intersight.json"
     monkeypatch.setattr(sys, "argv", ["firmware", "--model", "Standalone=UCSC-C240-M7",
-                                    "--output", str(output), "--url", "intersight.com/"])
+                                      "--output", str(output), "--url", "intersight.com/"])
     client = Mock()
     client.get.return_value.json.return_value = {"Results": []}
     context = MagicMock()

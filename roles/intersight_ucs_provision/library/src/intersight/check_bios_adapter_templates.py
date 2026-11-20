@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Check BIOS and Adapter templates against Intersight API schemas.
 
 This script compares BIOS, Ethernet Adapter, and Fibre Channel Adapter templates
@@ -10,7 +9,7 @@ Templates are identified as policies in the special organization:
 
 API Endpoints:
   - BIOS Templates:          api/v1/bios/Policies
-  - Ethernet Adapter:        api/v1/ether/Policies  
+  - Ethernet Adapter:        api/v1/ether/Policies
   - Fibre Channel Adapter:   api/v1/fc/Policies
 
 This approach follows the pattern provided by the user where templates are
@@ -24,9 +23,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Any, Optional
-from collections import defaultdict
-from copy import deepcopy
+from typing import Dict, List, Set, Tuple, Any
 
 try:
     import requests
@@ -72,7 +69,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
     log_file = f"template_check_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    
+
     logging.basicConfig(
         level=level,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -93,7 +90,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
 class IntersightAPIClient:
     """Client for querying Intersight SaaS API."""
 
-    def __init__(self, api_key_id: str, api_secret_key: str, 
+    def __init__(self, api_key_id: str, api_secret_key: str,
                  base_url: str = "https://intersight.com", logger=None):
         """Initialize API client."""
         self.api_key_id = api_key_id
@@ -107,7 +104,7 @@ class IntersightAPIClient:
         """Initialize IntersightAuth."""
         try:
             from intersight_auth import IntersightAuth, repair_pem
-            
+
             # Determine if secret_key is a file or string
             if os.path.isfile(self.api_secret_key):
                 auth = IntersightAuth(
@@ -139,24 +136,24 @@ class IntersightAPIClient:
             return []
 
         url = f"{self.base_url}/api/v1/{endpoint}"
-        
+
         try:
             self.logger.debug(f"Querying: {url}")
-            
+
             response = self.session.get(
                 url,
                 auth=self.auth,
                 verify=False,
                 timeout=30
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return data.get('Results', [])
             else:
                 self.logger.warning(f"API query failed: {response.status_code}")
                 return []
-                
+
         except Exception as e:
             self.logger.error(f"Error querying {endpoint}: {e}")
             return []
@@ -241,7 +238,7 @@ class BiosAdapterTemplateChecker:
         print("\n" + "=" * 80)
         print("BIOS AND ADAPTER TEMPLATE CHECKER")
         print("=" * 80)
-        print(f"Intersight SaaS API: https://intersight.com")
+        print("Intersight SaaS API: https://intersight.com")
         print(f"Template Organization: {TEMPLATE_ORG_MOID}")
         print(f"Timestamp: {datetime.now().isoformat()}")
         print("=" * 80)
@@ -293,10 +290,10 @@ class BiosAdapterTemplateChecker:
             output_dir = Path('build/reports/template-checker')
         else:
             output_dir = Path(output_dir)
-        
+
         # Create directory if it doesn't exist
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # JSON output
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         json_file = output_dir / f"template_check_{timestamp}.json"
@@ -363,6 +360,7 @@ def load_credentials_from_vault() -> Tuple[str, str]:
             ['ansible-vault', 'view', str(vault_path), '--vault-password-file', str(pwd_path)],
             capture_output=True,
             text=True,
+            check=False,
             timeout=10
         )
         if result.returncode != 0:
@@ -394,7 +392,7 @@ def main():
     )
     parser.add_argument('--api-key-id', help='Intersight API Key ID')
     parser.add_argument('--api-secret-key', help='Intersight API Secret Key')
-    parser.add_argument('--vault', action='store_true', 
+    parser.add_argument('--vault', action='store_true',
                         help='Load credentials from ~/.config/cisco-ai-pods/vault.yaml')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose logging')
     parser.add_argument('-o', '--output-dir', default='build/reports/template-checker',
@@ -433,7 +431,7 @@ def main():
         results = checker.run_all_checks()
         checker.print_summary()
         json_file, md_file = checker.save_results(args.output_dir)
-        logger.info(f"✅ Check completed successfully")
+        logger.info("✅ Check completed successfully")
         return 0
     except Exception as e:
         logger.error(f"❌ Error during check: {e}", exc_info=True)

@@ -13,7 +13,7 @@ import logging
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import sys
 
 # Add library path for imports
@@ -144,13 +144,13 @@ class TestTemplateAnalyzer(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode='w', suffix='.j2', delete=False) as f:
             f.write('{"Name": "{{ item.name }}", "ObjectType": "compute.BiosPolicy"}')
             f.flush()
-            
+
             variables, attributes = self.analyzer.analyze_template_file(Path(f.name))
-            
+
             self.assertIn('item', variables)
             self.assertIn('Name', attributes)
             self.assertIn('ObjectType', attributes)
-            
+
             Path(f.name).unlink()
 
     def test_analyze_template_file_not_found(self):
@@ -223,20 +223,20 @@ class TestAPISchemaAnalyzer(unittest.TestCase):
         """Test storing schema for object type."""
         attributes = {'Name', 'Description', 'Enabled'}
         self.analyzer.store_schema('compute.BiosPolicy', attributes)
-        
+
         self.assertIn('compute.BiosPolicy', self.analyzer.schemas)
         self.assertEqual(self.analyzer.schemas['compute.BiosPolicy'], attributes)
 
     def test_load_schema_from_file_valid(self):
         """Test loading schema from valid JSON file."""
         schema_data = {'Name': 'test', 'Enabled': True}
-        
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(schema_data, f)
             f.flush()
-            
+
             loaded = self.analyzer.load_schema_from_file(Path(f.name))
-            
+
             self.assertEqual(loaded, schema_data)
             Path(f.name).unlink()
 
@@ -250,9 +250,9 @@ class TestAPISchemaAnalyzer(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             f.write("{ invalid json")
             f.flush()
-            
+
             loaded = self.analyzer.load_schema_from_file(Path(f.name))
-            
+
             self.assertEqual(loaded, {})
             Path(f.name).unlink()
 
@@ -269,9 +269,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with perfect attribute match."""
         template_attrs = {'Name', 'Description', 'Enabled', 'ObjectType'}
         api_attrs = {'Name', 'Description', 'Enabled', 'ObjectType'}
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertEqual(len(result['missing_in_api']), 0)
         self.assertEqual(len(result['missing_in_template']), 0)
         self.assertEqual(result['match_ratio'], 1.0)
@@ -280,9 +280,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with attributes missing in API."""
         template_attrs = {'Name', 'Description', 'NewAttribute', 'ObjectType'}
         api_attrs = {'Name', 'Description', 'ObjectType'}
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertIn('NewAttribute', result['missing_in_api'])
         self.assertEqual(len(result['missing_in_api']), 1)
         self.assertEqual(len(result['missing_in_template']), 0)
@@ -291,9 +291,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with attributes missing in template."""
         template_attrs = {'Name', 'Description'}
         api_attrs = {'Name', 'Description', 'Enabled', 'ObjectType', 'Organization'}
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertEqual(len(result['missing_in_api']), 0)
         self.assertIn('Enabled', result['missing_in_template'])
         self.assertIn('ObjectType', result['missing_in_template'])
@@ -302,9 +302,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with gaps in both directions."""
         template_attrs = {'Name', 'OldAttribute', 'CustomField'}
         api_attrs = {'Name', 'Enabled', 'Organization'}
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertIn('OldAttribute', result['missing_in_api'])
         self.assertIn('CustomField', result['missing_in_api'])
         self.assertIn('Enabled', result['missing_in_template'])
@@ -314,9 +314,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with empty template attributes."""
         template_attrs = set()
         api_attrs = {'Name', 'Description'}
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         # match_ratio uses max() to avoid division by zero
         self.assertEqual(len(result['missing_in_api']), 0)
         self.assertEqual(len(result['missing_in_template']), 2)
@@ -325,9 +325,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test comparison with empty API attributes."""
         template_attrs = {'Name', 'Description'}
         api_attrs = set()
-        
+
         result = self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertEqual(len(result['missing_in_api']), 2)
         self.assertEqual(len(result['missing_in_template']), 0)
 
@@ -335,9 +335,9 @@ class TestTemplateDifferenceAnalyzer(unittest.TestCase):
         """Test that comparisons are stored internally."""
         template_attrs = {'Name', 'OldAttr'}
         api_attrs = {'Name', 'NewAttr'}
-        
+
         self.analyzer.compare('test_template', template_attrs, api_attrs)
-        
+
         self.assertIn('test_template', self.analyzer.differences)
         self.assertIn('OldAttr', self.analyzer.differences['test_template']['missing_in_api'])
 
@@ -349,7 +349,7 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Set up test fixtures."""
         self.logger = logging.getLogger('test')
         self.generator = DifferenceReportGenerator(self.logger)
-        
+
         # Sample comparison data
         self.comparisons = [
             {
@@ -374,13 +374,13 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Test JSON report generation."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             temp_path = Path(f.name)
-        
+
         try:
             self.generator.generate_json_report(self.comparisons, temp_path)
-            
+
             with open(temp_path) as f:
                 report = json.load(f)
-            
+
             self.assertIn('timestamp', report)
             self.assertIn('total_templates', report)
             self.assertIn('comparisons', report)
@@ -393,13 +393,13 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Test CSV report generation."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
             temp_path = Path(f.name)
-        
+
         try:
             self.generator.generate_csv_report(self.comparisons, temp_path)
-            
+
             with open(temp_path) as f:
                 content = f.read()
-            
+
             self.assertIn('Template', content)
             self.assertIn('compute/bios', content)
             self.assertIn('networking/vlan', content)
@@ -411,13 +411,13 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Test Markdown report generation (summary mode)."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             temp_path = Path(f.name)
-        
+
         try:
             self.generator.generate_markdown_report(self.comparisons, temp_path, details=False)
-            
+
             with open(temp_path) as f:
                 content = f.read()
-            
+
             self.assertIn('# Template Difference Analysis Report', content)
             self.assertIn('## Summary', content)
             self.assertIn('## Detailed Findings', content)
@@ -430,13 +430,13 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Test Markdown report generation (detailed mode)."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             temp_path = Path(f.name)
-        
+
         try:
             self.generator.generate_markdown_report(self.comparisons, temp_path, details=True)
-            
+
             with open(temp_path) as f:
                 content = f.read()
-            
+
             self.assertIn('# Template Difference Analysis Report', content)
             self.assertIn('Missing in API', content)
             # Detailed mode should list attributes
@@ -462,7 +462,7 @@ class TestDifferenceReportGenerator(unittest.TestCase):
                 'match_ratio': 1.0
             }
         ]
-        
+
         # Should not raise an exception
         with patch('builtins.print'):
             self.generator.generate_console_summary(comparisons)
@@ -471,11 +471,11 @@ class TestDifferenceReportGenerator(unittest.TestCase):
         """Test that all report formats are created."""
         with tempfile.TemporaryDirectory() as temp_dir:
             base_path = Path(temp_dir) / 'report'
-            
+
             self.generator.generate_json_report(self.comparisons, base_path.with_suffix('.json'))
             self.generator.generate_csv_report(self.comparisons, base_path.with_suffix('.csv'))
             self.generator.generate_markdown_report(self.comparisons, base_path.with_suffix('.md'))
-            
+
             self.assertTrue((base_path.with_suffix('.json')).exists())
             self.assertTrue((base_path.with_suffix('.csv')).exists())
             self.assertTrue((base_path.with_suffix('.md')).exists())
@@ -491,7 +491,7 @@ class TestIntegration(unittest.TestCase):
     def test_template_analysis_workflow(self):
         """Test complete template analysis workflow."""
         analyzer = TemplateAnalyzer(self.logger)
-        
+
         # Create a sample template file
         template_content = '''
         {
@@ -504,11 +504,11 @@ class TestIntegration(unittest.TestCase):
             }
         }
         '''
-        
+
         variables, attributes = analyzer.analyze_template_file(
             self._create_temp_template(template_content)
         )
-        
+
         self.assertIn('item', variables)
         self.assertIn('org_moid', variables)
         self.assertIn('Name', attributes)
@@ -519,14 +519,14 @@ class TestIntegration(unittest.TestCase):
         """Test complete comparison workflow."""
         template_analyzer = TemplateAnalyzer(self.logger)
         difference_analyzer = TemplateDifferenceAnalyzer(self.logger)
-        
+
         template_attrs = template_analyzer.extract_json_attributes(
             '{"Name": "test", "OldAttr": "value"}'
         )
         api_attrs = {'Name', 'Description', 'Enabled'}
-        
+
         result = difference_analyzer.compare('test', template_attrs, api_attrs)
-        
+
         self.assertIn('OldAttr', result['missing_in_api'])
         self.assertIn('Description', result['missing_in_template'])
 
@@ -542,21 +542,21 @@ class TestIntegration(unittest.TestCase):
                 'match_ratio': 0.83
             }
         ]
-        
+
         generator = DifferenceReportGenerator(self.logger)
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             base_path = Path(temp_dir) / 'report'
-            
+
             generator.generate_json_report(comparisons, base_path.with_suffix('.json'))
             generator.generate_csv_report(comparisons, base_path.with_suffix('.csv'))
             generator.generate_markdown_report(comparisons, base_path.with_suffix('.md'))
-            
+
             # Verify all files exist
             self.assertTrue((base_path.with_suffix('.json')).exists())
             self.assertTrue((base_path.with_suffix('.csv')).exists())
             self.assertTrue((base_path.with_suffix('.md')).exists())
-            
+
             # Verify JSON content
             with open(base_path.with_suffix('.json')) as f:
                 report = json.load(f)
