@@ -12,7 +12,7 @@ from pathlib import Path
 
 from nicegui import run, ui
 
-from . import intersight_policies, ocp_access, seeds
+from . import intersight_policies, ocp_access, seeds, ssh_keys
 from .panels import CredentialsPanel, write_text
 from .vault import VaultError
 
@@ -896,45 +896,101 @@ def ocp_cluster_form(handle) -> None:
         found = sum(1 for row in nodes if macs.get(seeds.host_key(row["hostname"])))
         ui.label(f"{found} of {len(nodes)} compute nodes in the inventory have collected MACs.").classes("text-sm")
 
-    with card("Node SSH key", "The public key is added to every node for the core user. Generate a new ed25519 key "
-                              "pair here, or paste or upload an existing public key in the Credentials panel.", icon="vpn_key"):
-        with ui.row().classes("gap-2"):
-            async def generate() -> None:
-                from cryptography.hazmat.primitives import serialization
-                from cryptography.hazmat.primitives.asymmetric import ed25519
+    with card("Node SSH key", "The public key is added to every node for the core user. iServer logs in with the matching "
+                              "private key from this server's ~/.ssh, so the private key must be installed there: "
+                              "generate a pair here, or upload your own private key (without a passphrase).",
+              icon="vpn_key"):
+        key_status = ui.label("").classes("text-sm")
 
-                number = _ssh_reference(handle)
-                key = ed25519.Ed25519PrivateKey.generate()
-                private = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH,
-                                            serialization.NoEncryption()).decode()
-                public = key.public_key().public_bytes(serialization.Encoding.OpenSSH,
-                                                       serialization.PublicFormat.OpenSSH).decode() + " aipod-openshift"
-                try:
-                    await run.io_bound(context.vault.update, {("openshift", f"ssh_public_key_{number}"): public,
-                                                              ("openshift", f"ssh_private_key_{number}"): private})
-                except VaultError as error:
-                    ui.notify(f"Vault update failed: {error}", type="negative")
-                    return
-                ui.download.content(private, "aipod-openshift-id_ed25519")
-                handle.refresh_credentials()
-                ui.notify(f"Stored ssh_public_key_{number} and its private key in the vault; the private key is "
-                          "downloading.", type="positive", multi_line=True)
+        async def refresh_key_status() -> None:
+            number = _ssh_reference(handle)
+            try:
+                data = await run.io_bound(context.vault.load)
+            except Exception as error:  # an unreadable vault is shown, not raised
+                key_status.set_text(f"Vault: {error}")
+                return
+            public = str((data.get("openshift") or {}).get(f"ssh_public_key_{number}") or "")
+            stored_private = bool((data.get("openshift") or {}).get(f"ssh_private_key_{number}"))
+            if not public:
+                key_status.set_text(f"No public key #{number} yet: generate a pair or upload a private key.")
+                return
+            found = await run.io_bound(ssh_keys.find_installed, public)
+            where = f"installed as {found}" if found else f"NOT installed in {ssh_keys.ssh_dir()}"
+            key_status.set_text(f"Public key #{number}: private key {where}; "
+                                f"{'stored in the vault' if stored_private else 'not stored in the vault'}.")
 
-            async def download() -> None:
-                number = _ssh_reference(handle)
-                try:
-                    data = await run.io_bound(context.vault.load)
-                except VaultError as error:
-                    ui.notify(str(error), type="negative")
-                    return
-                private = (data.get("openshift") or {}).get(f"ssh_private_key_{number}")
-                if not private:
-                    ui.notify("No generated private key is stored for this cluster", type="warning")
-                    return
-                ui.download.content(private, "aipod-openshift-id_ed25519")
+        async def store_and_install(private: str, public: str) -> list[str]:
+            number = _ssh_reference(handle)
+            await run.io_bound(context.vault.update, {("openshift", f"ssh_public_key_{number}"): public,
+                                                      ("openshift", f"ssh_private_key_{number}"): private})
+            return await run.io_bound(ssh_keys.install_key, private, public)
 
+        async def generate() -> None:
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import ed25519
+
+            key = ed25519.Ed25519PrivateKey.generate()
+            private = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH,
+                                        serialization.NoEncryption()).decode()
+            public = key.public_key().public_bytes(serialization.Encoding.OpenSSH,
+                                                   serialization.PublicFormat.OpenSSH).decode() + " aipod-openshift"
+            try:
+                notes = await store_and_install(private, public)
+            except (VaultError, ssh_keys.SshKeyError, OSError) as error:
+                ui.notify(f"Could not store the key: {error}", type="negative", multi_line=True)
+                return
+            ui.download.content(private, "aipod-openshift-id_ed25519")
+            handle.refresh_credentials()
+            ui.notify("Key pair generated and stored in the vault; " + "; ".join(notes) + ". The private key is also "
+                      "downloading.", type="positive", multi_line=True)
+            await refresh_key_status()
+
+        async def upload_private(event) -> None:
+            raw = await event.file.read() if hasattr(event, "file") else event.content.read()
+            try:
+                parsed = ssh_keys.parse_private_key(raw.decode("utf-8", "replace"))
+                notes = await store_and_install(parsed.private, parsed.public)
+            except (VaultError, ssh_keys.SshKeyError, OSError) as error:
+                ui.notify(f"Private key not used: {error}", type="negative", multi_line=True)
+                return
+            handle.refresh_credentials()
+            ui.notify("Private key stored in the vault and public key derived; " + "; ".join(notes), type="positive",
+                      multi_line=True)
+            await refresh_key_status()
+
+        async def install_stored() -> None:
+            number = _ssh_reference(handle)
+            try:
+                data = await run.io_bound(context.vault.load)
+                env = {key: str(value) for key, value in (data.get("openshift") or {}).items() if value}
+                notes = await run.io_bound(ssh_keys.install_from_environment, env, number)
+            except (VaultError, ssh_keys.SshKeyError, OSError) as error:
+                ui.notify(str(error), type="negative")
+                return
+            ui.notify("; ".join(notes) or "Nothing to install", type="warning" if any("WARNING" in n for n in notes) else "positive",
+                      multi_line=True)
+            await refresh_key_status()
+
+        async def download() -> None:
+            number = _ssh_reference(handle)
+            try:
+                data = await run.io_bound(context.vault.load)
+            except VaultError as error:
+                ui.notify(str(error), type="negative")
+                return
+            private = (data.get("openshift") or {}).get(f"ssh_private_key_{number}")
+            if not private:
+                ui.notify("No private key is stored for this cluster", type="warning")
+                return
+            ui.download.content(private, "aipod-openshift-id_ed25519")
+
+        with ui.row().classes("gap-2 items-center"):
             ui.button("Generate key pair", icon="vpn_key", on_click=generate).props("outline")
+            ui.upload(label="Upload private key", auto_upload=True, max_files=1, max_file_size=64 * 1024,
+                      on_upload=upload_private).props("flat bordered dense").style("width:240px")
+            ui.button("Install stored key in ~/.ssh", icon="drive_file_move", on_click=install_stored).props("flat")
             ui.button("Download private key", icon="download", on_click=download).props("flat")
+        ui.timer(0.3, refresh_key_status, once=True)
 
     install_target = "openshift/install.ezai.yaml"
     workbench = handle.workbench

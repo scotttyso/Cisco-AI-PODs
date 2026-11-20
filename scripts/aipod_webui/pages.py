@@ -157,6 +157,14 @@ def deploy(role: str, *extra: str) -> Callable[[RunContext], list[list[str]]]:
     return lambda rc: [rc.ui.deploy_args() + ["--role", role, *extra]]
 
 
+def install_cleanup(apply: bool) -> Callable[[RunContext], list[list[str]]]:
+    def build(rc: RunContext) -> list[list[str]]:
+        command = script(rc, "scripts/cleanup_install_artifacts.py", "--assisted-dir",
+                         str(rc.ui.repository / "assisted-installer"), "--media-dir", str(rc.ui.media_dir))
+        return [command + ["--yes"] if apply else command]
+    return build
+
+
 def phase2(tags: str) -> Callable[[RunContext], list[list[str]]]:
     return lambda rc: [playbook(rc, "playbooks/deploy_openshift_phase2.yaml", "-e", f"host_vars_dir={rc.ui.host_vars_dir}",
                                 "--tags", tags)]
@@ -1221,6 +1229,18 @@ SECTIONS = (
                                          "erased. When Cilium is the CNI, the Cilium registry is checked first."),
                           Action("status", "Cluster status", "monitor_heart", cluster_status, group="Post-check",
                                  env=ocp_env, files=False),
+                          Action("cleanup-preview", "Preview clean-up", "fact_check", install_cleanup(False),
+                                 group="Clean up", files=False,
+                                 tooltip="Lists the install leftovers that Clean up install files would remove."),
+                          Action("cleanup", "Clean up install files", "cleaning_services", install_cleanup(True),
+                                 group="Clean up", files=False,
+                                 confirm="Run this after the install has finished. It deletes assisted-installer/ "
+                                         "(which holds the Fabric Interconnect and BMC passwords in clear text), the "
+                                         "iServer run logs in /tmp/iserver (they contain the pull secret and the "
+                                         "kubeadmin password), scratch files in /tmp, and the OpenShift ISO and test "
+                                         "images from the web directory, and makes ~/.itool private. The cluster "
+                                         "access details stay in the vault. Prepare install writes the deleted "
+                                         "files again."),
                           INTERSIGHT_MACS, OCP_REDFISH_MACS),
                  secrets=ocp_cluster_secrets, form=custom_pages.ocp_cluster_form, on_save=save_cluster_state,
                  upload_dirs=(OCP_UPLOADS["ocp-cluster"],), notes=(OPENSHIFT_UPLOAD_NOTE,), group="OpenShift"),

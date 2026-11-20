@@ -20,6 +20,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from aipod_webui.ocp_access import AccessCapture, save_access  # noqa: E402
+from aipod_webui.ssh_keys import install_from_environment  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HOST_VARS = REPO_ROOT / "host_vars"
@@ -411,6 +412,10 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             print(f"\n==> Starting {role}", flush=True)
             if role == "openshift":
+                if "iserver" in args.openshift_stages and not args.check:
+                    install = ((models.get("openshift") or {}).get("install") or {}).get("bare_metal") or {}
+                    for note in install_from_environment(env, install.get("ssh_public_key")):
+                        print(f"==> SSH key: {note}", flush=True)
                 for command, cwd in openshift_commands(models, args.check, args.openshift_stages, host_vars_dir):
                     run_command(command, env, cwd, access_sink)
             elif role == "intersight" and args.intersight_scope != "all":

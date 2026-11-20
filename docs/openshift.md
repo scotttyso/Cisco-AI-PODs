@@ -348,6 +348,17 @@ For detailed instructions, see [roles/openshift_gitea/README.md](../roles/opensh
 
 When iServer asks a question during Install cluster, such as "Continue with manual mount and boot from iso [Y/N]?", the job answers **N** so iServer stops with its own message instead of crashing on a missing keyboard. A virtual media failure also prints a pointer to the diagnostics below.
 
+### Node SSH key
+
+iServer's post-install steps (the SSH check, the management node setup and day 2 tasks) log in as `core` with the **private key that matches the public key given at install time**, and it looks for that key in the profile of the user running it (`~/.ssh`, here `/home/automation-ui/.ssh`). On **Cluster Deployment > Node SSH key**:
+
+- **Generate key pair** creates an ed25519 pair, stores both halves in the vault (`ssh_public_key_N`, `ssh_private_key_N`), installs the private key as `~/.ssh/id_ed25519` (mode 0600) and downloads a copy.
+- **Upload private key** takes your own OpenSSH or PEM key (ed25519, RSA or ECDSA, **without a passphrase**: iServer cannot answer a passphrase prompt). The public key is derived from it, and both are stored in the vault and installed in `~/.ssh` (`id_ed25519`, `id_rsa` or `id_ecdsa`).
+- **Install stored key in ~/.ssh** re-installs the vault's key, for example on a new server.
+- A different key that is already in `~/.ssh` under the same name is kept as `<name>.bak-<timestamp>` before it is replaced.
+
+Install cluster also installs the vault's private key into `~/.ssh` before it starts iServer, and warns when no private key is stored or the stored one does not match the public key. The Node SSH key card shows whether a private key matching the public key is installed.
+
 ### Cluster access (kubeadmin password and kubeconfig)
 
 When Install cluster finishes, iServer prints the console URL, the `kubeadmin` password and the whole kubeconfig. The job captures them from the output and **hides them in the job log** (the console URL and user name stay visible). It then saves:
@@ -360,6 +371,25 @@ This happens even when a later iServer step fails (for example the SSH check), b
 On **Cluster Deployment > Cluster access** you can show or copy the kubeadmin password, copy the kubeconfig, and download it. A different kubeconfig can still be chosen under "Use a different kubeconfig file" for a cluster that was not installed here.
 
 iServer also writes its own logs under `/tmp/iserver/<id>/`, and those still contain the console output. They are outside this job's control; remove them if the server is shared. Remove the `kubeadmin` account once your identity provider is configured.
+
+### Clean up after the install
+
+Nothing removes the install leftovers automatically, and several of them are sensitive:
+
+| Where | What it holds |
+| --- | --- |
+| `assisted-installer/` | `server.json` has the Fabric Interconnect and BMC passwords **in clear text**; also `cluster.json`, `ssh.pub` and the manifests |
+| `/tmp/iserver/<run>/` | iServer's debug logs per command: the Red Hat pull secret and token, and for the install run the kubeadmin password and kubeconfig |
+| `/tmp/<uuid>.iso`, `.kubeconfig`, `/tmp/<uuid>` | scratch files iServer may leave behind (the last is a private key) |
+| the web directory (`/var/www/html/os-images`) | the OpenShift discovery ISO (`<uuid>.iso`) embeds install credentials, and iServer's test files; the directory is served **without login** |
+| `~/.itool/` | the Red Hat token, pull secret, Isovalent registry token and each cluster's kubeconfig: needed for day 2, so keep it but private |
+
+On **Cluster Deployment**, **Preview clean-up** lists what would go and **Clean up install files** (`scripts/cleanup_install_artifacts.py --yes`) removes it and makes `~/.itool` owner-only. Run it after the install has finished and you have what you need from the logs. Prepare install writes the deleted files again, and the cluster access details stay in the vault. Further hygiene we recommend:
+
+- rotate or remove the `kubeadmin` account once an identity provider is configured, and treat any pasted job log or `iserver.output.*` file as a secret;
+- keep the Red Hat token and pull secret out of chat tools and tickets, and regenerate them if one was shared;
+- keep the vault password file (`~/.config/cisco-ai-pods/vault-password`, mode 0600) backed up somewhere safe and apart from the server;
+- delete downloaded log bundles (`host_vars/<id>/`) once the problem is solved.
 
 ### Virtual media diagnostics
 

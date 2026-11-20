@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.51] - 2026-11-20
+
+### Added
+- The private key for the node SSH key is installed in `~/.ssh` (mode 0600), where iServer looks for it. **Generate key pair** now does this, **Upload private key** accepts your own key (OpenSSH or PEM, no passphrase; the public key is derived and stored with it), and **Install stored key in ~/.ssh** repeats it. Install cluster also installs the vault's key before starting iServer and warns when it is missing or does not match. An existing different key of the same name is kept as `<name>.bak-<timestamp>`.
+- **Preview clean-up** and **Clean up install files** on Cluster Deployment (`scripts/cleanup_install_artifacts.py`): removes `assisted-installer/` (it holds FI and BMC passwords in clear text), iServer's run logs in `/tmp/iserver`, scratch files, and the OpenShift ISO and test images from the public web directory, and makes `~/.itool` owner-only. Nothing is removed unless you run it. `docs/openshift.md` lists what is sensitive and further recommendations.
+
 ## [0.1.50] - 2026-11-20
 
 ### Added
