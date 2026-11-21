@@ -75,7 +75,6 @@
     "ObjectType": "vnic.SanConnectivityPolicy"
   },
   "StaticWwpnAddress": "{{ item.wwpn_static_address | default('') }}",
-{% endif %}
 {% set comma_result = ',' if item.wwpn_pool is defined and item.allow_override | default(false) == true else '' %}
   "WwpnAddressType": {% if item.wwpn_static_address is defined and item.wwpn_static_address | length > 0 %}"STATIC"{% else %}"POOL"{% endif %}{{ comma_result }}
 {% if item.wwpn_pool is defined and item.allow_override | default(false) == true %}

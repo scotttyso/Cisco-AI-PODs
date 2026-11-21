@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.55] - 2026-11-21
+
+### Fixed
+- Intersight: the vHBA-from-template template (`san_connectivity.vhbas_from_template`) had a stray `{% endif %}` and failed to compile, so SAN connectivity policies using `vhbas_from_template` could not be deployed. The local user role template (`local_user.users_roles`) had invalid Jinja (`iisight.[organization]...`); it now looks up the role and the user from the cached Intersight data. Every Intersight template now compiles in the test suite, with no exceptions.
+
 ## [0.1.54] - 2026-11-21
 
 ### Fixed
