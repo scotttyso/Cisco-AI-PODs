@@ -739,7 +739,7 @@ class ActiveDirectoryProvider(DNSProvider):
             blob = bytes(blob)
             if len(blob) >= 26 and struct.unpack_from('<H', blob, 2)[0] == 12:
                 data, labels, position, names = blob[24:], blob[25], 2, []
-                for _ in range(labels):
+                for label_index in range(labels):
                     size = data[position]
                     names.append(data[position + 1:position + 1 + size].decode('utf-8', 'replace'))
                     position += size + 1
@@ -774,8 +774,9 @@ class ActiveDirectoryProvider(DNSProvider):
                     return True
                 self.logger.info(f"Replacing PTR {ptr.ip_address}: {', '.join(targets) or 'no PTR record'} "
                                  f"-> {ptr.target}")
-                ok = self.connection.modify(entry.entry_dn, {'dnsRecord': [(MODIFY_REPLACE, others + [blob])],
-                                                              'dNSTombstoned': [(MODIFY_REPLACE, ['FALSE'])]})
+                changes = {'dnsRecord': [(MODIFY_REPLACE, others + [blob])],
+                           'dNSTombstoned': [(MODIFY_REPLACE, ['FALSE'])]}
+                ok = self.connection.modify(entry.entry_dn, changes)
             else:
                 self.logger.info(f"Creating PTR record: {ptr.ip_address} -> {ptr.target}")
                 ok = self.connection.add(f"DC={escape_rdn(ptr.label)},{zone_dn}", ['top', 'dnsNode'],
