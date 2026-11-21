@@ -20,7 +20,7 @@
     "ObjectType": "fabric.LldpGlobalSettings"
   },
   "StpSettings": {
-    "Enabled": {% if _platform == 'Unified Edge' and item.enable_stp | default(false) | tojson %}"RPVST+"{% else %}"Disabled"{% endif %},
+    "StpMode": {% if item.enable_stp | default(false) %}"RPVST+"{% else %}"Disabled"{% endif %},
     "ObjectType": "fabric.StpGlobalSettings"
   },
 {% endif %}
@@ -29,6 +29,7 @@
     "DisabledVlans": "{{ item.disabled_mac_address_learning_vlans | default('') }}",
     "ObjectType": "fabric.MacLearningSettings"
   },
+{% endif %}
   "Name": "{{ name_prefix ~ item.name ~ name_suffix }}",
   "ObjectType": "fabric.SwitchControlPolicy",
   "Organization": {

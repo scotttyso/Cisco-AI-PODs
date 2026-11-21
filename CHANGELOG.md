@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.54] - 2026-11-21
+
+### Fixed
+- Intersight: the Switch Control policy template had an unclosed `{% if %}` (the `MacLearningSettings` block) and failed with "Unexpected end of template" for every Switch Control policy. The Unified Edge STP setting also always rendered as enabled and used the wrong property name; it now sets `StpMode` from `enable_stp`. `tests/test_intersight_templates.py` compiles every Intersight template.
+
 ## [0.1.53] - 2026-11-21
 
 ### Fixed
