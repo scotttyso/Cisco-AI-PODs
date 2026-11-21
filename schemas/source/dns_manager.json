@@ -169,6 +169,40 @@
                     "type": "integer",
                     "default": 10,
                     "minimum": 1
+                },
+                "create_ptr_records": {
+                    "title": "Create Pointer (PTR) Records",
+                    "description": "The default value is `true`. Also create a PTR record for every address so reverse lookups resolve. One PTR record is written per address (the shortest host name when several names share it); wildcard names get none. A PTR record that points to another name is replaced.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "create_zones": {
+                    "title": "Create Missing Zones",
+                    "description": "The default value is `true`. Create the forward zone of a host name and the reverse zone of an address when no AD-integrated zone covers it. Zones are created as AD-integrated primary zones with secure dynamic updates through WinRM on the domain controller (ports 5985/5986); the bind account is used and needs permission to manage DNS. Set to `false` to only report the missing zones.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "reverse_zone_prefix": {
+                    "title": "Reverse Zone Size",
+                    "description": "The default value is `24`. Size of a reverse zone that has to be created: `24` creates `c.b.a.in-addr.arpa` (a /24), `16` creates `b.a.in-addr.arpa`, `8` creates `a.in-addr.arpa`. An existing reverse zone that covers the address is always used first.",
+                    "type": "integer",
+                    "enum": [
+                        8,
+                        16,
+                        24
+                    ],
+                    "default": 24
+                },
+                "zone_replication_scope": {
+                    "title": "Zone Replication Scope",
+                    "description": "The default value is `Domain`. Active Directory partition that stores a new zone: `Domain` (all domain controllers of the domain that run DNS), `Forest` (all DNS servers in the forest), or `Legacy` (all domain controllers).",
+                    "type": "string",
+                    "enum": [
+                        "Domain",
+                        "Forest",
+                        "Legacy"
+                    ],
+                    "default": "Domain"
                 }
             }
         },

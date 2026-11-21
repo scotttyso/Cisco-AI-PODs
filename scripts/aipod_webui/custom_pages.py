@@ -33,6 +33,14 @@ NVIDIA_OPERATORS = {
     "nvidia-nim-operator": "NVIDIA NIM Operator",
 }
 MAC_VLAN_COUNT = 8
+
+# Zone and pointer-record options written into a generated Active Directory DNS provider
+AD_ZONE_DEFAULTS = {
+    "create_ptr_records": True,
+    "create_zones": True,
+    "reverse_zone_prefix": 24,
+    "zone_replication_scope": "Domain",
+}
 # Route host for the gitea-with-admin instance in the gitea-operator namespace; the
 # instance creates one user named lab-user (roles/openshift_gitea/templates/instance.yaml.j2).
 GITEA_URL_PREFIX = "https://gitea-with-admin-gitea-operator.apps."
@@ -2061,6 +2069,7 @@ def dns_manager_form(handle) -> None:
                     "secure_ldap_port": 636,
                     "use_ssl": ldap_data.get("use_ssl", False),
                     "timeout": 10,
+                    **AD_ZONE_DEFAULTS,
                 }
             else:
                 config["dns"]["providers"]["ad_primary"] = {
@@ -2073,6 +2082,7 @@ def dns_manager_form(handle) -> None:
                     "secure_ldap_port": 636,
                     "use_ssl": False,
                     "timeout": 10,
+                    **AD_ZONE_DEFAULTS,
                 }
         elif provider_key == "infoblox":
             config["dns"]["providers"]["infoblox_primary"] = {

@@ -1028,10 +1028,10 @@ DNS_MANAGER_ACTIONS = (
            tooltip="Check DNS records against the provider without making changes."),
     Action("sync", "Synchronize DNS records", "cloud_upload",
            dns_manager_sync, files=False,
-           confirm=("Create the missing A records in Active Directory DNS and replace the address of records that "
-                    "exist with a different one. Other records and other record types are left unchanged and "
-                    "nothing is deleted. Run Validate first. The job then waits up to about 4 minutes to confirm "
-                    "the records resolve.")),
+           confirm=("Create the missing forward and reverse zones, the missing A records and the PTR records in "
+                    "Active Directory DNS, and replace records that exist with a different value. Other record "
+                    "types are left unchanged and nothing is deleted. Run Validate first to see what will be "
+                    "created. The job then waits up to about 4 minutes to confirm the records resolve.")),
 )
 
 

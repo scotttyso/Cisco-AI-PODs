@@ -17,6 +17,9 @@ from dns_updater import (
     DNSComparator,
     ActiveDirectoryProvider,
     InfobloxProvider,
+    PtrPlan,
+    PtrRecord,
+    ZonePlan,
 )
 
 
@@ -428,6 +431,204 @@ class TestVerifyAfterWrite(unittest.TestCase):
         self.assertTrue(provider.needs_settle)
         provider.backend = 'winrm'
         self.assertFalse(provider.needs_settle)
+
+
+class TestPointerRecordsAndZones(unittest.TestCase):
+    """PTR records, and the forward and reverse zones that are created for them"""
+
+    ZONE_DN = 'DC=aipod.local,CN=MicrosoftDNS,DC=DomainDnsZones,DC=aipod,DC=local'
+    REVERSE_DN = 'DC=2.18.198.in-addr.arpa,CN=MicrosoftDNS,DC=DomainDnsZones,DC=aipod,DC=local'
+
+    def provider(self, nodes=None, session=None, **config):
+        provider = ActiveDirectoryProvider({'server': 'dc', 'domain': 'aipod.local', **config})
+        provider.server = 'dc'
+        provider.backend = 'ldap'
+        provider.connection = FakeLdap(nodes)
+        provider.zones = {'aipod.local': self.ZONE_DN}
+        provider.reverse_zones = {'2.18.198.in-addr.arpa': self.REVERSE_DN}
+        provider.serials = {'2.18.198.in-addr.arpa': 5}
+        provider.session = session
+        return provider
+
+    @staticmethod
+    def records(*pairs):
+        return {DNSRecord(host, address, 'aipod.local') for host, address in pairs}
+
+    def test_ptr_blob_is_a_valid_record_with_the_target_name(self):
+        import struct
+        import dns.name
+
+        blob = ActiveDirectoryProvider._ptr_blob('node1.aipod.local.', 3600, 5)
+        length, record_type, version, rank, _flags, serial = struct.unpack_from('<HHBBHI', blob)
+        self.assertEqual((record_type, version, rank, serial), (12, 5, 240, 5))
+        self.assertEqual(length, len(blob) - 24)
+        self.assertEqual(struct.unpack_from('>I', blob, 12)[0], 3600)
+        size, labels = blob[24], blob[25]
+        self.assertEqual((size, labels), (len(blob) - 26, 3))
+        self.assertEqual(dns.name.from_wire(blob[26:], 0)[0].to_text(), 'node1.aipod.local.')
+        others, targets = ActiveDirectoryProvider._split_ptr_blobs([blob, b'x' * 28])
+        self.assertEqual((targets, len(others)), (['node1.aipod.local'], 1))
+
+    def test_reverse_zone_uses_the_most_specific_existing_zone_else_the_configured_size(self):
+        provider = self.provider()
+        provider.reverse_zones['18.198.in-addr.arpa'] = 'x'
+        self.assertEqual(provider._reverse_zone_for('198.18.2.7'), '2.18.198.in-addr.arpa')
+        self.assertEqual(provider._reverse_zone_for('198.18.9.7'), '18.198.in-addr.arpa')
+        self.assertEqual(provider._reverse_zone_for('10.1.2.3'), '2.1.10.in-addr.arpa')
+        self.assertEqual(self.provider(reverse_zone_prefix=16)._reverse_zone_for('10.1.2.3'), '1.10.in-addr.arpa')
+        self.assertEqual(self.provider()._network_id('10.1.2.3'), '10.1.2.0/24')
+        with self.assertRaises(ValueError):
+            self.provider(reverse_zone_prefix=20)._reverse_zone_for('10.1.2.3')
+
+    def test_ptr_plan_picks_one_name_per_address_and_skips_wildcards(self):
+        provider = self.provider()
+        answers = {'198.18.2.1': ['node1.aipod.local'], '198.18.2.2': ['old.aipod.local'], '198.18.2.3': []}
+        records = self.records(('node1.aipod.local', '198.18.2.1'), ('node2.aipod.local', '198.18.2.2'),
+                               ('api.aipod.local', '198.18.2.3'), ('api-int.aipod.local', '198.18.2.3'),
+                               ('*.apps.aipod.local', '198.18.2.3'))
+        with patch.object(provider, 'existing_ptr_targets', side_effect=lambda ip: answers[ip]):
+            plan = provider.plan_ptr(records)
+        self.assertEqual([p.ip_address for p in plan.matching], ['198.18.2.1'])
+        self.assertEqual([(p.ip_address, v) for p, v in plan.changed.items()], [('198.18.2.2', ['old.aipod.local'])])
+        self.assertEqual([(p.ip_address, p.target, p.label) for p in plan.missing],
+                         [('198.18.2.3', 'api.aipod.local.', '3')])
+        self.assertTrue(any('api-int.aipod.local' in note for note in plan.notes))
+        self.assertTrue(any('wildcard' in note for note in plan.notes))
+
+    def test_zones_are_planned_for_hosts_and_addresses_without_one(self):
+        provider = self.provider()
+        records = self.records(('node1.aipod.local', '198.18.2.1'), ('a.rich.example.com', '10.1.2.3'),
+                               ('b.rich.example.com', '10.1.2.4'), ('*.apps.rich.example.com', '10.1.2.5'))
+        ptr = PtrPlan(missing=[PtrRecord('198.18.2.1', 'n.', '2.18.198.in-addr.arpa', '1'),
+                               PtrRecord('10.1.2.3', 'a.', '2.1.10.in-addr.arpa', '3'),
+                               PtrRecord('10.1.2.4', 'b.', '2.1.10.in-addr.arpa', '4')])
+        plans = provider.plan_zones(records, ptr)
+        self.assertEqual([(p.name, p.reverse, p.network_id) for p in plans],
+                         [('rich.example.com', False, ''), ('2.1.10.in-addr.arpa', True, '10.1.2.0/24')])
+        self.assertEqual(self.provider(create_zones=False).plan_zones(records, ptr), [])
+
+    def test_forward_zone_candidate_prefers_the_domain(self):
+        provider = self.provider()
+        self.assertEqual(provider._forward_zone_candidate('x.y.aipod.local'), 'aipod.local')
+        self.assertEqual(provider._forward_zone_candidate('host.other.net'), 'other.net')
+        self.assertEqual(provider._forward_zone_candidate('*.apps.other.net'), 'apps.other.net')
+
+    def test_zones_are_created_through_winrm_and_reloaded(self):
+        session = FakeWinrmSession([b'CREATED', b'EXISTS'])
+        provider = self.provider(session=session)
+        plans = [ZonePlan('rich.example.com'), ZonePlan('2.1.10.in-addr.arpa', True, '10.1.2.0/24')]
+        with patch.object(provider, '_load_zones_ldap') as reload:
+            created, failed = provider.create_zones(plans)
+        self.assertEqual((len(created), failed), (2, []))
+        self.assertIn("Add-DnsServerPrimaryZone -Name 'rich.example.com' -ReplicationScope 'Domain'",
+                      session.scripts[0])
+        self.assertIn("-NetworkId '10.1.2.0/24'", session.scripts[1])
+        self.assertIn('-DynamicUpdate Secure', session.scripts[0])
+        reload.assert_called_once()
+
+    def test_zone_creation_without_winrm_explains_how_to_do_it_by_hand(self):
+        provider = self.provider()
+        with patch.object(provider, '_open_winrm', side_effect=RuntimeError('connection refused')):
+            created, failed = provider.create_zones([ZonePlan('rich.example.com')])
+        self.assertEqual(created, [])
+        self.assertIn("Add-DnsServerPrimaryZone -Name 'rich.example.com'", failed[0][1])
+        self.assertIn('connection refused', failed[0][1])
+
+    def test_a_bad_replication_scope_is_rejected(self):
+        created, failed = self.provider(zone_replication_scope='Everything').create_zones([ZonePlan('a.b')])
+        self.assertEqual((created, len(failed)), ([], 1))
+
+    def test_ptr_is_added_over_ldap(self):
+        provider = self.provider()
+        ptr = PtrRecord('198.18.2.1', 'node1.aipod.local.', '2.18.198.in-addr.arpa', '1')
+        self.assertTrue(provider.create_ptr(ptr))
+        action, dn, attributes = provider.connection.calls[0]
+        self.assertEqual((action, dn), ('add', f'DC=1,{self.REVERSE_DN}'))
+        self.assertEqual(provider._split_ptr_blobs(attributes['dnsRecord'])[1], ['node1.aipod.local'])
+
+    def test_ptr_replaces_only_the_ptr_and_keeps_other_records(self):
+        node = f'DC=1,{self.REVERSE_DN}'
+        keep = ActiveDirectoryProvider._a_blob('10.0.0.1', 60, 1)
+        old = ActiveDirectoryProvider._ptr_blob('old.aipod.local.', 3600, 1)
+        provider = self.provider(nodes={node: [keep, old]})
+        ptr = PtrRecord('198.18.2.1', 'node1.aipod.local.', '2.18.198.in-addr.arpa', '1')
+        self.assertTrue(provider.create_ptr(ptr))
+        others, targets = provider._split_ptr_blobs(provider.connection.nodes[node])
+        self.assertEqual((others, targets), ([keep], ['node1.aipod.local']))
+        calls = len(provider.connection.calls)
+        self.assertTrue(provider.create_ptr(ptr))  # already correct: nothing is written
+        self.assertEqual(len(provider.connection.calls), calls)
+
+    def test_ptr_fails_when_the_reverse_zone_is_missing(self):
+        provider = self.provider()
+        provider.reverse_zones = {}
+        ptr = PtrRecord('198.18.2.1', 'node1.aipod.local.', '2.18.198.in-addr.arpa', '1')
+        self.assertFalse(provider.create_ptr(ptr))
+
+    def test_ptr_over_winrm_is_quoted_and_validated(self):
+        session = FakeWinrmSession([b'CREATED'])
+        provider = self.provider(session=session)
+        provider.backend = 'winrm'
+        self.assertTrue(provider.create_ptr(PtrRecord('198.18.2.1', 'node1.aipod.local.', '2.18.198.in-addr.arpa', '1')))
+        self.assertIn("-RRType PTR", session.scripts[0])
+        self.assertIn("$target = 'node1.aipod.local.'", session.scripts[0])
+        self.assertFalse(provider.create_ptr(PtrRecord('198.18.2.1', "x';calc;'.", '2.18.198.in-addr.arpa', '1')))
+        self.assertEqual(len(session.scripts), 1)
+
+    def test_sync_creates_zones_then_records_then_pointers_and_verifies(self):
+        from dns_updater import DNSUpdater
+
+        order = []
+        record = DNSRecord('a.rich.example.com', '10.1.2.3', 'rich.example.com')
+        ptr = PtrRecord('10.1.2.3', 'a.rich.example.com.', '2.1.10.in-addr.arpa', '3')
+
+        class Provider:
+            needs_settle = True
+            deletes_stale = False
+
+            def normalize(self, records):
+                return records
+
+            def create_zones(self, plans):
+                order.append('zones')
+                return list(plans), []
+
+            def create_record(self, rec):
+                order.append('a')
+                return True
+
+            def create_ptr(self, item):
+                order.append('ptr')
+                return True
+
+            def get_records(self, zone):
+                return {record}
+
+            def ptr_resolves(self, item):
+                return True
+
+        updater = DNSUpdater('unused.yaml')
+        updater.VERIFY_INTERVAL = 0
+        with patch('dns_updater.time.sleep'):
+            updater._apply_changes(Provider(), {record}, set(), PtrPlan(missing=[ptr]),
+                                   [ZonePlan('rich.example.com')])
+        self.assertEqual(order, ['zones', 'a', 'ptr'])
+
+    def test_sync_fails_when_a_zone_cannot_be_created(self):
+        from dns_updater import DNSUpdater
+
+        class Provider:
+            needs_settle = False
+            deletes_stale = False
+
+            def normalize(self, records):
+                return records
+
+            def create_zones(self, plans):
+                return [], [(plans[0], 'no WinRM')]
+
+        with self.assertRaises(SystemExit):
+            DNSUpdater('unused.yaml')._apply_changes(Provider(), set(), set(), None, [ZonePlan('x.example.com')])
 
 
 class TestCheckMode(unittest.TestCase):

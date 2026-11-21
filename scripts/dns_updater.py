@@ -18,7 +18,7 @@ import struct
 import sys
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
 import yaml
@@ -46,6 +46,57 @@ class DNSRecord:
                 self.zone == other.zone)
 
 
+@dataclass
+class PtrRecord:
+    """A pointer record: the reverse name of ``ip_address`` -> ``target`` (a host name), in a reverse zone"""
+    ip_address: str
+    target: str
+    zone: str
+    label: str
+    ttl: int = 3600
+
+    def __hash__(self):
+        return hash((self.ip_address, self.target.lower().rstrip('.'), self.zone))
+
+    def __eq__(self, other):
+        return (isinstance(other, PtrRecord) and self.ip_address == other.ip_address
+                and self.target.lower().rstrip('.') == other.target.lower().rstrip('.') and self.zone == other.zone)
+
+
+@dataclass
+class ZonePlan:
+    """A DNS zone that does not exist yet. ``network_id`` (10.1.2.0/24) is set for reverse zones."""
+    name: str
+    reverse: bool = False
+    network_id: str = ""
+
+
+@dataclass
+class PtrPlan:
+    missing: List[PtrRecord] = field(default_factory=list)     # to create (no PTR on that name yet)
+    changed: Dict[PtrRecord, List[str]] = field(default_factory=dict)  # to replace -> current targets
+    matching: List[PtrRecord] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+    @property
+    def to_write(self) -> List[PtrRecord]:
+        return self.missing + list(self.changed)
+
+
+def reverse_name(ip_address: str) -> str:
+    """61.1.124.10.in-addr.arpa for 10.124.1.61"""
+    return '.'.join(reversed(ip_address.split('.'))) + '.in-addr.arpa'
+
+
+def dns_wire_name(fqdn: str) -> Tuple[bytes, int]:
+    """Labels as length-prefixed strings ending with the root label, and how many labels there are"""
+    labels = [label for label in fqdn.rstrip('.').split('.') if label]
+    if not labels or len(fqdn.rstrip('.')) > 253 or any(len(label.encode('utf-8')) > 63 for label in labels):
+        raise ValueError(f"'{fqdn}' is not a valid DNS name")
+    raw = b''.join(bytes([len(label.encode('utf-8'))]) + label.encode('utf-8') for label in labels) + b'\x00'
+    return raw, len(labels)
+
+
 class DNSProvider(ABC):
     """Abstract base class for DNS providers"""
 
@@ -56,6 +107,23 @@ class DNSProvider(ABC):
     writable = False
     # True when written records only show up in DNS after the server loads them (AD over LDAP)
     needs_settle = False
+    # Providers that can also manage zones and pointer (PTR) records
+    supports_ptr = False
+
+    def plan_zones(self, records: Set[DNSRecord], ptr_plan: Optional['PtrPlan'] = None) -> List[ZonePlan]:
+        return []
+
+    def plan_ptr(self, records: Set[DNSRecord]) -> 'PtrPlan':
+        return PtrPlan()
+
+    def create_zones(self, plans: List[ZonePlan]) -> Tuple[List[ZonePlan], List[Tuple[ZonePlan, str]]]:
+        return [], [(plan, "this provider cannot create zones") for plan in plans]
+
+    def create_ptr(self, ptr: PtrRecord) -> bool:
+        return False
+
+    def ptr_resolves(self, ptr: PtrRecord) -> bool:
+        return False
 
     def __init__(self, config: Dict, vault_client: Optional[VaultClient] = None):
         self.config = config
@@ -118,6 +186,11 @@ class ActiveDirectoryProvider(DNSProvider):
         self.backend = None
         self.connection = None
         self.session = None
+        self.zones: Dict[str, str] = {}
+        self.reverse_zones: Dict[str, str] = {}
+        self.serials: Dict[str, int] = {}
+
+    supports_ptr = True
 
     def authenticate(self):
         """Authenticate with Active Directory"""
@@ -190,8 +263,9 @@ class ActiveDirectoryProvider(DNSProvider):
         self.connection = None
         self.backend = None
         self.session = None
-        self.zones: Dict[str, str] = {}
-        self.serials: Dict[str, int] = {}
+        self.zones = {}
+        self.reverse_zones = {}
+        self.serials = {}
         if not (self.username and self.password):
             if self.writable:
                 raise RuntimeError("Active Directory credentials are not set")
@@ -211,6 +285,7 @@ class ActiveDirectoryProvider(DNSProvider):
 
     def _load_zones_ldap(self):
         self.zones = {}
+        self.reverse_zones = {}
         from ldap3 import SUBTREE
         from ldap3.core.exceptions import LDAPException
         connection = self._connect()
@@ -224,13 +299,16 @@ class ActiveDirectoryProvider(DNSProvider):
                 if connection.search(base, '(objectClass=dnsZone)', SUBTREE, attributes=['name']):
                     for entry in connection.entries:
                         name = str(entry.name.value).lower()
-                        if not name.startswith('..'):
-                            self.zones.setdefault(name, entry.entry_dn)
+                        if name.startswith('..') or name.endswith('.ip6.arpa'):
+                            continue
+                        target = self.reverse_zones if name.endswith('.in-addr.arpa') else self.zones
+                        target.setdefault(name, entry.entry_dn)
             except LDAPException:
                 continue
         self.connection = connection
         self.backend = 'ldap'
-        self.logger.info(f"AD DNS zones (LDAP): {', '.join(sorted(self.zones)) or 'none found'}")
+        self.logger.info(f"AD DNS zones (LDAP): {', '.join(sorted(self.zones)) or 'none found'}; "
+                         f"reverse: {', '.join(sorted(self.reverse_zones)) or 'none found'}")
 
     # ---- WinRM fallback: run the Windows DNS Server cmdlets on the domain controller ----
 
@@ -259,7 +337,13 @@ class ActiveDirectoryProvider(DNSProvider):
             raise RuntimeError(' '.join(detail.split())[:400] or f"PowerShell exit code {result.status_code}")
         return (result.std_out or b'').decode('utf-8', 'replace').strip()
 
-    def _load_zones_winrm(self):
+    ZONE_QUERY = ("$all = @(Get-DnsServerZone | Where-Object { $_.ZoneType -eq 'Primary' -and -not $_.IsAutoCreated })\n"
+                  "@{ forward = @($all | Where-Object { -not $_.IsReverseLookupZone } | ForEach-Object { $_.ZoneName }); "
+                  "reverse = @($all | Where-Object { $_.IsReverseLookupZone } | ForEach-Object { $_.ZoneName }) } "
+                  "| ConvertTo-Json -Compress")
+
+    def _open_winrm(self, probe: str) -> str:
+        """Open a WinRM session on the domain controller (kept in self.session) and return the output of ``probe``"""
         try:
             import winrm
         except ImportError as e:
@@ -273,16 +357,9 @@ class ActiveDirectoryProvider(DNSProvider):
                                         transport='ntlm', server_cert_validation='ignore',
                                         operation_timeout_sec=timeout, read_timeout_sec=timeout + 10)
                 self.session = session
-                names = self._run_ps("@(Get-DnsServerZone | Where-Object { $_.ZoneType -eq 'Primary' -and "
-                                     "-not $_.IsReverseLookupZone -and -not $_.IsAutoCreated } | "
-                                     "ForEach-Object { $_.ZoneName }) | ConvertTo-Json -Compress")
-                zones = json.loads(names) if names else []
-                zones = [zones] if isinstance(zones, str) else zones
-                self.zones = {str(zone).lower(): str(zone) for zone in zones}
-                self.backend = 'winrm'
+                output = self._run_ps(probe)
                 self.logger.info(f"Connected over WinRM ({scheme}) as {account}")
-                self.logger.info(f"DNS zones (WinRM): {', '.join(sorted(self.zones)) or 'none found'}")
-                return
+                return output
             except Exception as e:
                 self.session = None
                 errors.append(f"{scheme} {port}: {e}")
@@ -290,6 +367,21 @@ class ActiveDirectoryProvider(DNSProvider):
                 "manage DNS; for an account whose common name differs from its logon name, store the Active "
                 "Directory username as user@domain.")
         raise RuntimeError("; ".join(errors) + hint)
+
+    def _load_zones_winrm(self):
+        names = self._open_winrm(self.ZONE_QUERY)
+        data = json.loads(names) if names else []
+        if isinstance(data, dict):
+            forward, reverse = data.get('forward') or [], data.get('reverse') or []
+        else:
+            forward, reverse = data, []
+        forward = [forward] if isinstance(forward, str) else forward
+        reverse = [reverse] if isinstance(reverse, str) else reverse
+        self.zones = {str(zone).lower(): str(zone) for zone in forward}
+        self.reverse_zones = {str(zone).lower(): str(zone) for zone in reverse if str(zone).lower().endswith('.in-addr.arpa')}
+        self.backend = 'winrm'
+        self.logger.info(f"DNS zones (WinRM): {', '.join(sorted(self.zones)) or 'none found'}; "
+                         f"reverse: {', '.join(sorted(self.reverse_zones)) or 'none found'}")
 
     def _winrm_upsert(self, record: DNSRecord) -> bool:
         zone = self._zone_of(record.hostname)
@@ -454,6 +546,281 @@ class ActiveDirectoryProvider(DNSProvider):
         except Exception as e:
             self.logger.error(f"Failed to write {record.hostname}: {e}")
             return False
+
+    # ---- zones and pointer (PTR) records ----
+
+    REPLICATION_SCOPES = ('Domain', 'Forest', 'Legacy')
+
+    def _option(self, name: str, default):
+        value = self.config.get(name, default)
+        return default if value is None else value
+
+    def _forward_zone_candidate(self, hostname: str) -> str:
+        """The zone to create for a host name that no existing zone covers: the AD domain when the name is in it,
+        otherwise the name without its first label (a wildcard counts as a label)."""
+        name = hostname.lower().rstrip('.')
+        domain = str(self.config.get('domain') or '').lower().strip('.')
+        if domain and (name == domain or name.endswith('.' + domain)):
+            return domain
+        parts = name.split('.')
+        return '.'.join(parts[1:]) if len(parts) > 2 else name
+
+    def plan_zones(self, records: Set[DNSRecord], ptr_plan: Optional[PtrPlan] = None) -> List[ZonePlan]:
+        """Forward and reverse zones that are missing. Empty when zones are not known (no credentials) or creating
+        them is switched off (create_zones: false)."""
+        if self.backend is None or not self._option('create_zones', True):
+            return []
+        candidates = {self._forward_zone_candidate(record.hostname) for record in records
+                      if not self._zone_of(record.hostname)}
+        # a zone that covers another candidate makes the narrower one unnecessary
+        wanted = sorted(zone for zone in candidates if zone.count('.') >= 1 and not any(
+            other != zone and zone.endswith('.' + other) for other in candidates))
+        plans = [ZonePlan(zone) for zone in wanted]
+        seen = set()
+        for ptr in (ptr_plan.to_write if ptr_plan else []):
+            if ptr.zone not in self.reverse_zones and ptr.zone not in seen:
+                seen.add(ptr.zone)
+                plans.append(ZonePlan(ptr.zone, True, self._network_id(ptr.ip_address)))
+        return plans
+
+    def _reverse_prefix(self) -> int:
+        prefix = int(self._option('reverse_zone_prefix', 24))
+        if prefix not in (8, 16, 24):
+            raise ValueError("reverse_zone_prefix must be 8, 16 or 24")
+        return prefix
+
+    def _network_id(self, ip_address: str) -> str:
+        prefix = self._reverse_prefix()
+        octets = ip_address.split('.')[:prefix // 8]
+        return '.'.join(octets + ['0'] * (4 - len(octets))) + f"/{prefix}"
+
+    def _reverse_zone_for(self, ip_address: str) -> str:
+        """The existing reverse zone that covers the address (the most specific one), else the zone to create"""
+        name = reverse_name(ip_address)
+        matches = [zone for zone in self.reverse_zones if name.endswith('.' + zone)]
+        if matches:
+            return max(matches, key=len)
+        octets = ip_address.split('.')[:self._reverse_prefix() // 8]
+        return '.'.join(reversed(octets)) + '.in-addr.arpa'
+
+    def _ptr_targets(self, records: Set[DNSRecord]) -> Dict[str, str]:
+        """One name per address: the shortest host name (then alphabetical). Wildcards and bad addresses are skipped."""
+        chosen: Dict[str, str] = {}
+        for record in sorted(records, key=lambda r: (len(r.hostname), r.hostname.lower())):
+            host = record.hostname.rstrip('.')
+            try:
+                address = socket.inet_ntoa(socket.inet_aton(record.ip_address))
+            except OSError:
+                continue
+            if '*' in host or address != record.ip_address:
+                continue
+            chosen.setdefault(address, host)
+        return chosen
+
+    def existing_ptr_targets(self, ip_address: str) -> List[str]:
+        """What the DNS server answers for the address (read-only); empty when there is no reverse zone or name"""
+        import dns.exception
+        import dns.resolver
+
+        try:
+            nameserver = socket.gethostbyname(self.server)
+        except OSError as e:
+            raise RuntimeError(f"Cannot resolve the AD DNS server '{self.server}': {e}") from e
+        resolver = dns.resolver.Resolver(configure=False)
+        resolver.nameservers = [nameserver]
+        resolver.lifetime = float(self.config.get('timeout', 10))
+        try:
+            answer = resolver.resolve(reverse_name(ip_address), 'PTR')
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+            return []  # no reverse zone (a server that forwards may answer SERVFAIL)
+        except dns.exception.DNSException as e:
+            raise RuntimeError(f"PTR query for {ip_address} against {self.server} failed: {e.__class__.__name__}") from e
+        return sorted(str(rdata.target).rstrip('.') for rdata in answer)
+
+    def plan_ptr(self, records: Set[DNSRecord]) -> PtrPlan:
+        """Compare the wanted pointer records with what the DNS server answers"""
+        plan = PtrPlan()
+        by_address = {}
+        for record in records:
+            by_address.setdefault(record.ip_address, []).append(record.hostname.rstrip('.'))
+        chosen = self._ptr_targets(records)
+        for address in sorted(chosen, key=lambda ip: tuple(int(part) for part in ip.split('.'))):
+            others = sorted(set(by_address[address]) - {chosen[address]})
+            if others:
+                plan.notes.append(f"{address} is used by {len(others) + 1} names; the pointer record uses "
+                                  f"{chosen[address]} (not {', '.join(others)})")
+        skipped = sorted(r.hostname for r in records if '*' in r.hostname)
+        if skipped:
+            plan.notes.append("no pointer record for wildcard names: " + ", ".join(skipped))
+        for address, host in chosen.items():
+            zone = self._reverse_zone_for(address)
+            name = reverse_name(address)
+            ptr = PtrRecord(address, host + '.', zone, name[:-(len(zone) + 1)], 3600)
+            current = self.existing_ptr_targets(address)
+            if [t.lower() for t in current] == [host.lower()]:
+                plan.matching.append(ptr)
+            elif current:
+                plan.changed[ptr] = current
+            else:
+                plan.missing.append(ptr)
+        return plan
+
+    def ptr_resolves(self, ptr: PtrRecord) -> bool:
+        return [t.lower() for t in self.existing_ptr_targets(ptr.ip_address)] == [ptr.target.lower().rstrip('.')]
+
+    def create_zones(self, plans: List[ZonePlan]) -> Tuple[List[ZonePlan], List[Tuple[ZonePlan, str]]]:
+        """Create the zones as AD-integrated primary zones (secure dynamic updates) through the DNS Server cmdlets on
+        the domain controller. Returns (created, [(plan, reason)])."""
+        created: List[ZonePlan] = []
+        failed: List[Tuple[ZonePlan, str]] = []
+        if not plans:
+            return created, failed
+        scope = str(self._option('zone_replication_scope', 'Domain'))
+        if scope not in self.REPLICATION_SCOPES:
+            reason = f"zone_replication_scope must be one of {', '.join(self.REPLICATION_SCOPES)}"
+            return created, [(plan, reason) for plan in plans]
+        try:
+            if self.session is None:
+                self._open_winrm("'ok'")
+        except RuntimeError as error:
+            reason = (f"creating a zone needs WinRM on the domain controller (LDAP cannot create zones): {error} "
+                      "Create the zone on the domain controller instead, for example: "
+                      + "; ".join(self._manual_command(plan, scope) for plan in plans))
+            return created, [(plan, reason) for plan in plans]
+        quote = self._ps_quote
+        for plan in plans:
+            if not re.match(r'^[A-Za-z0-9_.-]+$', plan.name):
+                failed.append((plan, "unsupported characters in the zone name"))
+                continue
+            create = (f"Add-DnsServerPrimaryZone -NetworkId {quote(plan.network_id)} " if plan.reverse
+                      else f"Add-DnsServerPrimaryZone -Name {quote(plan.name)} ")
+            script = (f"$zone = {quote(plan.name)}\n"
+                      "if (Get-DnsServerZone -Name $zone -ErrorAction SilentlyContinue) { 'EXISTS' } else {\n"
+                      f"  {create}-ReplicationScope {quote(scope)} -DynamicUpdate Secure | Out-Null\n"
+                      "  'CREATED'\n}\n")
+            try:
+                outcome = (self._run_ps(script).splitlines() or [''])[-1].strip()
+            except RuntimeError as error:
+                failed.append((plan, str(error)))
+                continue
+            if outcome in ('CREATED', 'EXISTS'):
+                self.logger.info(f"{'Created' if outcome == 'CREATED' else 'Already exists'}: "
+                                 f"{'reverse ' if plan.reverse else ''}zone {plan.name}")
+                created.append(plan)
+            else:
+                failed.append((plan, f"unexpected response from the domain controller: {outcome or 'empty'}"))
+        if created and self.backend == 'ldap':
+            self._load_zones_ldap()  # pick up the new zones' distinguished names
+        elif created:
+            for plan in created:
+                (self.reverse_zones if plan.reverse else self.zones)[plan.name] = plan.name
+        return created, failed
+
+    @staticmethod
+    def _manual_command(plan: ZonePlan, scope: str) -> str:
+        if plan.reverse:
+            return f"Add-DnsServerPrimaryZone -NetworkId '{plan.network_id}' -ReplicationScope {scope} -DynamicUpdate Secure"
+        return f"Add-DnsServerPrimaryZone -Name '{plan.name}' -ReplicationScope {scope} -DynamicUpdate Secure"
+
+    @staticmethod
+    def _ptr_blob(target: str, ttl: int, serial: int) -> bytes:
+        """DNS_RPC_RECORD for a PTR record: the target as DNS_COUNT_NAME (length incl. the final zero, label count,
+        length-prefixed labels, zero)"""
+        raw, labels = dns_wire_name(target)
+        data = bytes([len(raw), labels]) + raw
+        return (struct.pack('<HHBBHI', len(data), 12, 5, 240, 0, serial) + struct.pack('>I', ttl)
+                + struct.pack('<II', 0, 0) + data)
+
+    @staticmethod
+    def _split_ptr_blobs(blobs) -> Tuple[List[bytes], List[str]]:
+        """Separate existing dnsRecord values into non-PTR records (kept untouched) and PTR targets"""
+        others, targets = [], []
+        for blob in blobs:
+            blob = bytes(blob)
+            if len(blob) >= 26 and struct.unpack_from('<H', blob, 2)[0] == 12:
+                data, labels, position, names = blob[24:], blob[25], 2, []
+                for _ in range(labels):
+                    size = data[position]
+                    names.append(data[position + 1:position + 1 + size].decode('utf-8', 'replace'))
+                    position += size + 1
+                targets.append('.'.join(names))
+            else:
+                others.append(blob)
+        return others, targets
+
+    def create_ptr(self, ptr: PtrRecord) -> bool:
+        """Create the PTR record, or replace the PTR records already on that name; other record types are kept"""
+        from ldap3 import LEVEL, MODIFY_REPLACE
+        from ldap3.utils.conv import escape_filter_chars
+        from ldap3.utils.dn import escape_rdn
+
+        try:
+            if self.backend == 'winrm':
+                return self._winrm_upsert_ptr(ptr)
+            if not self.connection:
+                raise RuntimeError("Not connected to Active Directory")
+            zone_dn = self.reverse_zones.get(ptr.zone)
+            if not zone_dn:
+                raise RuntimeError(f"The reverse zone {ptr.zone} does not exist")
+            blob = self._ptr_blob(ptr.target, ptr.ttl, self._soa_serial(ptr.zone))
+            self.connection.search(zone_dn, f"(&(objectClass=dnsNode)(name={escape_filter_chars(ptr.label)}))", LEVEL,
+                                   attributes=['dnsRecord'])
+            wanted = ptr.target.rstrip('.').lower()
+            if self.connection.entries:
+                entry = self.connection.entries[0]
+                others, targets = self._split_ptr_blobs(entry.dnsRecord.raw_values if 'dnsRecord' in entry else [])
+                if [t.lower() for t in targets] == [wanted]:
+                    self.logger.info(f"Already present: {ptr.ip_address} -> {ptr.target}")
+                    return True
+                self.logger.info(f"Replacing PTR {ptr.ip_address}: {', '.join(targets) or 'no PTR record'} "
+                                 f"-> {ptr.target}")
+                ok = self.connection.modify(entry.entry_dn, {'dnsRecord': [(MODIFY_REPLACE, others + [blob])],
+                                                              'dNSTombstoned': [(MODIFY_REPLACE, ['FALSE'])]})
+            else:
+                self.logger.info(f"Creating PTR record: {ptr.ip_address} -> {ptr.target}")
+                ok = self.connection.add(f"DC={escape_rdn(ptr.label)},{zone_dn}", ['top', 'dnsNode'],
+                                         {'dnsRecord': [blob], 'dNSTombstoned': 'FALSE'})
+            if not ok:
+                raise RuntimeError(self.connection.result.get('description', 'LDAP error')
+                                   + f": {self.connection.result.get('message', '')}".rstrip(': '))
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to write the PTR record for {ptr.ip_address}: {e}")
+            return False
+
+    def _winrm_upsert_ptr(self, ptr: PtrRecord) -> bool:
+        if not (self.HOSTNAME_PATTERN.match(ptr.label) and self.HOSTNAME_PATTERN.match(ptr.target)):
+            raise RuntimeError(f"Unsupported characters in the pointer record for {ptr.ip_address}")
+        quote = self._ps_quote
+        script = (
+            f"$zone = {quote(ptr.zone)}; $name = {quote(ptr.label)}; $target = {quote(ptr.target)}\n"
+            f"$ttl = New-TimeSpan -Seconds {int(ptr.ttl)}\n"
+            "$existing = @(Get-DnsServerResourceRecord -ZoneName $zone -Name $name -RRType PTR "
+            "-ErrorAction SilentlyContinue | Where-Object { $_.HostName -ieq $name })\n"
+            "$current = ($existing | ForEach-Object { $_.RecordData.PtrDomainName }) -join ','\n"
+            "if ($existing.Count -eq 1 -and $current -ieq $target) { 'UNCHANGED' } "
+            "elseif ($existing.Count -eq 0) {\n"
+            "  Add-DnsServerResourceRecordPtr -ZoneName $zone -Name $name -PtrDomainName $target -TimeToLive $ttl "
+            "| Out-Null\n  'CREATED'\n"
+            "} elseif ($existing.Count -eq 1) {\n"
+            "  $new = $existing[0].Clone()\n  $new.RecordData.PtrDomainName = $target\n"
+            "  Set-DnsServerResourceRecord -ZoneName $zone -OldInputObject $existing[0] -NewInputObject $new "
+            "| Out-Null\n  'REPLACED ' + $current\n"
+            "} else {\n"
+            "  foreach ($old in $existing) { Remove-DnsServerResourceRecord -ZoneName $zone -InputObject $old -Force }\n"
+            "  Add-DnsServerResourceRecordPtr -ZoneName $zone -Name $name -PtrDomainName $target -TimeToLive $ttl "
+            "| Out-Null\n  'REPLACED ' + $current\n}\n")
+        output = self._run_ps(script).splitlines()
+        outcome = output[-1].strip() if output else ''
+        if outcome == 'UNCHANGED':
+            self.logger.info(f"Already present: {ptr.ip_address} -> {ptr.target}")
+        elif outcome.startswith('REPLACED'):
+            self.logger.info(f"Replaced PTR {ptr.ip_address}: {outcome[len('REPLACED'):].strip()} -> {ptr.target}")
+        elif outcome == 'CREATED':
+            self.logger.info(f"Created PTR record: {ptr.ip_address} -> {ptr.target}")
+        else:
+            raise RuntimeError(f"Unexpected response from the domain controller: {outcome or 'empty'}")
+        return True
 
     def update_record(self, record: DNSRecord) -> bool:
         return self.create_record(record)
@@ -784,8 +1151,16 @@ class DNSUpdater:
         comparator = DNSComparator(self.logger)
         missing, stale, matching = comparator.compare(desired_records, actual_records)
 
+        # Pointer records and the zones they (and the host names) need; --check stays an A record gate
+        ptr_plan = None
+        zone_plans: List[ZonePlan] = []
+        if provider.supports_ptr and not self.check:
+            if provider_config.get('create_ptr_records', True):
+                ptr_plan = provider.plan_ptr(desired_records)
+            zone_plans = provider.plan_zones(desired_records, ptr_plan)
+
         # Print detailed report
-        self._print_report(missing, stale, matching)
+        self._print_report(missing, stale, matching, ptr_plan, zone_plans)
 
         # Apply changes if not in dry-run mode
         if not self.dry_run:
@@ -793,7 +1168,7 @@ class DNSUpdater:
                 self.logger.error(f"Writing records to '{provider_name}' is not implemented yet; "
                                   "nothing was changed")
                 sys.exit(2)
-            self._apply_changes(provider, missing, stale)
+            self._apply_changes(provider, missing, stale, ptr_plan, zone_plans)
         else:
             self.logger.info("DRY-RUN MODE: No changes applied")
             if self.check and missing:
@@ -825,7 +1200,8 @@ class DNSUpdater:
                 records.add(DNSRecord(hostname, ip, extract_zone(hostname)))
         return records
 
-    def _print_report(self, missing: Set[DNSRecord], stale: Set[DNSRecord], matching: Set[DNSRecord]):
+    def _print_report(self, missing: Set[DNSRecord], stale: Set[DNSRecord], matching: Set[DNSRecord],
+                      ptr_plan: Optional[PtrPlan] = None, zone_plans=()):
         """Print comparison report"""
         print("\n" + "=" * 80)
         print("DNS UPDATE REPORT")
@@ -862,11 +1238,50 @@ class DNSUpdater:
         print("\n" + "=" * 80)
         print(f"Summary: {len(matching)} matching, {len(new)} missing, {len(changed)} changed, {len(stale_only)} stale")
         print("=" * 80 + "\n")
+        self._print_ptr_report(ptr_plan, zone_plans)
 
-    def _apply_changes(self, provider: DNSProvider, missing: Set[DNSRecord], stale: Set[DNSRecord]):
+    @staticmethod
+    def _print_ptr_report(ptr_plan: Optional[PtrPlan], zone_plans) -> None:
+        if zone_plans:
+            print(f"+ ZONES TO CREATE ({len(zone_plans)} - AD-integrated primary zones, secure dynamic updates):")
+            for plan in zone_plans:
+                detail = f" (network {plan.network_id})" if plan.reverse else ""
+                print(f"  {'reverse' if plan.reverse else 'forward':8} {plan.name}{detail}")
+            print()
+        if ptr_plan is None:
+            return
+        print("=" * 80)
+        print("POINTER (PTR) RECORDS")
+        print("=" * 80)
+        if ptr_plan.matching:
+            print(f"\n✓ MATCHING ({len(ptr_plan.matching)} records):")
+            for ptr in sorted(ptr_plan.matching, key=lambda p: p.ip_address):
+                print(f"  {ptr.ip_address:16} -> {ptr.target}")
+        if ptr_plan.missing:
+            print(f"\n+ MISSING ({len(ptr_plan.missing)} records - would be created):")
+            for ptr in sorted(ptr_plan.missing, key=lambda p: p.ip_address):
+                print(f"  {ptr.ip_address:16} -> {ptr.target}   (zone {ptr.zone})")
+        if ptr_plan.changed:
+            print(f"\n~ CHANGED ({len(ptr_plan.changed)} records - point to another name, would be replaced):")
+            for ptr, current in sorted(ptr_plan.changed.items(), key=lambda item: item[0].ip_address):
+                print(f"  {ptr.ip_address:16} {', '.join(current)} -> {ptr.target}")
+        for note in ptr_plan.notes:
+            print(f"\n  note: {note}")
+        print(f"\nPTR summary: {len(ptr_plan.matching)} matching, {len(ptr_plan.missing)} missing, "
+              f"{len(ptr_plan.changed)} changed")
+        print("=" * 80 + "\n")
+
+    def _apply_changes(self, provider: DNSProvider, missing: Set[DNSRecord], stale: Set[DNSRecord],
+                       ptr_plan: Optional[PtrPlan] = None, zone_plans=()):
         """Apply DNS changes to the provider"""
         self.logger.info("Applying changes...")
 
+        zones_created, zones_failed = provider.create_zones(list(zone_plans)) if zone_plans else ([], [])
+        for plan, reason in zones_failed:
+            self.logger.error(f"Could not create the {'reverse ' if plan.reverse else ''}zone {plan.name}: {reason}")
+
+        if zones_created:
+            missing = provider.normalize(missing)  # the new zones now own their host names
         written = []
         deleted = 0
 
@@ -876,24 +1291,39 @@ class DNSUpdater:
 
         created = len(written)
         failed = len(missing) - created
+        ptr_written: List[PtrRecord] = []
+        ptr_to_write = ptr_plan.to_write if ptr_plan else []
+        for ptr in ptr_to_write:
+            if provider.create_ptr(ptr):
+                ptr_written.append(ptr)
+        ptr_failed = len(ptr_to_write) - len(ptr_written)
+        failed += ptr_failed + len(zones_failed)
         if provider.deletes_stale:
             for record in stale:
                 if provider.delete_record(record):
                     deleted += 1
 
-        self.logger.info(f"Changes applied: {created} created or updated, {deleted} deleted, {failed} failed")
-        unverified = self._verify(provider, written) if written and provider.needs_settle else []
+        zones_note = f", {len(zones_created)} zones created" if zone_plans else ""
+        ptr_note = f", {len(ptr_written)} PTR records created or updated" if ptr_plan else ""
+        self.logger.info(f"Changes applied: {created} created or updated{ptr_note}{zones_note}, {deleted} deleted, "
+                         f"{failed} failed")
+        unverified, ptr_unverified = ([], [])
+        if (written or ptr_written) and provider.needs_settle:
+            unverified, ptr_unverified = self._verify(provider, written, ptr_written)
         if failed:
             sys.exit(1)
-        if unverified:
-            self.logger.error(f"{len(unverified)} records were written but do not resolve yet. The DNS service loads "
-                              "AD changes on its polling interval (about 3 minutes by default); refresh the zone on "
-                              "the domain controller or run Validate again shortly")
+        if unverified or ptr_unverified:
+            self.logger.error(f"{len(unverified) + len(ptr_unverified)} records were written but do not resolve yet. "
+                              "The DNS service loads AD changes on its polling interval (about 3 minutes by default, "
+                              "and a new zone is loaded the same way); refresh the zone on the domain controller or "
+                              "run Validate again shortly")
             sys.exit(1)
 
-    def _verify(self, provider: DNSProvider, written: List[DNSRecord]) -> List[DNSRecord]:
-        """Wait for the DNS server to load the written records; returns the ones still not resolving"""
+    def _verify(self, provider: DNSProvider, written: List[DNSRecord], written_ptr=()):
+        """Wait for the DNS server to load the written records; returns the (A, PTR) ones still not resolving"""
         pending = set(written)
+        pending_ptr = set(written_ptr)
+        total = len(written) + len(pending_ptr)
         zones = {record.zone for record in written}
         for check in range(1, self.VERIFY_CHECKS + 1):
             self.logger.info(f"Waiting {self.VERIFY_INTERVAL}s for the DNS service to load the changes "
@@ -903,13 +1333,16 @@ class DNSUpdater:
             for zone in zones:
                 visible |= provider.get_records(zone)
             pending = {record for record in pending if record not in visible}
-            if not pending:
-                self.logger.info(f"Verified: all {len(written)} records resolve to their addresses")
-                return []
-            self.logger.info(f"{len(written) - len(pending)} of {len(written)} records resolve so far")
+            pending_ptr = {ptr for ptr in pending_ptr if not provider.ptr_resolves(ptr)}
+            if not pending and not pending_ptr:
+                self.logger.info(f"Verified: all {total} records resolve to their addresses")
+                return [], []
+            self.logger.info(f"{total - len(pending) - len(pending_ptr)} of {total} records resolve so far")
         for record in sorted(pending, key=lambda r: r.hostname):
             self.logger.warning(f"Not resolving yet: {record.hostname} -> {record.ip_address}")
-        return sorted(pending, key=lambda r: r.hostname)
+        for ptr in sorted(pending_ptr, key=lambda p: p.ip_address):
+            self.logger.warning(f"Not resolving yet: PTR {ptr.ip_address} -> {ptr.target}")
+        return sorted(pending, key=lambda r: r.hostname), sorted(pending_ptr, key=lambda p: p.ip_address)
 
 
 def main():

@@ -1,6 +1,6 @@
 # DNS Manager
 
-The DNS Manager page (Environment Preparation > DNS Manager) builds the list of A records for a deployment and compares it with your DNS server. Validate reports what is missing. Synchronize creates the missing records in Active Directory DNS.
+The DNS Manager page (Environment Preparation > DNS Manager) builds the list of A records for a deployment and compares it with your DNS server. Validate reports what is missing. Synchronize creates the missing records in Active Directory DNS, together with the pointer (PTR) records and any forward or reverse zone that does not exist yet.
 
 ## What it does
 
@@ -83,8 +83,28 @@ Synchronize binds to the domain controller over LDAP with the bind account, find
 - **WinRM fallback:** when no LDAP bind works, Synchronize connects to the domain controller over WinRM (HTTP 5985, then HTTPS 5986) with NTLM and runs the Windows DNS Server cmdlets there (`Get-DnsServerZone`, `Add-DnsServerResourceRecordA`, `Set-DnsServerResourceRecord`). WinRM is enabled by default on Windows Server 2012 and later, and the account needs rights to manage DNS (Administrator or DnsAdmins). The domain controller must also run the DNS Server role, which an AD DNS server does. Validate never uses WinRM.
 - The WinRM logon name is derived from the bind DN as `<common name>@<domain>`. If the account's common name differs from its logon name, store the Active Directory username (as `user@domain`) under Passwords and secrets.
 - Synchronize logs which method it used (`AD DNS zones (LDAP)` or `Connected over WinRM`).
-- A hostname that is not inside any AD-integrated zone is reported as failed, and the run exits with an error.
+- A hostname that is not inside any AD-integrated zone gets its zone created (see below); when that is switched off or fails, the record is reported as failed and the run exits with an error.
 - Existing records are changed only for names in your `records` list.
+
+## Pointer records and zones (Active Directory)
+
+Validate and Synchronize also handle reverse lookups:
+
+- **PTR records:** one per address, pointing to the host name. When several names share an address (for example `api` and `api-int`), the shortest name is used and the others are listed in a note. Wildcard names such as `*.apps...` get no PTR record. A PTR record that points to another name is replaced; nothing is deleted. Validate reads the current PTR records from the DNS server (port 53) and reports them as matching, missing, or changed.
+- **Missing zones:** when no AD-integrated zone covers a host name, its forward zone is created (the `domain` of the provider when the name is inside it, otherwise the name without its first label). When no reverse zone covers an address, a `c.b.a.in-addr.arpa` zone is created (a /24); an existing reverse zone that covers the address is always used. Validate lists the zones that would be created.
+- **How zones are created:** as AD-integrated primary zones with secure dynamic updates, through the DNS Server cmdlets over WinRM (`Add-DnsServerPrimaryZone`) with the bind account. LDAP alone cannot create a zone. If WinRM is not reachable, the job fails and prints the PowerShell command to run on the domain controller. A new zone is an authoritative zone: make sure the name is not already served elsewhere.
+- **Order:** zones, then A records, then PTR records. The final check also covers the PTR records.
+
+Options of the provider in `dns_config.ezai.yaml` (all optional):
+
+| Option | Default | Meaning |
+|---|---|---|
+| `create_ptr_records` | `true` | Create PTR records. `false` leaves reverse lookups alone |
+| `create_zones` | `true` | Create missing forward and reverse zones. `false` only reports them |
+| `reverse_zone_prefix` | `24` | Size of a reverse zone that has to be created: `24`, `16` or `8` |
+| `zone_replication_scope` | `Domain` | Where a new zone is stored: `Domain`, `Forest` or `Legacy` |
+
+`--check` (used by the pre-install test) only gates on A records.
 
 ## Command line
 
@@ -106,6 +126,8 @@ Credentials are read from the environment: `ad_username` and `ad_password`, or `
 | "Active Directory credentials are not set" | The bind password is not stored in Shared services, or the AD password is not stored on the DNS Manager page |
 | "LDAP failed: ... WinRM fallback failed: ..." | Neither method worked. The LDAP part says why LDAP failed (`strongerAuthRequired` means signing or TLS is required and there is no LDAPS certificate). The WinRM part says why WinRM failed: wrong account name or password, WinRM not enabled or blocked on 5985/5986, or no rights to manage DNS |
 | "the pywinrm package is not installed" | Update the appliance with the release that includes it, or `pip install pywinrm` |
-| "No AD-integrated DNS zone found for ..." | The hostname's domain is not an AD-integrated zone on that server |
+| "No AD-integrated DNS zone found for ..." | The zone could not be created; see the zone error above it (WinRM reachable? `create_zones` off?) |
+| "Could not create the zone ..." | Zones are created over WinRM; open 5985/5986 to the domain controller or run the printed `Add-DnsServerPrimaryZone` command there |
+| PTR records are "missing" although they were written | The DNS service loads new records and zones on its polling interval (about 3 minutes); run Validate again |
 | Generate Configuration warns that no records were found | Save the OpenShift install file, or add devices to the Initial Inventory |
 | Validate still shows missing records right after Synchronize | Records written over LDAP appear after the DNS service polls AD (about 3 minutes by default); refresh the zone or wait |

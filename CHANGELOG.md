@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.52] - 2026-11-21
+
+### Added
+- DNS Manager (Active Directory): Synchronize now creates the pointer (PTR) records, which were not written before, and creates a missing forward zone or reverse zone (`c.b.a.in-addr.arpa`) as an AD-integrated primary zone with secure dynamic updates. Zones are created through WinRM (`Add-DnsServerPrimaryZone`); if WinRM is not reachable the job fails with the command to run on the domain controller. Validate lists the zones to create and the PTR records as matching, missing, or changed. New provider options `create_ptr_records`, `create_zones`, `reverse_zone_prefix` and `zone_replication_scope` (all optional). One PTR per address (shortest name when several share it), wildcard names get none, and nothing is deleted. Not yet verified against a live domain controller.
+
 ## [0.1.51] - 2026-11-20
 
 ### Added
