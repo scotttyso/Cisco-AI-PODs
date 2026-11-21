@@ -495,6 +495,12 @@ class TestPointerRecordsAndZones(unittest.TestCase):
         self.assertTrue(any('api-int.aipod.local' in note for note in plan.notes))
         self.assertTrue(any('wildcard' in note for note in plan.notes))
 
+    def test_ptr_is_not_queried_when_its_reverse_zone_is_missing(self):
+        provider = self.provider()
+        with patch.object(provider, 'existing_ptr_targets', side_effect=AssertionError('queried')):
+            plan = provider.plan_ptr(self.records(('node1.aipod.local', '10.124.5.59')))
+        self.assertEqual([(p.ip_address, p.zone) for p in plan.missing], [('10.124.5.59', '5.124.10.in-addr.arpa')])
+
     def test_zones_are_planned_for_hosts_and_addresses_without_one(self):
         provider = self.provider()
         records = self.records(('node1.aipod.local', '198.18.2.1'), ('a.rich.example.com', '10.1.2.3'),

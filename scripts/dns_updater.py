@@ -656,7 +656,8 @@ class ActiveDirectoryProvider(DNSProvider):
             zone = self._reverse_zone_for(address)
             name = reverse_name(address)
             ptr = PtrRecord(address, host + '.', zone, name[:-(len(zone) + 1)], 3600)
-            current = self.existing_ptr_targets(address)
+            # without a reverse zone nothing can exist, and the server would forward the query and time out
+            current = self.existing_ptr_targets(address) if zone in self.reverse_zones else []
             if [t.lower() for t in current] == [host.lower()]:
                 plan.matching.append(ptr)
             elif current:
@@ -666,7 +667,11 @@ class ActiveDirectoryProvider(DNSProvider):
         return plan
 
     def ptr_resolves(self, ptr: PtrRecord) -> bool:
-        return [t.lower() for t in self.existing_ptr_targets(ptr.ip_address)] == [ptr.target.lower().rstrip('.')]
+        try:
+            current = self.existing_ptr_targets(ptr.ip_address)
+        except RuntimeError:
+            return False  # a new zone may not be loaded yet; the caller retries
+        return [t.lower() for t in current] == [ptr.target.lower().rstrip('.')]
 
     def create_zones(self, plans: List[ZonePlan]) -> Tuple[List[ZonePlan], List[Tuple[ZonePlan, str]]]:
         """Create the zones as AD-integrated primary zones (secure dynamic updates) through the DNS Server cmdlets on

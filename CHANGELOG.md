@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.53] - 2026-11-21
+
+### Fixed
+- DNS Manager (Active Directory): a PTR lookup for an address whose reverse zone does not exist yet timed out and aborted the run. The query is now skipped (the record is reported as missing and its zone is created), and a lookup that fails while verifying is retried instead of aborting.
+
 ## [0.1.52] - 2026-11-21
 
 ### Added
